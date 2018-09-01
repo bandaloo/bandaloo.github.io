@@ -45,6 +45,14 @@ var stack = [] // Stack used to push and pop model view matrices
 var mvMatrix, pMatrix;
 var modelView, projection;
 
+// Shadow projection matrix
+var sMatrix;
+
+// Variable used for keeping track of height during traversal for shadows
+var height;
+
+var drawShadows = true;
+
 // Constants to set up projection matrix
 const eye = vec3(0, 3, 15);
 const at = vec3(0.0, -5.0, 0.0);
@@ -68,6 +76,11 @@ var materialDiffuse = vec4(1.0, 0.8, 0.0, 1.0);
 var materialSpecular = vec4(1.0, 1.0, 1.0, 1.0);
 var materialShininess = 20.0;
 var phi = 0.9; // Angle used for spotlight
+
+// Multiply light matrices by material matrices
+var ambientProduct = mult(lightAmbient, materialAmbient);
+var diffuseProduct = mult(lightDiffuse, materialDiffuse);
+var specularProduct = mult(lightSpecular, materialSpecular);
 
 // Constructor for an object that hangs on mobile
 function Item(leftItem, rightItem, distance, angle, speed, color, drawFunc) {
@@ -99,6 +112,19 @@ function setLighting(normals) {
 	gl.bufferData(gl.ARRAY_BUFFER, flatten(normals), gl.STATIC_DRAW);
 }
 
+// Zeros out all lighting vectors for drawing shadows
+function darkenLight() {
+	gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"), flatten(vec4(0, 0, 0, 0)));
+	gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"), flatten(vec4(0, 0, 0, 0)));
+	gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), flatten(vec4(0, 0, 0, 0)));
+}
+
+// Resets all lighting vectors for drawing objects
+function resetLight() {
+	gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"), flatten(ambientProduct));
+	gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct));
+}
+
 // Draws the crossbar for an item
 function drawBar(item) {
 	if (item != null) {
@@ -112,6 +138,24 @@ function drawBar(item) {
 		mvMatrix = stack.pop();
 		stack.push(mvMatrix);
 	}
+}
+
+// Draws shadow of item
+function drawShadow(item) {
+	var lightTransformed = mult(inverse4(mvMatrix), lightPosition);
+	mvMatrix = mult(mvMatrix, translate(lightTransformed[0], lightTransformed[1], lightTransformed[2])); // Set the shadow matrix based on the current lighting position
+	sMatrix = mat4();
+	sMatrix[3][3] = 0.0;
+	sMatrix[3][1] = -1.0 / lightTransformed[1];
+	mvMatrix = mult(mvMatrix, sMatrix);
+	mvMatrix = mult(mvMatrix, translate(-lightTransformed[0], -lightTransformed[1], -lightTransformed[2]));
+	var scalar = -(10 + height) * 0.1;
+	// Multiply in reverse order so it happens first
+	mvMatrix = mult(translate(scalar * lightPosition[0], scalar * lightPosition[1], scalar * lightPosition[2]), mvMatrix); darkenLight();
+	item.drawFunc(vec4(0, 0, 0, 1.0));
+	resetLight();
+	mvMatrix = stack.pop();
+	stack.push(mvMatrix);
 }
 
 // Traverses the tree structure and draws objects and crossbars
@@ -134,12 +178,15 @@ function traverse(item) {
 	mvMatrix = mult(mvMatrix, translate(0, -2.5, item.distance));
 	mvMatrix = mult(mvMatrix, rotateY(item.angle));
 	stack.push(mvMatrix);
+    height -= 2.5;
 
 	// Draws item
 	item.drawFunc(item.color);
 
 	mvMatrix = stack.pop()
 	stack.push(mvMatrix)
+    if (drawShadows)
+        drawShadow(item);
 
 	// Draws both bars below
 	drawBar(item.leftItem);
@@ -149,6 +196,7 @@ function traverse(item) {
 	traverse(item.leftItem);
 	mvMatrix = stack.pop();
 	traverse(item.rightItem);
+    height += 2.5;
 	return;
 }
 
@@ -185,6 +233,8 @@ function render() {
 
 	// Set the model view matrix to the regular matrix
 	mvMatrix = lookAt(eye, at , up);
+
+    height = 0;
 
 	// Start tree traversal starting from root
 	traverse(itemM)
@@ -263,45 +313,44 @@ function triangle(a, b, c)
 
 // Function that is called recursively to subdivide faces to create sphere
 function divideTriangle(a, b, c, count) {
-  if ( count > 0 ) {
-    var ab = mix(a, b, 0.5);
-    var ac = mix(a, c, 0.5);
-    var bc = mix(b, c, 0.5);
+    if ( count > 0 ) {
+        var ab = mix(a, b, 0.5);
+        var ac = mix(a, c, 0.5);
+        var bc = mix(b, c, 0.5);
 
-    ab = normalize(ab, true);
-    ac = normalize(ac, true);
-    bc = normalize(bc, true);
+        ab = normalize(ab, true);
+        ac = normalize(ac, true);
+        bc = normalize(bc, true);
 
-    divideTriangle(a, ab, ac, count - 1);
-    divideTriangle(ab, b, bc, count - 1);
-    divideTriangle(bc, c, ac, count - 1);
-    divideTriangle(ab, bc, ac, count - 1);
-  }
-  else {
-    triangle( a, b, c );
-  }
+        divideTriangle(a, ab, ac, count - 1);
+        divideTriangle(ab, b, bc, count - 1);
+        divideTriangle(bc, c, ac, count - 1);
+        divideTriangle(ab, bc, ac, count - 1);
+    } else {
+        triangle( a, b, c );
+    }
 }
 
 // Sets the vertex normals and points for the cube
 function setSphere() {
-	tetrahedron(va, vb, vc, vd, numTimesToSubdivide);
+    tetrahedron(va, vb, vc, vd, numTimesToSubdivide);
 }
 
 function tetrahedron(a, b, c, d, n) {
-  divideTriangle(a, b, c, n);
-  divideTriangle(d, c, b, n);
-  divideTriangle(a, d, b, n);
-  divideTriangle(a, c, d, n);
+    divideTriangle(a, b, c, n);
+    divideTriangle(d, c, b, n);
+    divideTriangle(a, d, b, n);
+    divideTriangle(a, c, d, n);
 }
 
 // Sets the diffuse lighting color and draws the points corresponding to the sphere in the buffer
 function drawSphere(color) {
-	mvMatrix = mult(mvMatrix, scalem(0.75, 0.75, 0.75)); // Scale the sphere since it is a little big
-	gl.uniformMatrix4fv(modelView, false, flatten(mvMatrix));
+    mvMatrix = mult(mvMatrix, scalem(0.75, 0.75, 0.75)); // Scale the sphere since it is a little big
+    gl.uniformMatrix4fv(modelView, false, flatten(mvMatrix));
 	setDiffuse(color);
-  for (var i = cubePoints.length; i < cubePoints.length + spherePoints.length; i += 3) {
-    gl.drawArrays(gl.TRIANGLES, i, 3);
-	}
+    for (var i = cubePoints.length; i < cubePoints.length + spherePoints.length; i += 3) {
+        gl.drawArrays(gl.TRIANGLES, i, 3);
+    }
 }
 
 // Takes three points and returns the normal to the face corresponding to the plane of those points
@@ -367,6 +416,10 @@ function main() {
 			if (speedScalar < 0) {
 				speedScalar = 0;
 			}
+            break;
+			case 'A': // Toggle shadows
+			drawShadows = !drawShadows;
+            break;
 		}
 	};
 
@@ -390,11 +443,6 @@ function main() {
 	// Initialize shaders
 	program = initShaders(gl, "vshader", "fshader");
 	gl.useProgram(program);
-
-	// Multiply light matrices by material matrices
-	var ambientProduct = mult(lightAmbient, materialAmbient);
-	var diffuseProduct = mult(lightDiffuse, materialDiffuse);
-	var specularProduct = mult(lightSpecular, materialSpecular)
 
 	// Set up the viewport
   gl.viewport(0, 0, canvas.width, canvas.height);
