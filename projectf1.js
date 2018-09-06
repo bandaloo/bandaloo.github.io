@@ -1,13 +1,3 @@
-// Cole Granof
-// 2/23/18
-// Computer Graphics: Final Project Part I
-// Extra Credit Features:
-// - Press 'r' to randomize all the shapes and colors of items on the mobile
-// - Press 'R' to give the mobile a whirl and randomize the rotations
-// - Press 's' to speed up the animation
-// - Press 'S' to slow down the animation
-// - The bars that hold up items are 3D shaded objects instead of 2D lines
-
 const numCubeVertices  = 36; // Number of vertices in cube
 
 var shifted = false; // Whether shift key is being pressed
