@@ -128,7 +128,9 @@ function checkWin() {
       }
     }
   }
-  minesLabel.innerHTML = numFlags + "/" + amount;
+  if (!disabled) {
+    minesLabel.innerHTML = numFlags + "/" + amount;
+  }
   if (numDiscovered == amount && numVisited == width * height - amount) {
     disabled = true;
     minesLabel.innerHTML = "you won!"
