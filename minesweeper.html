@@ -1,0 +1,19 @@
+<html>
+  <head>
+    <script src="include-header.js"></script>
+    <link rel="stylesheet" href="stylesheet.css">
+  </head>
+  <body>
+    <div nav-include="navbar.html"></div>
+    <script>includeHTML();</script>
+    <h1>
+      <label id="mineslabel">Mines</label>
+    </h1>
+    <canvas id="minecanvas" width="320" height="320" style = "border: 1px solid black;">
+    </canvas>
+    <script src="minesweeper.js"></script>
+    <div style="text-align: center; margin: 8">
+      <input type="button" value="restart" onClick="history.go(0)" align="center">
+    </div>
+  </body>
+</html>

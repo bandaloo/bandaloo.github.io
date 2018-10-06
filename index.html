@@ -1,94 +1,22 @@
-<!DOCTYPE html>
 <html lang="en">
   <head>
+    <script src="include-header.js"></script>
     <link rel="stylesheet" href="stylesheet.css">
     <meta charset="utf-8" />
-    <title>Mobile Sculpture</title>
-    <h2>Cole Granof's Rotating Mobile</h2>
-
-    <script id="vshader" type="x-shader/x-vertex">
-    attribute vec4 vPosition;
-    attribute vec4 vNormal;
-
-    varying vec4 fColor;
-
-    uniform vec4 ambientProduct, diffuseProduct, specularProduct;
-    uniform mat4 projectionMatrix;
-    uniform mat4 modelMatrix;
-    uniform vec4 lightPosition;
-    uniform float shininess;
-    uniform float phi;
-
-    void main() {
-      // Vertex position in eye coordinates
-      vec3 pos = (modelMatrix * vPosition).xyz;
-
-      // Vector from vertex position to light source
-      vec3 L;
-
-      L = normalize( lightPosition.xyz - pos );
-      vec3 E = normalize( -pos );
-
-      // Transform vertex normal into eye coordinates
-      vec3 N = normalize(modelMatrix * vNormal).xyz;
-
-      // Determine illumination
-      vec3 H = (2.0 * dot(L, N) * N) - L;
-
-      float Kd = dot(L, N);
-      vec4 ambient = ambientProduct;
-
-      float Ks = pow(max(dot(N, H), 0.0), shininess);
-
-      // Faces are dark if they are not in spotlight
-      vec4 diffuse = vec4(0, 0, 0, 0);
-      vec4 specular = vec4(0, 0, 0, 0);
-
-      vec3 lightDir = normalize(vec3(-2, -2, -2));
-
-      // Determines if face is within spotlight
-      if (dot(L, -lightDir) > phi) {
-          diffuse = Kd * diffuseProduct;
-          specular = Ks * specularProduct;
-      }
-
-      gl_Position = projectionMatrix * modelMatrix * vPosition;
-
-      fColor = ambient + diffuse + specular;
-      fColor.a = 1.0;
-    }
-    </script>
-
-    <script id="fshader" type="x-shader/x-fragment">
-    precision mediump float;
-    varying vec4 fColor;
-
-    void main() {
-      gl_FragColor = fColor;	// Point color
-    }
-    </script>
-
-    <script src="lib/webgl-utils.js"></script>
-    <script src="lib/initShaders.js"></script>
-    <script src="lib/MV.js"></script>
-
-    <script src="projectf1.js"></script>
-
   </head>
-
-  <body onload="main()">
-
-    <div style="text-align: left">
-
-      <canvas id="webgl" width="600" height="600" style="border: 1px solid black;">
-        Please use a browser that supports the "canvas" tag.
-      </canvas>
-      <p> Controls: </br>
-      'm' for Gouraud shading, 'M' for flat shading </br>
-      'p' to reduce spotlight angle, 'P' to increase spotlight angle </br>
-      's' to speed up animation, 'S' to slow down animation </br>
-      'r' to randomize shapes and colors, 'R' to randomize rotations </br>
-      'a' to toggle shadows on and off </p>
-    </div>
+  <body>
+    <div nav-include="navbar.html"></div>
+    <script>includeHTML();</script>
+    <main>
+      <title>Cole's Website</title>
+      <h2>Welcome</h2>
+      <div style="text-align: left">
+        <h3>About Me</h3>
+        <p>
+        I am a computer science major at WPI. You can see some of my
+        projects here.
+        </p>
+      </div>
+    </main>
   </body>
 </html>

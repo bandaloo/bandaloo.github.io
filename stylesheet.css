@@ -1,16 +1,39 @@
 body {
-    background-color: #dddddd;
+  background-color: #dddddd;
+  margin: 0px;
 }
 
-h2, p {
-    color: #4c4c4c;
-    font-family: Helvetica, Arial, sans-serif;
-    text-align: center;
+main {
+  margin: 8px;
+}
+
+h1, h2, h3, header, p {
+  color: #4c4c4c;
+  font-family: Helvetica, Arial, sans-serif;
+  text-align: center;
+}
+
+.hlink {
+  margin: 32px;
+  color: white;
+}
+
+p {
+  text-align: left;
 }
 
 canvas {
-    padding: 0;
-    margin: auto;
-    display: block;
+  padding: 0;
+  margin: auto;
+  display: block;
+}
+
+a {
+  color: #f78011;
+}
+
+header {
+  background-color: #999999;
+  padding: 2px;
 }
 
