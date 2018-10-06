@@ -12,7 +12,7 @@ var cellHeight = 32;
 var borderWidth = 1;
 var borderHeight = 1;
 
-var numFlags, numDiscovered;
+var numDiscovered;
 
 var clickX;
 var clickY;
@@ -111,11 +111,15 @@ function floodMines(x, y) {
   return;
 }
 
-function hasWon() {
-  numFlags = 0;
+function checkWin() {
   numDiscovered = 0;
+  var numFlags = 0;
+  var numVisited = 0;
   for (var i = 0; i < width; i++) {
     for (var j = 0; j < height; j++) {
+      if (grid[i][j].visited) {
+        numVisited++;
+      }
       if (grid[i][j].flag) {
         numFlags++;
         if (grid[i][j].mine) {
@@ -125,11 +129,10 @@ function hasWon() {
     }
   }
   minesLabel.innerHTML = numFlags + "/" + amount;
-  if (numDiscovered == amount) {
+  if (numDiscovered == amount && numVisited == width * height - amount) {
     disabled = true;
-    return true;
+    minesLabel.innerHTML = "you won!"
   }
-  return false;
 }
 
 
@@ -147,7 +150,7 @@ canvas.oncontextmenu = function() {return false;};
 
 canvas.addEventListener('click', function(e) {
   if (!disabled) {
-  click(e);
+    click(e);
     if (grid[boardX][boardY].mine) {
       paintMines();
       disabled = true;
@@ -157,6 +160,7 @@ canvas.addEventListener('click', function(e) {
       countNeighbors(boardX, boardY);
       floodMines(boardX, boardY);
     }
+    checkWin();
   }
 });
 
@@ -173,9 +177,7 @@ canvas.addEventListener('contextmenu', function(e) {
       grid[boardX][boardY].flag = !grid[boardX][boardY].flag;
       drawRect(boardX, boardY);
     }
-    if (hasWon()) {
-      minesLabel.innerHTML = "you won!"
-    }
+    checkWin();
     console.log("discovered " + numDiscovered);
   }
 });
@@ -183,7 +185,7 @@ canvas.addEventListener('contextmenu', function(e) {
 
 createGrid(width, height);
 generateMines(amount);
-hasWon();
+checkWin();
 
 
 
