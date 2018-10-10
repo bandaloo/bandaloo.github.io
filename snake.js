@@ -38,6 +38,8 @@ var background = "#C0C840";
 var foreground = "#786D21";
 var outlines = "#AAB23A";
 
+var moveQueue = [];
+
 function drawRect(i, j) {
   context.fillRect(i * cellWidth + borderWidth, j * cellWidth + borderHeight,
                    cellWidth - borderWidth * 2, cellHeight - borderHeight * 2);
@@ -111,25 +113,42 @@ function moveFood() {
 document.addEventListener('keydown', function(e) {
   var code = e.keyCode;
   var key = String.fromCharCode(code);
+  var doPush= true;
   // 37 40 38 39
   if (key == 'H' || code == 37) {
     newMoveX = -1;
     newMoveY = 0;
-    eyePos = [[-1, 1], [-1, -1]];
   } else if (key == 'J' || code == 40) {
     newMoveX = 0;
     newMoveY = 1;
-    eyePos = [[-1, 1], [1, 1]];
   } else if (key == 'K' || code == 38) {
     newMoveX = 0;
     newMoveY = -1;
-    eyePos = [[-1, -1], [1, -1]];
   } else if (key == 'L' || code == 39) {
     newMoveX = 1;
     newMoveY = 0;
-    eyePos = [[1, 1], [1, -1]];
+  } else {
+    doPush = false;
+  }
+  if (doPush) {
+    moveQueue.unshift({x: newMoveX, y: newMoveY});
+  }
+  if (moveQueue.length > 2) {
+    moveQueue.pop();
   }
 });
+
+function setEyePosition() {
+  if (moveX == -1 && moveY == 0) {
+    eyePos = [[-1, 1], [-1, -1]];
+  } else if (moveX == 0 && moveY == 1) {
+    eyePos = [[-1, 1], [1, 1]];
+  } else if (moveX == 0 && moveY == -1) {
+    eyePos = [[-1, -1], [1, -1]];
+  } else if (moveX == 1 && moveY == 0) {
+    eyePos = [[1, 1], [1, -1]];
+  }
+}
 
 function wrap(n, s) {
   if (n < 0) return n + s;
@@ -142,9 +161,14 @@ function update() {
     counter = 0;
     context.fillStyle = foreground;
     drawRect(headX, headY);
-    if (newMoveX != -moveX && newMoveY != -moveY) {
-      moveX = newMoveX;
-      moveY = newMoveY;
+    if (moveQueue.length != 0) {
+      newMove = moveQueue.pop();
+    } else {
+      newMove = {x: moveX, y: moveY};
+    }
+    if (newMove.x != -moveX && newMove.y != -moveY) {
+      moveX = newMove.x;
+      moveY = newMove.y;
     }
     var prevTailX = tailX;
     var prevTailY = tailY;
@@ -163,6 +187,7 @@ function update() {
     hesitate = false;
     context.fillStyle = foreground;
     drawRect(headX, headY);
+    setEyePosition();
     drawEyes();
     if (headX == foodX && headY == foodY) {
       score++;
