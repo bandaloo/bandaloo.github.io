@@ -32,18 +32,44 @@ var spots = [];
 var hesitate = false;
 var disabled = false;
 
+var eyePos = [[1, 1], [1, -1]];
+
+var background = "#C0C840";
+var foreground = "#786D21";
+var outlines = "#AAB23A";
+
 function drawRect(i, j) {
   context.fillRect(i * cellWidth + borderWidth, j * cellWidth + borderHeight,
                    cellWidth - borderWidth * 2, cellHeight - borderHeight * 2);
 }
 
 function drawFood() {
-  context.fillStyle = "green";
-  drawRect(foodX, foodY);
+  context.fillStyle = foreground;
+  context.strokeStyle = foreground;
+  drawCircle(foodX, foodY, 0, 0, cellWidth / 2 - 6);
+  //drawRect(foodX, foodY);
+}
+
+function drawCircle(i, j, offsetX, offsetY, radius) {
+  context.beginPath();
+  context.arc(cellWidth * (i + 0.5) + offsetX, cellHeight * (j + 0.5) + offsetY,
+              radius, 0, 2 * Math.PI, false);
+  context.fill();
+  context.stroke();
+}
+
+function drawEyes() {
+  context.fillStyle = background;
+  var spacing = 7;
+  var radius = 6;
+  drawCircle(headX, headY, eyePos[0][0] * spacing, eyePos[0][1] * spacing, radius);
+  drawCircle(headX, headY, eyePos[1][0] * spacing, eyePos[1][1] * spacing, radius);
 }
 
 function createGrid() {
-  context.fillStyle = "gray";
+  context.fillStyle = outlines;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = background;
   for (var i = 0; i < width; i++) {
     grid.push([]);
     for (var j = 0; j < height; j++) {
@@ -54,7 +80,8 @@ function createGrid() {
 }
 
 function drawInitialSnake() {
-  context.fillStyle = "red";
+  context.fillStyle = foreground;
+  drawEyes();
   drawRect(headX, headY);
   drawRect(tailX, tailY);
 }
@@ -63,9 +90,8 @@ function moveFood() {
   spots = [];
   for (var i = 0; i < width; i++) {
     for (var j = 0; j < height; j++) {
-      if (grid[i][j].x == 0 && grid[i][j].y == 0) {
+      if (grid[i][j].x == 0 && grid[i][j].y == 0 && !(i == headX && j == headY)) {
         spots.push({x: i, y: j});
-        console.log("pushed");
       }
     }
   }
@@ -89,15 +115,19 @@ document.addEventListener('keydown', function(e) {
   if (key == 'H' || code == 37) {
     newMoveX = -1;
     newMoveY = 0;
+    eyePos = [[-1, 1], [-1, -1]];
   } else if (key == 'J' || code == 40) {
     newMoveX = 0;
     newMoveY = 1;
+    eyePos = [[-1, 1], [1, 1]];
   } else if (key == 'K' || code == 38) {
     newMoveX = 0;
     newMoveY = -1;
+    eyePos = [[-1, -1], [1, -1]];
   } else if (key == 'L' || code == 39) {
     newMoveX = 1;
     newMoveY = 0;
+    eyePos = [[1, 1], [1, -1]];
   }
 });
 
@@ -110,6 +140,8 @@ function wrap(n, s) {
 function update() {
   if (!disabled && counter == gameSpeed) {
     counter = 0;
+    context.fillStyle = foreground;
+    drawRect(headX, headY);
     if (newMoveX != -moveX && newMoveY != -moveY) {
       moveX = newMoveX;
       moveY = newMoveY;
@@ -125,12 +157,13 @@ function update() {
       tailX = wrap(tailX + grid[prevTailX][prevTailY].x, width);
       tailY = wrap(tailY + grid[prevTailX][prevTailY].y, height);
       grid[prevTailX][prevTailY] = {x: 0, y: 0};
-      context.fillStyle = "gray";
+      context.fillStyle = background;
       drawRect(prevTailX, prevTailY);
     }
     hesitate = false;
-    context.fillStyle = "red";
+    context.fillStyle = foreground;
     drawRect(headX, headY);
+    drawEyes();
     if (headX == foodX && headY == foodY) {
       score++;
       if (score == nextLevel && gameSpeed > 3) {
@@ -157,49 +190,3 @@ grid[headX][headY] = {x: 1, y: 0};
 grid[tailX][tailY] = {x: 1, y: 0};
 drawInitialSnake();
 update();
-
-  /*
-  switch () {
-      case 'M': // Change lighting style
-      if (shifted) {
-          drawInit(faceNormals);
-      }
-      else {
-          drawInit(normalsArray);
-      }
-      break;
-      case 'P': // Change spotlight angle
-      if (shifted) {
-          phi -= 0.01
-      }
-      else {
-          phi += 0.01
-      }
-      gl.uniform1f(gl.getUniformLocation(program, "phi"), phi);
-      break;
-      case 'R': // Randomize
-      if (shifted) {
-          randomizeRotations = true;
-      }
-      else {
-          randomizeColor = true;
-      }
-      break;
-      case 'S': // Change speed
-      if (shifted) {
-          speedScalar -= 0.1;
-      }
-      else {
-          speedScalar += 0.1;
-      }
-      if (speedScalar < 0) {
-          speedScalar = 0;
-      }
-      break;
-      case 'A': // Toggle shadows
-      drawShadows = !drawShadows;
-      break;
-  }
-});
-  */
-
