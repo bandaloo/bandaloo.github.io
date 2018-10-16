@@ -133,6 +133,22 @@ function addToScore() {
   moveLabel.innerHTML = rating + " cleared " + amountErased + " for " + moveScore + " points";
 }
 
+function gameOverLabel() {
+  if (gameOver) {
+    counterLabel.innerHTML = "game over!";
+    moveLabel.innerHTML = "you lasted " + turnCounter + " turns";
+  }
+}
+
+function rushBlocks() {
+  if (!gameOver) {
+    addBlocks();
+    addBlocksCounter = addBlocksCounterMax;
+    counterLabel.innerHTML = "new row in " + addBlocksCounter + " moves";
+    gameOverLabel();
+  }
+}
+
 canvas.addEventListener('click', function(e) {
   var rect = canvas.getBoundingClientRect();
   var clickX = e.clientX - rect.left;
@@ -165,10 +181,7 @@ canvas.addEventListener('click', function(e) {
     addToScore();
     counterLabel.innerHTML = "new row in " + addBlocksCounter + " moves";
     scoreLabel.innerHTML = score;
-    if (gameOver) {
-      counterLabel.innerHTML = "game over!";
-      moveLabel.innerHTML = "you lasted " + turnCounter + " turns";
-    }
+    gameOverLabel();
   }
 });
 
