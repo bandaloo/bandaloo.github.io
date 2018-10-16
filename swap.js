@@ -123,7 +123,13 @@ function addToScore() {
   }
   score += moveScore;
   var rating = "ok!"
-  if (amountErased > 15) {
+  if (amountErased > 63) {
+    rating = "petitti special!";
+  } else if (amountErased > 40) {
+    rating = "unbelievable!"
+  } else if (amountErased > 25) {
+    rating = "astounding!"
+  } else if (amountErased > 15) {
     rating = "amazing!";
   } else if (amountErased > 10) {
     rating = "great!";
