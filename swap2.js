@@ -20,7 +20,7 @@ var addBlocksCounterMax = 5;
 var addBlocksCounter = addBlocksCounterMax;
 var turnCounter = 0;
 
-var fallAcc = 0.01;
+var fallAcc = 0.005;
 var fallSpeed = 0;
 
 var amountErased = 0;
@@ -32,14 +32,23 @@ var score = 0;
 var pgrid = [];
 var agrid = [];
 var tgrid = [];
+var sgrid = [];
 
+var prevTime = Date.now();
+var currTime;
+var deltaTime;
+var deltaScalar = 1/16;
+var sDeltaTime;
+
+var lastErasedColorNum;
 
 var dirs = [[1, 0], [0, 1], [-1, 0], [0, -1]];
 
 
-function drawRect(i, j, offset) {
-  context.fillRect(i * cellWidth + borderWidth, j * cellWidth + borderHeight + offset,
-                   cellWidth - borderWidth * 2, cellHeight - borderHeight * 2);
+function drawRect(i, j, offset, size) {
+  context.fillRect(i * cellWidth + borderWidth + 0.5 * (cellWidth - cellWidth * size),
+                   j * cellWidth + borderHeight + offset + 0.5 * (cellHeight - cellHeight * size),
+                   cellWidth * size - borderWidth * 2, cellHeight * size - borderHeight * 2);
 }
 
 function createBlock(i, j) {
@@ -59,16 +68,25 @@ function drawBoard() {
   var doneAnimating = true;
   for (var i = 0; i < width; i++) {
     for (var j = 0; j < height; j++) {
-      num = pgrid[i][j];
-      if (num != 0) {
-        context.fillStyle = colors[num];
-        drawRect(i, j, cellHeight * (agrid[i][j] - tgrid[i][j]));
-      }
-      if (tgrid[i][j] > 0) {
+      if (sgrid[i][j] > 0) {
         doneAnimating = false;
-        fallSpeed += fallAcc;
-        tgrid[i][j] -= fallSpeed;
-        if (tgrid[i][j] < 0) tgrid[i][j] = 0;
+        context.fillStyle = colors[lastErasedColorNum];
+        drawRect(i, j, 0, sgrid[i][j]);
+        // TODO maybe a way to get rid of this duplicate code
+        sgrid[i][j] -= 0.15 * sDeltaTime;
+        if (sgrid[i][j] < 0) sgrid[i][j] = 0;
+      } else {
+        num = pgrid[i][j];
+        if (num != 0) {
+          context.fillStyle = colors[num];
+          drawRect(i, j, cellHeight * (agrid[i][j] - tgrid[i][j]), 1);
+        }
+        if (tgrid[i][j] > 0) {
+          doneAnimating = false;
+          fallSpeed += fallAcc;
+          tgrid[i][j] -= fallSpeed * sDeltaTime;
+          if (tgrid[i][j] < 0) tgrid[i][j] = 0;
+        }
       }
     }
   }
@@ -117,10 +135,12 @@ function createGrid() {
     pgrid.push([]);
     agrid.push([]);
     tgrid.push([]);
+    sgrid.push([]);
     for (var j = 0; j < height; j++) {
       pgrid[i].push(0); 
       agrid[i].push(0);
       tgrid[i].push(0);
+      sgrid[i].push(0);
       createBlock(i, j);
     }
   }
@@ -134,9 +154,9 @@ function onBoard(xn, yn) {
 function floodBlocks(x, y) {
   amountErased++;
   context.fillStyle = outlines;
-  //drawRect(x, y);
   var num = pgrid[x][y];
   pgrid[x][y] = 0;
+  sgrid[x][y] = 1;
   for (var j = y - 1; j >= 0; j--) {
     if (pgrid[x][j] != 0) {
       agrid[x][j]++;
@@ -151,35 +171,12 @@ function floodBlocks(x, y) {
   }
 }
 
-/*
-function collapseBlocks() {
-  var blocksMoved = true;
-  while (blocksMoved) {
-    blocksMoved = false;
-    for (var i = width - 1; i >= 0; i--) {
-      for (var j = height - 1; j >= 0; j--) {
-        if (onBoard(i, j + 1) && pgrid[i][j] != 0 && pgrid[i][j + 1] == 0) {
-          pgrid[i][j + 1] = pgrid[i][j];
-          pgrid[i][j] = 0;
-          context.fillStyle = colors[pgrid[i][j]];
-          //drawRect(i, j);
-          context.fillStyle = colors[pgrid[i][j + 1]];
-          //drawRect(i, j + 1);
-          blocksMoved = true;
-        }
-      }
-    }
-  }
-}
-*/
-
 function addBlocks() {
   for (var i = 0; i < width; i++) {
     for (var j = 0; j < height; j++) {
       if (j != 0) {
         pgrid[i][j - 1] = pgrid[i][j];
         context.fillStyle = colors[pgrid[i][j - 1]];
-        //drawRect(i, j - 1);
       } else if (pgrid[i][j] != 0) {
         gameOver = true;
       }
@@ -221,7 +218,7 @@ function gameOverLabel() {
 }
 
 function rushBlocks() {
-  if (!gameOver) {
+  if (!animating && !gameOver) {
     addBlocks();
     addBlocksCounter = addBlocksCounterMax;
     counterLabel.innerHTML = "new row in " + addBlocksCounter + " moves";
@@ -237,6 +234,7 @@ function collapseBlocks() {
         pgrid[i][j + agrid[i][j]] = pgrid[i][j];
         pgrid[i][j] = 0;
         agrid[i][j] = 0;
+        sgrid[i][j] = 0;
       }
     }
   }
@@ -249,21 +247,24 @@ canvas.addEventListener('click', function(e) {
   var boardX = Math.floor(clickX / cellWidth);
   var boardY = Math.floor(clickY / cellHeight);
   if (!animating && !gameOver && pgrid[boardX][boardY] != 0) {
+    lastErasedColorNum = pgrid[boardX][boardY];
     gameStarted = true;
     animating = true;
     amountErased = 0;
     floodBlocks(boardX, boardY);
-    //collapseBlocks();
-    /*
-    }*/
     ttoa();
   }
 });
 
 function update() {
+  currTime = Date.now();
+  deltaTime = currTime - prevTime;
+  sDeltaTime = deltaTime * deltaScalar;
+
   if (animating) {
     drawBoard();
   }
+  prevTime = currTime;
   requestAnimationFrame(update);
 }
 
