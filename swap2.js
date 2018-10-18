@@ -74,10 +74,29 @@ function drawBoard() {
   if (doneAnimating) {
     fallSpeed = 0;
     collapseBlocks();
-    if (addBlocksCounter == 1) {
+    addBlocksCounter--;
+    turnCounter++;
+    if (addBlocksCounter == 0) {
       addBlocks();
       addBlocksCounter = addBlocksCounterMax;
+      drawBoard();
     }
+    if (turnCounter == 20) {
+      addBlocksCounterMax = 4;
+    } else if (turnCounter == 40) {
+      currentColorAmount = 4;
+    } else if (turnCounter == 60) {
+      addBlocksCounterMax = 3;
+    } else if (turnCounter == 80) {
+      currentColorAmount = 5;
+    } else if (turnCounter == 100) {
+      addBlocksCounterMax = 2;
+      currentColorAmount = 6;
+    }
+    addToScore();
+    counterLabel.innerHTML = "new row in " + addBlocksCounter + " moves";
+    scoreLabel.innerHTML = score;
+    gameOverLabel();
     animating = false;
   }
 }
@@ -236,26 +255,6 @@ canvas.addEventListener('click', function(e) {
     /*
     }*/
     ttoa();
-    addBlocksCounter--;
-    turnCounter++;
-    if (turnCounter == 20) {
-      addBlocksCounterMax = 4;
-    } else if (turnCounter == 40) {
-      currentColorAmount = 4;
-    } else if (turnCounter == 60) {
-      addBlocksCounterMax = 3;
-    } else if (turnCounter == 80) {
-      currentColorAmount = 5;
-    } else if (turnCounter == 100) {
-      addBlocksCounterMax = 2;
-      currentColorAmount = 6;
-    }
-    addToScore();
-    counterLabel.innerHTML = "new row in " + addBlocksCounter + " moves";
-    scoreLabel.innerHTML = score;
-    gameOverLabel();
-    // TODO check if this is needed
-    drawBoard();
   }
 });
 
