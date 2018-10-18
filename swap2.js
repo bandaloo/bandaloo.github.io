@@ -219,6 +219,7 @@ function gameOverLabel() {
 
 function rushBlocks() {
   if (!animating && !gameOver) {
+    amountErased = 0;
     addBlocks();
     addBlocksCounter = addBlocksCounterMax;
     counterLabel.innerHTML = "new row in " + addBlocksCounter + " moves";
