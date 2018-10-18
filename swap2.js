@@ -25,6 +25,7 @@ var fallSpeed = 0;
 
 var amountErased = 0;
 var gameOver = false;
+var gameStarted = false;
 var animating = false;
 var score = 0;
 
@@ -71,7 +72,7 @@ function drawBoard() {
       }
     }
   }
-  if (doneAnimating) {
+  if (doneAnimating && gameStarted) {
     fallSpeed = 0;
     collapseBlocks();
     addBlocksCounter--;
@@ -248,6 +249,7 @@ canvas.addEventListener('click', function(e) {
   var boardX = Math.floor(clickX / cellWidth);
   var boardY = Math.floor(clickY / cellHeight);
   if (!animating && !gameOver && pgrid[boardX][boardY] != 0) {
+    gameStarted = true;
     animating = true;
     amountErased = 0;
     floodBlocks(boardX, boardY);
