@@ -78,7 +78,7 @@ function drawBoard() {
   context.fillStyle = colors[0];
   context.fillRect(0, 0, canvas.width, canvas.height);
   var doneAnimating = true;
-  var targetBottom = addBlocksCounter == 1 ? 1 : 0;
+  var targetBottom = addBlocksCounter == 0 ? 1 : 0;
   if (targetBottom == 1 && blockRow.length == 0) fillRow();
   for (var i = 0; i < width; i++) {
     for (var j = 0; j < height; j++) {
@@ -110,7 +110,10 @@ function drawBoard() {
       drawRect(i, height, 0, 1);
     }
   }
-  bottom += 0.1;
+  // TODO maybe find better way to do this
+  if (targetBottom == 1) {
+    bottom += 0.1 * sDeltaTime;
+  }
   if (bottom >= targetBottom) {
     bottom = targetBottom;
   } else {
@@ -119,16 +122,9 @@ function drawBoard() {
   return doneAnimating;
 }
 
-function stepRules() {
-  fallSpeed = 0;
-  collapseBlocks();
+function levelUp() {
   addBlocksCounter--;
   turnCounter++;
-  if (addBlocksCounter == 0) {
-    addBlocks();
-    addBlocksCounter = addBlocksCounterMax;
-    drawBoard();
-  }
   if (turnCounter == 20) {
     addBlocksCounterMax = 4;
   } else if (turnCounter == 40) {
@@ -140,6 +136,17 @@ function stepRules() {
   } else if (turnCounter == 100) {
     addBlocksCounterMax = 2;
     currentColorAmount = 6;
+  }
+}
+
+
+function stepRules() {
+  fallSpeed = 0;
+  collapseBlocks();
+  if (addBlocksCounter == 0) {
+    addBlocks();
+    addBlocksCounter = addBlocksCounterMax;
+    drawBoard();
   }
   addToScore();
   counterLabel.innerHTML = "new row in " + addBlocksCounter + " moves";
@@ -286,7 +293,10 @@ canvas.addEventListener('click', function(e) {
   var clickY = e.clientY - rect.top;
   var boardX = Math.floor(clickX / cellWidth);
   var boardY = Math.floor(clickY / cellHeight);
+  if (boardX > width - 1) boardX = width - 1;
+  if (boardY > height - 1) boardY = height - 1;
   if (!animating && !gameOver && pgrid[boardX][boardY] != 0) {
+    levelUp();
     lastErasedColorNum = pgrid[boardX][boardY];
     gameStarted = true;
     animating = true;
