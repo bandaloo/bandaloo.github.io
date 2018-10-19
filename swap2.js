@@ -207,7 +207,9 @@ function addToScore() {
   } else if (amountErased > 5) {
     rating = "good!";
   }
-  moveLabel.innerHTML = rating + " cleared " + amountErased + " for " + moveScore + " points";
+  if (moveScore != 0) {
+    moveLabel.innerHTML = rating + " cleared " + amountErased + " for " + moveScore + " points";
+  }
 }
 
 function gameOverLabel() {
