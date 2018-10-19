@@ -33,6 +33,8 @@ var pgrid = [];
 var agrid = [];
 var tgrid = [];
 var sgrid = [];
+var blockRow = [];
+var bottom = 0;
 
 var prevTime = Date.now();
 var currTime;
@@ -47,25 +49,37 @@ var dirs = [[1, 0], [0, 1], [-1, 0], [0, -1]];
 
 function drawRect(i, j, offset, size) {
   context.fillRect(i * cellWidth + borderWidth + 0.5 * (cellWidth - cellWidth * size),
-                   j * cellWidth + borderHeight + offset + 0.5 * (cellHeight - cellHeight * size),
+                   (j - bottom) * cellWidth + borderHeight + offset + 0.5 * (cellHeight - cellHeight * size),
                    cellWidth * size - borderWidth * 2, cellHeight * size - borderHeight * 2);
+}
+
+function generateNum() {
+  return Math.floor(Math.random() * currentColorAmount) + 1;
 }
 
 function createBlock(i, j) {
   var num;
   if (j > 4) {
-    num = Math.floor(Math.random() * currentColorAmount) + 1;
+    num = generateNum();
   } else {
     num = 0;
   }
   pgrid[i][j] = num;
-//  context.fillStyle = colors[num];
+}
+
+function fillRow() {
+  blockRow = [];
+  for (var i = 0; i < width; i++) {
+    blockRow.push(generateNum());
+  }
 }
 
 function drawBoard() {
   context.fillStyle = colors[0];
   context.fillRect(0, 0, canvas.width, canvas.height);
   var doneAnimating = true;
+  var targetBottom = addBlocksCounter == 1 ? 1 : 0;
+  if (targetBottom == 1 && blockRow.length == 0) fillRow();
   for (var i = 0; i < width; i++) {
     for (var j = 0; j < height; j++) {
       if (sgrid[i][j] > 0) {
@@ -89,6 +103,18 @@ function drawBoard() {
         }
       }
     }
+  }
+  if (targetBottom == 1) {
+    for (var i = 0; i < width; i++) {
+      context.fillStyle = colors[blockRow[i]];
+      drawRect(i, height, 0, 1);
+    }
+  }
+  bottom += 0.1;
+  if (bottom >= targetBottom) {
+    bottom = targetBottom;
+  } else {
+    doneAnimating = false;
   }
   return doneAnimating;
 }
@@ -181,6 +207,7 @@ function floodBlocks(x, y) {
 }
 
 function addBlocks() {
+  bottom = 0;
   for (var i = 0; i < width; i++) {
     for (var j = 0; j < height; j++) {
       if (j != 0) {
@@ -192,8 +219,10 @@ function addBlocks() {
     }
   }
   for (var i = 0; i < width; i++) {
-    createBlock(i, height - 1);
+    pgrid[i][height - 1] = blockRow[i];
+    //createBlock(i, height - 1);
   }
+  blockRow = [];
 }
 
 function addToScore() {
@@ -228,6 +257,7 @@ function gameOverLabel() {
 
 function rushBlocks() {
   if (!animating && !gameOver) {
+    fillRow();
     amountErased = 0;
     addBlocks();
     addBlocksCounter = addBlocksCounterMax;
