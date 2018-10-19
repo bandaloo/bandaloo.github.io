@@ -90,33 +90,42 @@ function drawBoard() {
       }
     }
   }
+  return doneAnimating;
+}
+
+function stepRules() {
+  fallSpeed = 0;
+  collapseBlocks();
+  addBlocksCounter--;
+  turnCounter++;
+  if (addBlocksCounter == 0) {
+    addBlocks();
+    addBlocksCounter = addBlocksCounterMax;
+    drawBoard();
+  }
+  if (turnCounter == 20) {
+    addBlocksCounterMax = 4;
+  } else if (turnCounter == 40) {
+    currentColorAmount = 4;
+  } else if (turnCounter == 60) {
+    addBlocksCounterMax = 3;
+  } else if (turnCounter == 80) {
+    currentColorAmount = 5;
+  } else if (turnCounter == 100) {
+    addBlocksCounterMax = 2;
+    currentColorAmount = 6;
+  }
+  addToScore();
+  counterLabel.innerHTML = "new row in " + addBlocksCounter + " moves";
+  scoreLabel.innerHTML = score;
+  gameOverLabel();
+  animating = false;
+}
+
+function animBoard() {
+  var doneAnimating = drawBoard();
   if (doneAnimating && gameStarted) {
-    fallSpeed = 0;
-    collapseBlocks();
-    addBlocksCounter--;
-    turnCounter++;
-    if (addBlocksCounter == 0) {
-      addBlocks();
-      addBlocksCounter = addBlocksCounterMax;
-      drawBoard();
-    }
-    if (turnCounter == 20) {
-      addBlocksCounterMax = 4;
-    } else if (turnCounter == 40) {
-      currentColorAmount = 4;
-    } else if (turnCounter == 60) {
-      addBlocksCounterMax = 3;
-    } else if (turnCounter == 80) {
-      currentColorAmount = 5;
-    } else if (turnCounter == 100) {
-      addBlocksCounterMax = 2;
-      currentColorAmount = 6;
-    }
-    addToScore();
-    counterLabel.innerHTML = "new row in " + addBlocksCounter + " moves";
-    scoreLabel.innerHTML = score;
-    gameOverLabel();
-    animating = false;
+    stepRules();
   }
 }
 
@@ -207,9 +216,7 @@ function addToScore() {
   } else if (amountErased > 5) {
     rating = "good!";
   }
-  if (moveScore != 0) {
-    moveLabel.innerHTML = rating + " cleared " + amountErased + " for " + moveScore + " points";
-  }
+  moveLabel.innerHTML = rating + " cleared " + amountErased + " for " + moveScore + " points";
 }
 
 function gameOverLabel() {
@@ -226,8 +233,8 @@ function rushBlocks() {
     addBlocksCounter = addBlocksCounterMax;
     counterLabel.innerHTML = "new row in " + addBlocksCounter + " moves";
     gameOverLabel();
+    drawBoard();
   }
-  drawBoard();
 }
 
 function collapseBlocks() {
@@ -265,14 +272,14 @@ function update() {
   sDeltaTime = deltaTime * deltaScalar;
 
   if (animating) {
-    drawBoard();
+    animBoard();
   }
   prevTime = currTime;
   requestAnimationFrame(update);
 }
 
 createGrid();
-drawBoard();
+animBoard();
 scoreLabel.innerHTML = score;
 update();
 
