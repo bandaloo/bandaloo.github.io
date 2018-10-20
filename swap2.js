@@ -268,6 +268,7 @@ function rushBlocks() {
   if (!animating && !gameOver) {
     animating = true;
     gameStarted = true;
+    amountErased = 0;
     addBlocksCounter = 0;
   }
 }
