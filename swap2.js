@@ -13,7 +13,7 @@ var borderWidth = 1;
 var borderHeight = 1;
 
 var outlines = "gray";
-var colors = [outlines, "#FF402C", "#1FBCFF", "#821CE8", "#FFF437", "#90FF2C", "#E8AE28"];
+var colors = [outlines, "#FF402C", "#1FBCFF", "#821CE8", "#FFF437", "#90FF2C", "#FF8800"];
 
 var currentColorAmount = 3;
 var addBlocksCounterMax = 5;
