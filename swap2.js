@@ -36,8 +36,8 @@ var sgrid = [];
 var blockRow = [];
 var bottom = 0;
 
-var prevTime = Date.now();
-var currTime;
+var prevTime = 0;
+//var currTime;
 var deltaTime;
 var deltaScalar = 1/16;
 var sDeltaTime;
@@ -305,8 +305,7 @@ canvas.addEventListener('click', function(e) {
   }
 });
 
-function update() {
-  currTime = Date.now();
+function update(currTime) {
   deltaTime = currTime - prevTime;
   sDeltaTime = deltaTime * deltaScalar;
 
@@ -320,7 +319,7 @@ function update() {
 createGrid();
 animBoard();
 scoreLabel.innerHTML = score;
-update();
+update(0);
 
 
 
