@@ -252,7 +252,9 @@ function addToScore() {
   } else if (amountErased > 5) {
     rating = "good!";
   }
-  moveLabel.innerHTML = rating + " cleared " + amountErased + " for " + moveScore + " points";
+  if (moveScore != 0) {
+    moveLabel.innerHTML = rating + " cleared " + amountErased + " for " + moveScore + " points";
+  }
 }
 
 function gameOverLabel() {
@@ -264,13 +266,9 @@ function gameOverLabel() {
 
 function rushBlocks() {
   if (!animating && !gameOver) {
-    fillRow();
-    amountErased = 0;
-    addBlocks();
-    addBlocksCounter = addBlocksCounterMax;
-    counterLabel.innerHTML = "new row in " + addBlocksCounter + " moves";
-    gameOverLabel();
-    drawBoard();
+    animating = true;
+    gameStarted = true;
+    addBlocksCounter = 0;
   }
 }
 
