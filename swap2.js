@@ -20,7 +20,7 @@ var addBlocksCounterMax = 5;
 var addBlocksCounter = addBlocksCounterMax;
 var turnCounter = 0;
 
-var fallAcc = 0.005;
+var fallAcc = 0.012;
 var fallSpeed = 0;
 
 var amountErased = 0;
@@ -79,6 +79,7 @@ function drawBoard() {
   context.fillRect(0, 0, canvas.width, canvas.height);
   var doneAnimating = true;
   var targetBottom = addBlocksCounter == 0 ? 1 : 0;
+  fallSpeed += fallAcc;
   if (targetBottom == 1 && blockRow.length == 0) fillRow();
   for (var i = 0; i < width; i++) {
     for (var j = 0; j < height; j++) {
@@ -97,7 +98,6 @@ function drawBoard() {
         }
         if (tgrid[i][j] > 0) {
           doneAnimating = false;
-          fallSpeed += fallAcc;
           tgrid[i][j] -= fallSpeed * sDeltaTime;
           if (tgrid[i][j] < 0) tgrid[i][j] = 0;
         }
