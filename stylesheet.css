@@ -4,7 +4,8 @@ body {
 }
 
 main {
-  margin: 8px;
+  margin-left: 100px;
+  margin-right: 100px;
 }
 
 h1, h2, h3, header, p {
@@ -16,6 +17,13 @@ h1, h2, h3, header, p {
 .hlink {
   margin: 32px;
   color: white;
+  text-decoration: none;
+  transition: 0.25s;
+  font-family: Helvetica, Arial, sans-serif;
+}
+
+.hlink:hover {
+  color: #e8ab3a;
 }
 
 p {
@@ -35,13 +43,15 @@ a {
 
 header {
   background-color: #999999;
-  padding: 2px;
+  padding: 8px;
 }
 
 .center {
   display: block;
   margin-left: auto;
   margin-right: auto;
+  margin-top: 16px;
+  margin-bottom: 16px;
 }
 
 .button {

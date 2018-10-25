@@ -239,17 +239,19 @@ function addToScore() {
   }
   score += moveScore;
   var rating = "ok!"
-  if (amountErased > 63) {
-    rating = "petitti special!";
-  } else if (amountErased > 40) {
+  if (amountErased >= 70) {
+    rating = "cosmic!";
+  } else if (amountErased >= 60) {
     rating = "unbelievable!"
-  } else if (amountErased > 25) {
+  } else if (amountErased >= 50) {
     rating = "astounding!"
-  } else if (amountErased > 15) {
+  } else if (amountErased >= 40) {
     rating = "amazing!";
-  } else if (amountErased > 10) {
+  } else if (amountErased >= 30) {
     rating = "great!";
-  } else if (amountErased > 5) {
+  } else if (amountErased >= 20) {
+    rating = "nice!";
+  } else if (amountErased >= 5) {
     rating = "good!";
   }
   if (moveScore != 0) {
