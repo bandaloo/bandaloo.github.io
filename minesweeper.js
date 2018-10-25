@@ -144,6 +144,8 @@ function click(e) {
   clickY = e.clientY - rect.top;
   boardX = Math.floor(clickX / cellWidth);
   boardY = Math.floor(clickY / cellHeight);
+  if (boardX > width - 1) boardX = width - 1;
+  if (boardY > height - 1) boardY = height - 1;
   console.log(e.button);
 }
   
