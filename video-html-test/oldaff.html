@@ -1,0 +1,31 @@
+<html>
+<head>
+<script src="https://download.affectiva.com/js/3.2/affdex.js"></script>
+</head>
+<body>
+  <div id='video'></div>
+  <div id='emoji'></div>
+</body>
+<script>
+window.onload = function() {
+  const videoWidth = 640, videoHeight = 480
+  const faceMode = affdex.FaceDetectorMode.LARGE_FACES
+
+  const detector = new affdex.CameraDetector(
+    document.querySelector('#video'),
+    videoWidth, videoHeight, faceMode
+  )
+
+  //detector.detectEmotions.joy = true
+  detector.detectAllEmojis()
+
+  detector.addEventListener('onImageResultsSuccess', function(faces) {
+    //console.log(faces[0].emotions.joy)
+    console.log(faces[0].emojis.dominantEmoji)
+    document.querySelector('#emoji').innerText = faces[0].emojis.dominantEmoji
+  })
+
+  detector.start()
+}
+</script>
+</html>

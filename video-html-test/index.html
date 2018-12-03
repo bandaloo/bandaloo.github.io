@@ -1,0 +1,189 @@
+<!DOCTYPE html> 
+<html> 
+<body> 
+<script src="https://download.affectiva.com/js/3.2/affdex.js"></script>
+
+
+<style>
+  #myProgress {
+    width: 100%;
+    background-color: white;
+    border-radius: 10px;
+  }
+  #myBar {
+    width: 0%;
+    height: 30px;
+    background-color: #FF4543;
+    text-align: center; /* To center it horizontally (if you want) */
+    -webkit-text-fill-color: #FFB036;
+    line-height: 30px; /* To center it vertically */
+    color: white;
+    padding: 10px; 
+    font-family: Helvetica, Arial, sans-serif;
+    font-weight: bold;
+    border-radius: 10px;
+  }
+  .button {
+    border: none;
+    color: white;
+    background-color: black;
+    padding: 8px 16px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+    font-family: Helvetica, Arial, sans-serif;
+    border-radius: 16px;
+    transition-duration: 0.2s;
+  }
+  .message {
+    font-family: Helvetica, Arial, sans-serif;
+    font-weight: bold;
+    font-size: 30px;
+    text-align: center;
+    clear: both;
+  }
+</style>
+
+<section style="background-color: gray; padding: 20px; border-radius: 16px;">
+<div id='video' style="float: left; padding-left: 10px"></div>
+
+<video id="officeClip" width="640" height="480"
+style="float:right; padding-right: 10px">
+  <source src="office-toby.mp4" type="video/mp4">
+  <source src="office-toby.ogg" type="video/ogg">
+  Your browser does not support HTML5 video.
+</video>
+<div style="clear: both;"></div>
+  <div id="myProgress">
+    <div id="myBar">0%</div>
+  </div>
+</section>
+<div id='emoji' class='message'>Press the play button when you're ready!</div>
+<div id='yourEmotion' class='message' style='color: gray'></div>
+<div style="text-align: center; margin: 8">
+  <button onclick="playVid()" id="playButton" class="button" type="button" align="center">Play Video</button>
+</div>
+<script> 
+var currentLevel = 0
+var emotionArray = [['smiley', 'laughing'], ['disappointed'], ['rage', 'scream']]
+var timeArray = [9, 15, 19]
+var vid = document.getElementById("officeClip"); 
+var startedPlaying = false
+var barWidth = 0
+window.onload = function() {
+  const videoWidth = 640, videoHeight = 480
+  const faceMode = affdex.FaceDetectorMode.LARGE_FACES
+
+  const detector = new affdex.CameraDetector(
+    document.querySelector('#video'),
+    videoWidth, videoHeight, faceMode
+  )
+
+  //detector.detectEmotions.joy = true
+  detector.detectAllEmojis()
+
+  detector.addEventListener('onImageResultsSuccess', function(faces) {
+    //console.log(faces[0].emotions.joy)
+    //console.log(faces[0].emojis.getDisappointed())
+    //console.log(faces)
+    //console.log(faces[0].emojis.dominantEmoji)
+    //console.log(faces[0].emotions.joy)
+    if (faces != undefined && faces.length > 0) {
+      var obj = faces[0].emojis
+      console.log(faces[0].emojis.dominantEmoji)
+      delete obj['dominantEmoji']
+      var maxKey = Object.keys(obj).reduce((a, b) => obj[a] > obj[b] ? a : b);
+      //console.log("test")
+      //console.log(obj)
+      console.log(maxKey)
+      var yourEmotionMessage = maxKey
+      if (obj[maxKey] < 10) {
+        yourEmotionMessage = 'neutral'
+      }
+      if (yourEmotionMessage == 'stuckOutTongue') {
+        yourEmotionMessage = 'stuck out tongue'
+      } else if (yourEmotionMessage == 'stuckOutTongueWinkingEye') {
+        yourEmotionMessage = 'stuck out tongue and winking'
+      }
+      document.querySelector('#yourEmotion').innerText = "Your Current Emotion: " + yourEmotionMessage
+
+      //document.querySelector('#emoji').innerText = maxKey
+      //console.log(vid.paused)
+      //console.log(currentLevel)
+      if (vid.paused && startedPlaying && currentLevel < emotionArray.length) {
+        if (emotionArray[currentLevel].includes(maxKey) && obj[maxKey] >= 10) {
+          barWidth += 2
+          setBarWidth(barWidth)
+          if (barWidth >= 100) {
+            nextLevel()
+            document.querySelector('#emoji').innerText = "Nice job!"
+          }
+        }
+      } else if (currentLevel >= emotionArray.length) {
+        document.querySelector('#emoji').innerText = "Thanks for playing!"
+      }
+      //document.querySelector('#emoji').innerText = faces[0].emojis.dominantEmoji
+    }
+  })
+
+  detector.start()
+}
+
+vid.addEventListener("timeupdate", function(){
+  if(this.currentTime >= timeArray[currentLevel]) {
+    pauseVid()
+  }
+})
+
+function playVid() { 
+  if (!startedPlaying) {
+    startedPlaying = true
+    document.querySelector('#emoji').innerText = "Get ready to act! Have fun!"
+    document.querySelector('#playButton').innerText = "Skip"
+    vid.play()
+  } else {
+    console.log("test")
+    skipLevel()
+  }
+} 
+
+function pauseVid() {
+  vid.pause()
+  var targetEmotionMessage = "Target Emotion: "
+  for (s in emotionArray[currentLevel]) {
+    console.log(emotionArray[currentLevel][s])
+    targetEmotionMessage += emotionArray[currentLevel][s] + " or "
+  }
+  targetEmotionMessage = targetEmotionMessage.substring(0, targetEmotionMessage.length - 4);
+  document.querySelector('#emoji').innerText = targetEmotionMessage
+}
+
+function setBarWidth(width){
+  var elem = document.getElementById("myBar");
+  elem.style.width = width + "%"
+  elem.innerHTML = width * 1 + '%';
+}
+
+function skipLevel() {
+  if (vid.paused && startedPlaying) {
+    nextLevel()
+    document.querySelector('#emoji').innerText = "Level skipped"
+  }
+}
+
+function nextLevel() {
+  currentLevel++
+  barWidth = 0
+  vid.play()
+  setBarWidth(barWidth)
+}
+              //TODO replace this with random message or possibly based on performance
+</script> 
+
+
+</body> 
+</html>
+
