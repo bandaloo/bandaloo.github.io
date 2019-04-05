@@ -1,17 +1,49 @@
 <html lang="en">
   <head>
-    <meta http-equiv="refresh" content="0; URL='https://bandaloo.github.io/hci-final.html'" />
     <link rel="stylesheet" href="stylesheet.css">
     <meta charset="utf-8" />
     <style>
     @keyframes picspin {
-      from {transform:rotate(0deg);}
-      to {transform:rotate(360deg);}
+      from {transform: rotate(0deg);}
+      to {transform: rotate(360deg);}
+    }
+
+    @keyframes computerblur {
+      from {filter: blur(20px);}
+      to {filter: blur(0px);}
+    }
+
+    @keyframes ledblink {
+      from {
+        filter: hue-rotate(0deg);
+        transform: rotate(-5deg);
+      }
+      to {
+        filter: hue-rotate(360deg);
+        transform: rotate(5deg);
+      }
     }
     
     .center:active {
       animation: picspin 2s infinite;
     }
+
+    .center.computerpic {
+      animation-name: ledblink;
+      animation-duration: 2s;
+      animation-direction: alternate;
+      animation-iteration-count: infinite;
+    }
+
+    /*
+    .center.computerpic {
+      animation-name: computerblur;
+      animation-duration: 4s;
+      animation-iteration-count: 1;
+      animation-fill-mode: forwards;
+    }
+    */
+
     </style>
   </head>
   <body>
@@ -30,14 +62,20 @@
 
     <main>
       <title>Cole's Website</title>
-      <h2>Welcome</h2>
       <div style="text-align: left">
-        <img src="images/shutcolor.png" alt="picture of me"
-        class="center" width=320 height=320>
-        <h3>About Me</h3>
+        <img src="images/happy-computer-led.png" alt="happy computer"
+        class="center computerpic" width=320 height=320
+        style="margin-top: 32px; margin-bottom: 32px">
+        <h1>Cole Granof</h1>
         <p>
-        I am a computer science major at WPI. You can see some of my
-        projects here.
+        I am a computer science student at WPI with a wide range of interests.
+        Unsurprisingly, I'm a big fan of computers. I love to program,
+        especially when it relates to graphics and game development. I have
+        also always been interested in graphic design, art and animation. I'm
+        always trying to learn new things and explore the ways I can apply my
+        knowledge. This website is an example of that. Once you're done with
+        this page, I hope you take the opportunity to explore the rest of this
+        site and check out my GitHub. Anyway, I hope you have fun!
         </p>
       </div>
     </main>
