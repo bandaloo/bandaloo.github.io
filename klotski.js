@@ -1,5 +1,6 @@
 var canvas = document.getElementById("klotskicanvas");
 var context = canvas.getContext("2d");
+var directionsLabel = document.getElementById("directionslabel");
 
 var width = 4;
 var height = 5;
@@ -32,10 +33,13 @@ var dirs = [[1, 0], [0, 1], [-1, 0], [0, -1]];
 
 var cTileNormal = "#00FF6A";
 var cTileWin = "#FFA800";
-var cEmpty = "#111111";
+
+var colors = ["#111111", "#FFFFFF", "#54E827", "#FFF338", "#E8A427",
+              "#FF612B", "#FF4941", "#D46FEB", "#6933FF", "#2373E8",
+              "#26FFEF"]
 
 function clearCanvas() {
-  context.fillStyle = cEmpty;
+  context.fillStyle = colors[0];
   context.fillRect(0, 0, canvas.width, canvas.height);
 }
 
@@ -72,11 +76,14 @@ function transformLine(i, j, line) {
 
 function drawRect(i, j, offsetX, offsetY) {
   var blockNumber = grid[i][j];
+  /*
   if (blockNumber == 1) {
     context.fillStyle = cTileWin;
   } else {
     context.fillStyle = cTileNormal;
   }
+  */
+  context.fillStyle = colors[blockNumber];
   if (blockNumber != 0) {
     context.fillRect(i * cellWidth + offsetX, j * cellHeight + offsetY, cellWidth, cellHeight);
   }
@@ -93,7 +100,7 @@ function drawOutline(i, j, offsetX, offsetY) {
       context.beginPath();
       context.moveTo(linePositions[0][0] + offsetX, linePositions[0][1] + offsetY);
       context.lineTo(linePositions[1][0] + offsetX, linePositions[1][1] + offsetY);
-      context.strokeStyle = cEmpty;
+      context.strokeStyle = colors[0];
       context.lineWidth = 6;
       context.stroke();
     }
@@ -202,28 +209,34 @@ canvas.addEventListener('mousedown', function(e) {
 });
 
 document.addEventListener('mouseup', function(e) {
-  var moveBoardX = -Math.round((holdX - mouseX) / cellWidth);
-  var moveBoardY = -Math.round((holdY - mouseY) / cellHeight);
+  console.log(mouseDown);
+  if (mouseDown) {
+    var moveBoardX = -Math.round((holdX - mouseX) / cellWidth);
+    var moveBoardY = -Math.round((holdY - mouseY) / cellHeight);
+    console.log("MOVE BOARD")
+    console.log(moveBoardX);
+    console.log(moveBoardY);
 
-  if (moveBoardX > freeRange[0]) moveBoardX = freeRange[0];
-  else if (moveBoardX < -freeRange[1]) moveBoardX = -freeRange[1];
-  if (moveBoardY > freeRange[0]) moveBoardY = freeRange[0];
-  else if (moveBoardY < -freeRange[1]) moveBoardY = -freeRange[1];
+    if (moveBoardX > freeRange[0]) moveBoardX = freeRange[0];
+    else if (moveBoardX < -freeRange[1]) moveBoardX = -freeRange[1];
+    if (moveBoardY > freeRange[0]) moveBoardY = freeRange[0];
+    else if (moveBoardY < -freeRange[1]) moveBoardY = -freeRange[1];
 
-  moveBoardX *= initialMove[0];
-  moveBoardY *= initialMove[1];
+    moveBoardX *= initialMove[0];
+    moveBoardY *= initialMove[1];
 
 
-  console.log("MOVE DIFFERENCES");
-  console.log(moveBoardX);
-  console.log(moveBoardY);
-  console.log(pieceX);
-  console.log(pieceY);
-  var blockNum = grid[pieceX][pieceY];
-  movePieces(blockNum, [moveBoardX, moveBoardY], getBlockPositions(blockNum));
-  mouseDown = false;
-  justMoved = false;
-  drawBoard();
+    console.log("MOVE DIFFERENCES");
+    console.log(moveBoardX);
+    console.log(moveBoardY);
+    console.log(pieceX);
+    console.log(pieceY);
+    var blockNum = grid[pieceX][pieceY];
+    movePieces(blockNum, [moveBoardX, moveBoardY], getBlockPositions(blockNum));
+    mouseDown = false;
+    justMoved = false;
+    drawBoard();
+  }
 });
 
 document.addEventListener('keydown', function(e) {
@@ -287,6 +300,7 @@ function movePieces(blockNum, dir, blockPositions) {;
     grid[nPosX][nPosY] = blockNum;
   }
   drawBoard();
+  checkWin();
 }
 
 function makeMove(blockNum, dirIndex) {
@@ -298,18 +312,19 @@ function makeMove(blockNum, dirIndex) {
 
   if (free) {
     movePieces(blockNum, dirs[dirIndex], blockPositions);
-    /*
-    for (var k = 0; k < blockPositions.length; k++) {
-      grid[blockPositions[k][0]][blockPositions[k][1]] = 0;
-    }
-    for (var k = 0; k < blockPositions.length; k++) {
-      var nPosX = blockPositions[k][0] + dirs[dirIndex][0];
-      var nPosY = blockPositions[k][1] + dirs[dirIndex][1];
-      grid[nPosX][nPosY] = blockNum;
-    }
-    */
   }
 }
 
+function checkWin() {
+  if (grid[1][4] == 1 && grid[2][4] == 1
+    && grid[1][3] == 1 && grid[2][3] == 1) {
+    directionsLabel.innerHTML = "you won!";
+  }
+}
+
+
+    
+
 console.log(grid[2][3])
 drawBoard();
+
