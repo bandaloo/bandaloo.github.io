@@ -22,16 +22,12 @@ var borderHeight = 1;
 var initialMove = [0, 0];
 var freeRange = [0, 0];
 
-
 var grid = [[2, 2, 4, 4, 7],
             [1, 1, 6, 8, 0],
             [1, 1, 6, 9, 0],
             [3, 3, 5, 5, 10]];
 
 var dirs = [[1, 0], [0, 1], [-1, 0], [0, -1]];
-
-//var cTileNormal = "#00FF6A";
-//var cTileWin = "#FFA800";
 
 var colors = ["#111111", "#FFFFFF", "#54E827", "#FFF338", "#E8A427",
               "#FF612B", "#FF4941", "#D46FEB", "#6933FF", "#2373E8",
@@ -83,10 +79,9 @@ function drawRect(i, j, offsetX, offsetY) {
 function drawDot(x, y) {
   context.lineWidth = 0;
   context.beginPath();
-  context.arc(x, y, 3, 0, 2 * Math.PI);
+  context.arc(x, y, 2, 0, 2 * Math.PI);
   context.closePath();
   context.fill();
-  //context.stroke();
 }
 
 function drawOutline(i, j, offsetX, offsetY, dots) {
@@ -100,8 +95,7 @@ function drawOutline(i, j, offsetX, offsetY, dots) {
       context.beginPath();
       context.moveTo(linePositions[0][0] + offsetX, linePositions[0][1] + offsetY);
       context.lineTo(linePositions[1][0] + offsetX, linePositions[1][1] + offsetY);
-      //context.strokeStyle = colors[0];
-      context.lineWidth = 6;
+      context.lineWidth = (dots ? 4 : 8);
       context.stroke();
       if (dots) {
         drawDot(linePositions[0][0] + offsetX, linePositions[0][1] + offsetY);
@@ -159,15 +153,6 @@ function drawBoard() {
   }
   outlineBoard(false);
   outlineBoard(true);
-  /*
-  for (var i = 0; i < width; i++) {
-    for (var j = 0; j < height; j++) {
-      var offsets = determineOffsets(i, j, draggedPieceNum);
-      context.strokeStyle = colors[0];
-      drawOutline(i, j, offsets[0], offsets[1]);
-    }
-  }
-  */
 }
 
 function setFreeRange() {
@@ -222,13 +207,9 @@ canvas.addEventListener('mousedown', function(e) {
 });
 
 document.addEventListener('mouseup', function(e) {
-  console.log(mouseDown);
   if (mouseDown) {
     var moveBoardX = -Math.round((holdX - mouseX) / cellWidth);
     var moveBoardY = -Math.round((holdY - mouseY) / cellHeight);
-    console.log("MOVE BOARD")
-    console.log(moveBoardX);
-    console.log(moveBoardY);
 
     if (moveBoardX > freeRange[0]) moveBoardX = freeRange[0];
     else if (moveBoardX < -freeRange[1]) moveBoardX = -freeRange[1];
@@ -260,10 +241,7 @@ document.addEventListener('keydown', function(e) {
     dirIndex = 0;
   }
   if (dirIndex != -1) {
-    if (makeMove(grid[pieceX][pieceY], dirIndex)) {
-      //pieceX += dirs[dirIndex][0];
-      //pieceY += dirs[dirIndex][1];
-    }
+    makeMove(grid[pieceX][pieceY], dirIndex);
   }
 });
 
@@ -282,7 +260,6 @@ function getBlockPositions(blockNum) {
 function freeAmount(blockNum, dir, blockPositions) {
   var count = 0;
   while (true) {
-    // go through each block in blockPositions
     for (var k = 0; k < blockPositions.length; k++) {
       var nPosX = blockPositions[k][0] + dir[0] + dir[0] * count;
       var nPosY = blockPositions[k][1] + dir[1] + dir[1] * count;
@@ -296,7 +273,7 @@ function freeAmount(blockNum, dir, blockPositions) {
   }
 }
 
-function movePieces(blockNum, dir, blockPositions) {;
+function movePieces(blockNum, dir, blockPositions) {
   for (var k = 0; k < blockPositions.length; k++) {
     grid[blockPositions[k][0]][blockPositions[k][1]] = 0;
   }
@@ -313,14 +290,9 @@ function movePieces(blockNum, dir, blockPositions) {;
 
 function makeMove(blockNum, dirIndex) {
   var blockPositions = getBlockPositions(blockNum);
-
   var free = (freeAmount(blockNum, dirs[dirIndex], blockPositions) != 0);
-  console.log(blockPositions);
-
   if (free) {
     movePieces(blockNum, dirs[dirIndex], blockPositions);
-    //pieceX += dirs[dirIndex][0];
-    //pieceY += dirs[dirIndex][1];
   }
 }
 
@@ -332,4 +304,3 @@ function checkWin() {
 }
 
 drawBoard();
-
