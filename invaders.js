@@ -14,15 +14,6 @@ window.addEventListener("DOMContentLoaded", function() {
   update();
 });
 
-// TODO move these to a helper function script
-function clamp(num, min, max) {
-  return num < min ? min : num > max ? max : num;
-}
-
-function randRange(max) {
-  return Math.floor(Math.random() * Math.floor(max));
-}
-
 function drawEntities(entities) {
   for (var i = 0; i < entities.length; i++) {
     entities[i].draw();

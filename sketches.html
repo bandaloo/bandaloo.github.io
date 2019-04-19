@@ -14,8 +14,35 @@
       <a class='hlink' href="p5/empty-example/index.html">Earthquake&nbsp;Globe</a>
       <a class='hlink' href="klotski">Klotski</a>
     </header>
-    <h1>sketches</h1>
+    <div style=
+    "display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin: auto;
+    width: 960;
+    padding: 0;
+    ">
+      <input type="button" class="button button0"
+      style="height: 40; margin-top: 20"value="prev"
+      onClick="cycleSketch(-1)">
+      <h1 id="title">test</h1>
+      <input type="button" class="button button0"
+      style="height: 40; margin-top: 20"value="next"
+      onClick="cycleSketch(1)">
+    </div>
     <canvas id="sketchcanvas" width="1920" height="1080" style = "background-color: white">
     </canvas>
+    <div style=
+    "display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin: auto;
+    width: 960;
+    padding: 0;
+    ">
+      <h2 id="author">test</h2>
+      <h2 id="golfed">test</h2>
+    </div>
     <script src="sketches.js"></script>
+  <body>
 </html>
