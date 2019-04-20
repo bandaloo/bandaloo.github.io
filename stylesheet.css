@@ -14,6 +14,21 @@ h1, h2, h3, header, p {
   text-align: center;
 }
 
+code {
+  color: #bababa;
+  font-size: 18px;
+  word-break: break-all;
+}
+
+.controlbox {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin: auto;
+  width: 960;
+  padding: 0;
+}
+
 .hlink {
   margin: 32px;
   color: white;

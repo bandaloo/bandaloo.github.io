@@ -14,14 +14,7 @@
       <a class='hlink' href="p5/empty-example/index.html">Earthquake&nbsp;Globe</a>
       <a class='hlink' href="klotski">Klotski</a>
     </header>
-    <div style=
-    "display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    margin: auto;
-    width: 960;
-    padding: 0;
-    ">
+    <div class="controlbox">
       <input type="button" class="button button0"
       style="height: 40; margin-top: 20"value="prev"
       onClick="cycleSketch(-1)">
@@ -32,16 +25,12 @@
     </div>
     <canvas id="sketchcanvas" width="1920" height="1080" style = "background-color: white">
     </canvas>
-    <div style=
-    "display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    margin: auto;
-    width: 960;
-    padding: 0;
-    ">
+    <div class="controlbox">
       <h2 id="author">test</h2>
       <h2 id="golfed">test</h2>
+    </div>
+    <div style="margin: auto; width: 960; height: 200">
+    <code id="code"></code>
     </div>
     <script src="sketches.js"></script>
   <body>

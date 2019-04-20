@@ -7,6 +7,7 @@ var x = c.getContext("2d");
 var title = document.getElementById("title");
 var author = document.getElementById("author");
 var golfed = document.getElementById("golfed");
+var code = document.getElementById("code");
 
 c.width = 1920;
 c.height = 1080;
@@ -32,15 +33,13 @@ const sketches = [
   name: "simple helix",
   author: "me",
   golfed: "yes",
-  func: (t) => {
-    a=1920;c.width=a;d=(i)=>{x.fillRect(i,536+C(i+t)*50,32,8)};for(i=0;i<a;i+=32){x.fillStyle=R((1+C(i))/2*255,0,155);for(j=0;j<3;j++)d(i+j)}
-  }
+  func: (t) => {a=1920;c.width=a;d=(i)=>{x.fillRect(i,536+C(i+t)*50,32,8)};for(i=0;i<a;i+=32){x.fillStyle=R((1+C(i))/2*255,0,155);for(j=0;j<3;j++)d(i+j)}}
 },
 
 {
   name: "undulating lines",
   author: "me",
-  golfed: "not really",
+  golfed: "not yet",
   func: (t) => {
     w = 1920;
     h = 1080;
@@ -54,21 +53,31 @@ const sketches = [
 },
 
 {
+  name: "diamond zoom",
+  author: "me",
+  golfed: "yes",
+  func: (t) => {w=1920;h=1080;a=100;c.width=w;for(i=0;i<w;i+=24){for(j=0;j<h;j+=24){x.fillRect(i,j,6*(4+C(C(t)*i/a)+S(C(t)*j/a)),24);}}}
+},
+
+{
+  name: "dot zoom",
+  author: "me",
+  golfed: "yes",
+  func: (t) => {w=1920;h=1080;a=100;c.width=w;for(i=0;i<w;i+=24){for(j=0;j<h;j+=24){x.fillRect(i,j,6*(2+C(C(t)*i/a)+S(C(t)*j/a)),24);}}}
+},
+
+{
+  name: "inverting dots",
+  author: "me",
+  golfed: "yes",
+  func: (t) => {w=1920;h=1080;a=100;c.width=w;for(i=0;i<w;i+=24){for(j=0;j<h;j+=24){x.fillRect(i,j,6*(4+C(t*6)+C(i/a+t)+S(j/a+t)),24);}}}
+},
+
+{
   name: "rainbow helix waves",
   author: "me",
-  golfed: "somewhat",
-  func: (t) => {
-    a=1920
-    g=255
-    c.width=a
-    d=(i,y)=>{x.fillRect(i,y+536+25*C(i+t)+20*S((y/40)*t+i/100),32,8)}
-    for(k=-4;k<5;k++)
-      for(i=0;i<a;i+=32){
-        x.fillStyle=`hsl(${i/25+k*190*C(t/8)},99%,50%)`
-        for(j=0;j<3;j++)
-            d(i+j, k*100)
-    }
-  }
+  golfed: "yes",
+  func: (t) => {a=1920;g=255;c.width=a;d=(i,y)=>{x.fillRect(i,y+536+25*C(i+t)+20*S((y/40)*t+i/100),32,8)};for(k=-4;k<5;k++)for(i=0;i<a;i+=32){x.fillStyle=`hsl(${i/25+k*190*C(t/8)},99%,50%)`;for(j=0;j<3;j++)d(i+j,k*100)}}
 }];
 
 function setSketch() {
@@ -78,22 +87,32 @@ function setSketch() {
   u = sketches[si].func;
   title.innerHTML = sketches[si].name;
   author.innerHTML= "author: " + sketches[si].author;
-  golfed.innerHTML= "golfed: " + sketches[si].golfed;
+  var golfedText = sketches[si].golfed;
+  var codeText = sketches[si].func.toString();
+  code.innerHTML = sanitize(codeText);
+  if (golfedText == "yes") {
+    golfedText += " (" + (codeText.length - 9) + " characters)";
+  }
+  golfed.innerHTML= "golfed: " + golfedText;
+
 }
 
 var u = () => {};
-var si = 2;
+var si = 5;
 x.save();
 setSketch();
 
 function cycleSketch(n) {
-    c.width = c.width;
-    si += n;
-    si = si < 0 ? sketches.length - 1 : si >= sketches.length ? si = 0 : si;
-    setSketch();
+  c.width = c.width;
+  si += n;
+  si = si < 0 ? sketches.length - 1 : si >= sketches.length ? si = 0 : si;
+  setSketch();
 }
 
-console.log('test');
+function sanitize(string) {
+  return string.replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+}
+
 
 function update() {
   canvas.width = canvas.width; // clear the screen
