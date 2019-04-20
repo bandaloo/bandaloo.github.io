@@ -36,6 +36,7 @@ const sketches = [
     a=1920;c.width=a;d=(i)=>{x.fillRect(i,536+C(i+t)*50,32,8)};for(i=0;i<a;i+=32){x.fillStyle=R((1+C(i))/2*255,0,155);for(j=0;j<3;j++)d(i+j)}
   }
 },
+
 {
   name: "undulating lines",
   author: "me",
@@ -48,6 +49,24 @@ const sketches = [
       for (j = 0; j < h; j += 24) {
         x.fillRect(i, j, 12 * (1 + C((i + j + t * 100) / 100)), 24);
       }
+    }
+  }
+},
+
+{
+  name: "rainbow helix waves",
+  author: "me",
+  golfed: "somewhat",
+  func: (t) => {
+    a=1920
+    g=255
+    c.width=a
+    d=(i,y)=>{x.fillRect(i,y+536+25*C(i+t)+20*S((y/40)*t+i/100),32,8)}
+    for(k=-4;k<5;k++)
+      for(i=0;i<a;i+=32){
+        x.fillStyle=`hsl(${i/25+k*190*C(t/8)},99%,50%)`
+        for(j=0;j<3;j++)
+            d(i+j, k*100)
     }
   }
 }];
@@ -63,7 +82,7 @@ function setSketch() {
 }
 
 var u = () => {};
-var si = 0;
+var si = 2;
 x.save();
 setSketch();
 
@@ -78,7 +97,9 @@ console.log('test');
 
 function update() {
   canvas.width = canvas.width; // clear the screen
+  x.save();
   u(t);
+  x.restore();
   context.save();
   context.scale(canvas.width / c.width, canvas.height / c.height);
   context.drawImage(c, 0, 0);
