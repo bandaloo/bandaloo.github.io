@@ -14,8 +14,10 @@ c.height = 1080;
 
 var t = 0;
 
-canvas.width *= 0.5;
-canvas.height *= 0.5;
+const ratio = 0.5;
+
+canvas.width *= ratio; 
+canvas.height *= ratio;
 
 // dwitter shorthand
 var C = Math.cos
@@ -78,7 +80,15 @@ const sketches = [
   author: "me",
   golfed: "yes",
   func: (t) => {a=1920;g=255;c.width=a;d=(i,y)=>{x.fillRect(i,y+536+25*C(i+t)+20*S((y/40)*t+i/100),32,8)};for(k=-4;k<5;k++)for(i=0;i<a;i+=32){x.fillStyle=`hsl(${i/25+k*190*C(t/8)},99%,50%)`;for(j=0;j<3;j++)d(i+j,k*100)}}
-}];
+},
+
+{
+  name: "orange gravity",
+  author: "me",
+  golfed: "yes",
+  func: (t) => {c.width|=0;for(i=50;i-=0.25;)x.beginPath(),d=2*C((2+S(t/120))*2*i),x.arc(960+C(0)*d*10*C(i)*i,540+d*C(0)*10*S(i)*i,i,0,44/7),x.fillStyle=`hsl(${i},99%,50%)`,x.fill()}
+},
+];
 
 function setSketch() {
   t = 0;
@@ -94,11 +104,10 @@ function setSketch() {
     golfedText += " (" + (codeText.length - 9) + " characters)";
   }
   golfed.innerHTML= "golfed: " + golfedText;
-
 }
 
 var u = () => {};
-var si = 5;
+var si = 6;
 x.save();
 setSketch();
 
@@ -123,7 +132,7 @@ function update() {
   context.scale(canvas.width / c.width, canvas.height / c.height);
   context.drawImage(c, 0, 0);
   context.restore();
-  t += 0.01;
+  t += 1/60;
   requestAnimationFrame(update);
 }
 
