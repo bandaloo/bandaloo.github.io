@@ -105,14 +105,22 @@ const sketches = [
   author: "me",
   golfed: "yes",
   func: (t) => {c.width|=0;for(i=50;i-=1/4;)x.beginPath(),d=2*C((2+S(t/99))*2*i),x.arc(960+d*10*C(i)*i,540+d*10*S(i)*i,i,0,44/7),x.fillStyle=R(i*5),x.fill()}
-}];
+},
+
+{
+  name: "circles in circles",
+  author: "me",
+  golfed: "yes",
+  func: (t) => {c.width|=d=(y,z,s,i)=>{i?(x.fillStyle=R(i*20),x.beginPath(),x.arc(960+y,540+z,s,0,44/7),x.fill(),d(y-s*(1-.8)*C(t*5)/3,z,s*.8,i-1)):0};d(0,0,512,9);}
+}
+];
 
 function setSketch() {
   t = 0;
   x.restore();
   x.save();
   u = sketches[si].func;
-  title.innerHTML = sketches[si].name;
+  title.innerHTML = si.toString() + ". " + sketches[si].name;
   author.innerHTML= "author: " + sketches[si].author;
   var golfedText = sketches[si].golfed;
   var codeText = sketches[si].func.toString();
