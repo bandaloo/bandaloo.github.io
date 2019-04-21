@@ -28,6 +28,18 @@ function R(r, g = 0, b = 0, a = 1) {
   return `rgba(${r},${g},${b},${a})`;
 }
 
+function getVariable(variable) {
+  var query = window.location.search.substring(1);
+  var vars = query.split("&");
+  for (var i = 0; i < vars.length; i++) {
+    var pair = vars[i].split("=");
+    if (pair[0] == variable) {
+      return pair[1];
+    }
+  }
+  return false;
+}
+
 // sketches
 const sketches = [
 {
@@ -113,6 +125,10 @@ function setSketch() {
 
 var u = () => {};
 var si = 6;
+var variable = getVariable("si");
+if (variable && !isNaN(parseInt(variable))) {
+  si = Math.round(parseInt(variable));
+}
 x.save();
 setSketch();
 
