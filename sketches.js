@@ -86,7 +86,7 @@ const sketches = [
   name: "orange gravity",
   author: "me",
   golfed: "yes",
-  func: (t) => {c.width|=0;for(i=50;i-=0.25;)x.beginPath(),d=2*C((2+S(t/120))*2*i),x.arc(960+C(0)*d*10*C(i)*i,540+d*C(0)*10*S(i)*i,i,0,44/7),x.fillStyle=`hsl(${i},99%,50%)`,x.fill()}
+  func: (t) => {c.width|=0;for(i=50;i-=1/4;)x.beginPath(),d=2*C((2+S(t/120))*2*i),x.arc(960+d*10*C(i)*i,540+d*10*S(i)*i,i,0,44/7),x.fillStyle=`hsl(${i},99%,50%)`,x.fill()}
 },
 ];
 
