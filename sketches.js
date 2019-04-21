@@ -111,7 +111,7 @@ const sketches = [
   name: "circles in circles",
   author: "me",
   golfed: "yes",
-  func: (t) => {c.width|=d=(y,z,s,i)=>{i?(x.fillStyle=R(i*20),x.beginPath(),x.arc(960+y,540+z,s,0,44/7),x.fill(),d(y-s*(1-.8)*C(t*5)/3,z,s*.8,i-1)):0};d(0,0,512,9);}
+  func: (t) => {c.width|=d=(y,z,s,i)=>{i?(x.fillStyle=R(i*20),x.beginPath(),x.arc(960+y,540+z,s,0,44/7),x.fill(),d(y-s*(1-.8)*C(t*5)/3,z,s*.8,i-1)):0};d(0,0,512,9)}
 }
 ];
 
