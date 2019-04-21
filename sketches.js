@@ -125,9 +125,10 @@ function setSketch() {
 
 var u = () => {};
 var si = 6;
-var variable = getVariable("si");
-if (variable && !isNaN(parseInt(variable))) {
-  si = Math.round(parseInt(variable));
+var queryResult = getVariable("si");
+if (queryResult && !isNaN(parseInt(queryResult)) && parseInt(queryResult)
+    > 0 && parseInt(queryResult) < sketches.length) {
+  si = Math.round(parseInt(queryResult));
 }
 x.save();
 setSketch();
