@@ -25,8 +25,7 @@ var S = Math.sin
 var T = Math.tan
 
 function R(r, g = 0, b = 0, a = 1) {
-  return "#" + Math.round(r).toString(16) + Math.round(g).toString(16)
-             + Math.round(b).toString(16) + Math.round(a).toString(16);
+  return `rgba(${r},${g},${b},${a})`;
 }
 
 // sketches
@@ -88,7 +87,13 @@ const sketches = [
   golfed: "yes",
   func: (t) => {c.width|=0;for(i=50;i-=1/4;)x.beginPath(),d=2*C((2+S(t/120))*2*i),x.arc(960+d*10*C(i)*i,540+d*10*S(i)*i,i,0,44/7),x.fillStyle=`hsl(${i},99%,50%)`,x.fill()}
 },
-];
+
+{
+  name: "red shorter gravity",
+  author: "me",
+  golfed: "yes",
+  func: (t) => {c.width|=0;for(i=50;i-=1/4;)x.beginPath(),d=2*C((2+S(t/99))*2*i),x.arc(960+d*10*C(i)*i,540+d*10*S(i)*i,i,0,44/7),x.fillStyle=R(i*5),x.fill()}
+}];
 
 function setSketch() {
   t = 0;
