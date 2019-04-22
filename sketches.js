@@ -112,7 +112,14 @@ const sketches = [
   author: "me",
   golfed: "yes",
   func: (t) => {c.width|=d=(y,z,s,i)=>{i?(x.fillStyle=R(i*20),x.beginPath(),x.arc(960+y,540+z,s,0,44/7),x.fill(),d(y-s*(1-.8)*C(t*5)/3,z,s*.8,i-1)):0};d(0,0,512,9)}
-}
+},
+
+{
+  name: "rainbow portal",
+  author: "me",
+  golfed: "yes",
+  func: (t) => {for(i=200;i--;x.beginPath(x.fill(x.arc(960+d*9*C(i+t)*i,540+d*9*S(i+t)*i,i,0,7))))d=C(S(t/99)*i),x.fillStyle=`hsl(${i},99%,50%,50%)`}
+},
 ];
 
 function setSketch() {
