@@ -118,8 +118,16 @@ const sketches = [
   name: "rainbow portal",
   author: "me",
   golfed: "yes",
-  func: (t) => {for(i=200;i--;x.beginPath(x.fill(x.arc(960+d*9*C(i+t)*i,540+d*9*S(i+t)*i,i,0,7))))d=C(S(t/99)*i),x.fillStyle=`hsl(${i},99%,50%,50%)`}
+  func: (t) => {for(i=200;i--;x.beginPath(x.fill(x.arc(960+d*9*C(i+t)*i,540+d*9*S(i+t)*i,i,0,7))))d=C(S(t/99)*i),x.fillStyle=`hsl(${(i+t*9)%255},99%,50%,50%)`}
 },
+
+{
+  name: "pink stretchy dots",
+  author: "me",
+  golfed: "yes",
+  func: (t) => {c.width|=0;for(i=1896;i-=24;)for(j=1056;j-=24;)x.fillStyle=R(6*(s=6*(4+C(t*6)+C(C(t)*i/99+t)+S(S(t)*j/99+t))),0,s+i/9),x.fillRect(i,j,s,s)}
+}
+
 ];
 
 function setSketch() {
