@@ -189,6 +189,10 @@ document.addEventListener('keydown', function(e) {
     //canvas.width = window.innerWidth;
     //canvas.height = window.innerHeight;
     enterFullscreen(canvas);
+  } else if (key == 'H' || code == 37) {
+    cycleSketch(-1);
+  } else if (key == 'L' || code == 39) {
+    cycleSketch(1);
   }
 });
 
