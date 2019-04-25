@@ -28,6 +28,19 @@ function R(r, g = 0, b = 0, a = 1) {
   return `rgba(${r},${g},${b},${a})`;
 }
 
+canvas.addEventListener('webkitfullscreenchange', exitHandler, false);
+canvas.addEventListener('mozfullscreenchange', exitHandler, false);
+canvas.addEventListener('fullscreenchange', exitHandler, false);
+canvas.addEventListener('MSFullscreenChange', exitHandler, false);
+
+function exitHandler() {
+  if (!document.webkitIsFullScreen && !document.mozFullScreen
+      && !document.msFullscreenElement) {
+    canvas.width = 1920 / 2;
+    canvas.height = 1080 / 2;
+  }
+}
+
 function getVariable(variable) {
   var query = window.location.search.substring(1);
   var vars = query.split("&");
@@ -167,6 +180,28 @@ function sanitize(string) {
   return string.replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 }
 
+document.addEventListener('keydown', function(e) {
+  var code = e.keyCode;
+  var key = String.fromCharCode(code);
+  if (key == 'F') {
+    canvas.width = 1920;
+    canvas.height = 1080;
+    //canvas.width = window.innerWidth;
+    //canvas.height = window.innerHeight;
+    enterFullscreen(canvas);
+  }
+});
+
+function enterFullscreen(element) {
+  if (element.requestFullscreen)
+    element.requestFullscreen();
+  else if (element.mozRequestFullScreen)
+    element.mozRequestFullScreen();
+  else if (element.webkitRequestFullscreen)
+    element.webkitRequestFullscreen();
+  else if (element.msRequestFullscreen)
+    element.msRequestFullscreen();
+}
 
 function update() {
   canvas.width = canvas.width; // clear the screen
