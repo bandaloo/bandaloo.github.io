@@ -131,7 +131,7 @@ const sketches = [
   name: "rainbow portal",
   author: "me",
   golfed: "yes",
-  func: (t) => {for(i=200;i--;x.beginPath(x.fill(x.arc(960+d*9*C(i+t)*i,540+d*9*S(i+t)*i,i,0,7))))d=C(S(t/99)*i),x.fillStyle=`hsl(${(i+t*9)%255},99%,50%,50%)`}
+  func: (t) => {for(i=200;i--;x.beginPath(x.fill(x.arc(960+d*9*C(i+t)*i,540+d*9*S(i+t)*i,i,0,7))))d=C(S(t/99)*i),x.fillStyle=`hsl(${i+t*9},99%,50%,50%)`}
 },
 
 {
