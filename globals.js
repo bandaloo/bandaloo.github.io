@@ -4,12 +4,17 @@ const context = canvas.getContext("2d");
 const width = canvas.width;
 const height = canvas.height;
 
+// arrays to hold all entities that have an update cycles
 var playerEntities = [];
 var playerBullets = [];
 var enemies = [];
 var enemyBullets = [];
 var particles = [];
 
+// for enemies that got hit by player bullets in that frame
+var hitEnemies = [];
+
+// arrays for sprites and sprite file names
 var snootSprites = [];
 var snootSources = ["snoot0", "snoot1", "snoot2"];
 

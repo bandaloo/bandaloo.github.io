@@ -23,6 +23,9 @@ function Entity(x, y, vx, vy, sx, sy, sprites) {
   this.vy = vy;
   this.sx = sx;
   this.sy = sy;
+  this.accx = 0;
+  this.accy = 0;
+  this.damping = 1;
   this.rotation = 0;
   this.sprites = sprites;
   this.counter = 0;
@@ -30,6 +33,7 @@ function Entity(x, y, vx, vy, sx, sy, sprites) {
   this.animationTimer = 0;
   this.lifetime = null;
   this.insideBounds = true;
+  this.name = 'temporary';
 }
 
 Entity.prototype.stepAnimation = function() {
@@ -40,6 +44,23 @@ Entity.prototype.stepAnimation = function() {
     this.counter %= this.sprites.length;
   }
 };
+
+Entity.prototype.destroy = function() {};
+
+Entity.prototype.accelerate = function() {
+  this.vx += this.accx;
+  this.vy += this.accy;
+  this.vx -= this.vx * this.damping;
+  this.vy -= this.vy * this.damping;
+};
+
+Entity.prototype.atEdge = function() {
+  return this.x == this.sx / 2 || this.x == width-this.sx / 2;
+  // TODO get rid of this
+  console.log("AT EDGE");
+};
+
+// TODO Entity prototype should probably have a draw function
 
 // ------
 // Player
@@ -54,6 +75,7 @@ function Player() {
 Player.prototype = Object.create(Entity.prototype);
 
 Player.prototype.update = function() {
+  // Player does not use the Entity acceleration function
   if (buttons.leftPressed) {
     this.vx = -this.acceleration * 2;
   } else if (buttons.rightPressed) {
@@ -85,9 +107,10 @@ function Enemy(x, y, vx, vy, sx, sy, sprites) {
 Enemy.prototype = Object.create(Entity.prototype);
 
 Enemy.prototype.destroy = function() {
-  // TODO implement this, maybe create some particles
+  for (var i = 0; i < 30; i++) {
+    particles.push(new Particle(this.x, this.y, 0, 0, 0.01, Math.random() * 5, 15, puffSprites));
+  }
 }
-
 
 // -----
 // Alien
@@ -95,12 +118,21 @@ Enemy.prototype.destroy = function() {
 
 function Alien(x, y) {
   Enemy.call(this, x, y, 0, 0, 64, 64, alienSprites);
+  this.accx = 0.8;
+  this.damping = 0.1;
 }
 
-Alien.prototype = Object.create(Entity.prototype);
+Alien.prototype = Object.create(Enemy.prototype);
 
 Alien.prototype.update = function() {
+  this.accelerate();
   this.stepAnimation();
+  if (this.atEdge()) {
+    console.log('alien at edge');
+    this.vy = 5;
+    this.vx *= -1;
+    this.accx *= -1;
+  }
 }
 
 Alien.prototype.draw = basicDraw;
@@ -114,7 +146,7 @@ function PlayerBullet(x, y, speed, direction) {
   var vy = speed * Math.sin(direction);
   Entity.call(this, x, y, vx, vy, 32, 32, pBulletSprites);
   this.counter = randRange(this.sprites.length);
-  this.lifetime = 32;
+  this.lifetime = 48;
 }
 
 PlayerBullet.prototype = Object.create(Entity.prototype);
@@ -147,10 +179,7 @@ function Particle(x, y, accx, accy, damping, speed, lifetime, sprites) {
 Particle.prototype = Object.create(Entity.prototype);
 
 Particle.prototype.update = function() {
-  this.vx += this.accx;
-  this.vy += this.accy;
-  this.vx -= this.vx * this.damping;
-  this.vy -= this.vy * this.damping;
+  this.accelerate();
   var frameCount = Math.ceil(this.sprites.length * this.lifetime / this.maxLifetime) - 1;
   this.counter = (this.sprites.length - 1) - frameCount; 
 }
