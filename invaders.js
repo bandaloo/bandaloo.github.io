@@ -4,22 +4,22 @@ window.addEventListener("DOMContentLoaded", function() {
   loadImages(puffSprites, puffSources);
   loadImages(eBulletSprites, eBulletSources);
   loadImages(alienSprites, alienSources);
+  loadImages(fatAlienSprites, fatAlienSources);
+  console.log(alienSprites);
+  console.log(fatAlienSprites);
 
   // TODO get rid of this
   for (var i = 0; i < 1000; i+= 100) {
     for (var j = 0; j < 400; j+= 100) {
-      enemies.push(new Alien(100 + i, 100 + j));
+      enemies.push(new Alien(100 + i, 200 + j));
     }
   }
-  /*
-  enemies.push(
-  new Alien(200, 200),
-  new Alien(300, 200),
-  new Alien(400, 200),
-  new Alien(500, 200),
-  new Alien(600, 200),
-  );
-  */
+
+  enemies.push(new FatAlien(100, 100));
+  enemies.push(new FatAlien(300, 100));
+  enemies.push(new FatAlien(500, 100));
+  enemies.push(new FatAlien(700, 100));
+
   var player = new Player();
   playerEntities.push(player);
   context.drawImage(snootSprites[0], 200, 200);
@@ -35,17 +35,19 @@ function drawEntities(entities) {
 function updateEntities(entities) {
   for (var i = 0; i < entities.length; i++) {
     //console.log('updating')
-    entities[i].update();
-    entities[i].x += entities[i].vx;
-    entities[i].y += entities[i].vy;
-    if (entities[i].lifetime !== null) {
-      entities[i].lifetime--;
-      if (entities[i].lifetime <= 0) {
-        entities[i].destroy();
-      }
+    var entity = entities[i];
+    entity.update();
+    entity.x += entity.vx;
+    entity.y += entity.vy;
+    if (entity.lifetime !== null) {
+      entity.lifetime--;
     }
-    if (entities[i].insideBounds) {
-      entities[i].x = clamp(entities[i].x, entities[i].sx / 2, width - entities[i].sx / 2);
+    if (entity.lifetime !== null && entity.lifetime <= 0 
+        || entity.health !== null && entity.health <= 0) {
+      entity.destroy();
+    }
+    if (entity.insideBounds) {
+      entity.x = clamp(entity.x, entity.sx / 2, width - entity.sx / 2);
     }
   }
 }
@@ -63,11 +65,20 @@ function collide(colliders, collidees) {
 }
 
 function filterEntities(entities) {
+  // TODO figure out why filtering by health breaks things
+  return entities.filter(entity => (entity.lifetime === null || entity.lifetime > 0)
+                         && (entity.health === null || entity.health > 0));
+  /*
   return entities.filter(entity => entity.lifetime === null || entity.lifetime > 0);
+  */
 }
 
 function update() {
   clearScreen();
+
+  // collisions
+  // TODO check if this really has to be global
+  hitEnemies = collide(enemies, playerBullets);
 
   // TODO make updating, drawing and clearing better
   updateEntities(playerEntities);
@@ -89,11 +100,8 @@ function update() {
   enemyBullets = filterEntities(enemyBullets);
   particles = filterEntities(particles);
 
-  // collisions
-  hitEnemies = collide(enemies, playerBullets);
-
   for (var i = 0; i < hitEnemies.length; i++) {
-    hitEnemies[i][0].lifetime = 0;
+    hitEnemies[i][0].health--;
     hitEnemies[i][1].lifetime = 0;
   }
 

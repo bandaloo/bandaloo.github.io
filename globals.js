@@ -29,3 +29,6 @@ var puffSources = ["puff0", "puff1", "puff2", "puff3", "puff4"];
 
 var alienSprites = [];
 var alienSources = ["alien0", "alien1", "alien2", "alien3"]; 
+
+var fatAlienSprites = [];
+var fatAlienSources = ["fatalien0", "fatalien1", "fatalien2", "fatalien3"]; 
