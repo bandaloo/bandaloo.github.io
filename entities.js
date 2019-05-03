@@ -60,6 +60,8 @@ Entity.prototype.stepAnimation = function() {
 
 Entity.prototype.destroy = function() {};
 
+Entity.prototype.draw = basicDraw;
+
 Entity.prototype.accelerate = function() {
   this.vx += this.accx;
   this.vy += this.accy;
@@ -69,10 +71,12 @@ Entity.prototype.accelerate = function() {
 
 Entity.prototype.atEdge = function() {
   return this.x == this.sx / 2 || this.x == width-this.sx / 2;
-  // TODO get rid of this
 };
 
-// TODO Entity prototype should probably have a draw function
+Entity.prototype.inbounds = function() {
+  return rectangleCollision(0, 0, width, height, this.x - this.sx / 2,
+                            this.y - this.sy / 2, this.sx, this.sy);
+}
 
 // ------
 // Player
@@ -82,6 +86,7 @@ function Player() {
   Entity.call(this, width / 2, height - 32, 0, 0, 64, 64, snootSprites);
   this.acceleration = 0.8;
   this.maxSpeed = 15;
+  this.insideBounds = true;
 }
 
 Player.prototype = Object.create(Entity.prototype);
@@ -95,6 +100,7 @@ Player.prototype.update = function() {
   } else if (!buttons.leftHeld && !buttons.rightHeld) {
     this.vx = 0;
   }
+
   this.vx += Math.sign(this.vx) * this.acceleration;
   this.vx = clamp(this.vx, -this.maxSpeed, this.maxSpeed);
   this.rotation = this.vx / 64;
@@ -104,8 +110,6 @@ Player.prototype.update = function() {
     playerBullets.push(pBullet);
   }
 }
-
-Player.prototype.draw = basicDraw;
 
 // -----
 // Enemy 
@@ -120,7 +124,7 @@ Enemy.prototype = Object.create(Entity.prototype);
 
 Enemy.prototype.destroy = function() {
   for (var i = 0; i < 30; i++) {
-    particles.push(new Particle(this.x, this.y, 0, 0, 0.01, Math.random() * 5, 15, puffSprites));
+    particles.push(new Particle(this.x, this.y, 0, 0, 0.05, 6 + Math.random() * 5, 30, redPuffSprites));
   }
 }
 
@@ -148,9 +152,10 @@ Alien.prototype.update = function() {
   this.accelerate();
   this.stepAnimation();
   this.bumpDown(5);
+  if (Math.random() > 0.997) {
+    enemyBullets.push(new EnemyBullet(this.x, this.y, 2, Math.PI / 2));
+  }
 }
-
-Alien.prototype.draw = basicDraw;
 
 // ---------
 // Fat Alien
@@ -176,8 +181,6 @@ FatAlien.prototype.destroy = function() {
   spawnCircle(Alien, this.x, this.y, 6, Math.sign(this.vx), 4, 10);
 }
 
-FatAlien.prototype.draw = basicDraw;
-
 // -------------
 // Player Bullet
 // -------------
@@ -192,14 +195,39 @@ function PlayerBullet(x, y, speed, direction) {
 
 PlayerBullet.prototype = Object.create(Entity.prototype);
 
-// TODO check why player bullet is being destroyed so many times
-
 PlayerBullet.prototype.update = function() {
-  particles.push(new Particle(this.x, this.y, 0, 0.4, 0.01, 1.5, 15, puffSprites));
+  particles.push(new Particle(this.x, this.y, 0, 0.4, 0.01, 1.5, 15, redPuffSprites));
   this.stepAnimation();
+  if (!this.inbounds()) {
+    this.lifetime = 0;
+  }
 };
 
-PlayerBullet.prototype.draw = basicDraw;
+// -------------
+// Enemy Bullet
+// -------------
+
+function EnemyBullet(x, y, speed, direction) {
+  // TODO try to get rid of repeated code here
+  var vx = speed * Math.cos(direction);
+  var vy = speed * Math.sin(direction);
+  Entity.call(this, x, y, vx, vy, 32, 32, eBulletSprites);
+  this.lifetime = 1000; // shouldn't really die before it leaves the screen anyways
+  this.puffCounter = 20;
+}
+
+EnemyBullet.prototype = Object.create(Entity.prototype);
+
+EnemyBullet.prototype.update = function() {
+  this.puffCounter--;
+  if (this.puffCounter <= 0) {
+    this.puffCounter = 20;
+    particles.push(new Particle(this.x, this.y, 0, 0, 0.01, 0.2, 60, puffSprites));
+  }
+  if (!this.inbounds()) {
+    this.lifetime = 0;
+  }
+}
 
 // --------
 // Particle
@@ -227,4 +255,3 @@ Particle.prototype.update = function() {
   this.counter = (this.sprites.length - 1) - frameCount; 
 }
 
-Particle.prototype.draw = basicDraw;

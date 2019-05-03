@@ -1,3 +1,4 @@
+// TODO check if canvas should be const if the width will change
 const canvas = document.getElementById("invaderscanvas");
 const context = canvas.getContext("2d");
 
@@ -25,6 +26,7 @@ var eBulletSprites = [];
 var eBulletSources = ["ebullet0"];
 
 var puffSprites = [];
+var redPuffSprites = [];
 var puffSources = ["puff0", "puff1", "puff2", "puff3", "puff4"];
 
 var alienSprites = [];
