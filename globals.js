@@ -34,3 +34,6 @@ var alienSources = ["alien0", "alien1", "alien2", "alien3"];
 
 var fatAlienSprites = [];
 var fatAlienSources = ["fatalien0", "fatalien1", "fatalien2", "fatalien3"]; 
+
+var toothSprites = [];
+var toothSources = ["tooth0", "tooth1", "tooth2"]; 

@@ -5,6 +5,7 @@ window.addEventListener("load", function() {
   loadImages(eBulletSprites, eBulletSources);
   loadImages(alienSprites, alienSources);
   loadImages(fatAlienSprites, fatAlienSources);
+  loadImages(toothSprites, toothSources);
 
   redPuffSprites = puffSprites.slice();
 
@@ -13,6 +14,7 @@ window.addEventListener("load", function() {
   blendImages(pBulletSprites, 255, 68, 31, 0.3);
   blendImages(snootSprites, 255, 68, 31);
   blendImages(redPuffSprites, 255, 68, 31, 1, 0.2);
+  blendImages(toothSprites, 255, 209, 47);
 
   // TODO get rid of this
   for (var i = 0; i < 1000; i+= 100) {
@@ -26,10 +28,10 @@ window.addEventListener("load", function() {
   enemies.push(new FatAlien(500, 100));
   enemies.push(new FatAlien(700, 100));
 
+  enemies.push(new Tooth(700, 100));
+
   var player = new Player();
   playerEntities.push(player);
-  //context.drawImage(snootSprites[0], 200, 200);
-  //setTimeout(update, 1000);
   update();
 });
 
@@ -41,7 +43,6 @@ function drawEntities(entities) {
 
 function updateEntities(entities) {
   for (var i = 0; i < entities.length; i++) {
-    //console.log('updating')
     var entity = entities[i];
     entity.update();
     entity.x += entity.vx;

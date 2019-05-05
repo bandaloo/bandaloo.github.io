@@ -129,11 +129,9 @@ Enemy.prototype.destroy = function() {
 }
 
 Enemy.prototype.bumpDown = function(bumpSpeed) {
-  if (this.atEdge()) {
-    this.vy = bumpSpeed;
-    this.vx *= -1;
-    this.accx *= -1;
-  }
+  this.vy = bumpSpeed;
+  this.vx *= -1;
+  this.accx *= -1;
 }
 
 // -----
@@ -151,7 +149,9 @@ Alien.prototype = Object.create(Enemy.prototype);
 Alien.prototype.update = function() {
   this.accelerate();
   this.stepAnimation();
-  this.bumpDown(5);
+  if (this.atEdge()) {
+    this.bumpDown(5);
+  }
   if (Math.random() > 0.997) {
     enemyBullets.push(new EnemyBullet(this.x, this.y, 2, Math.PI / 2));
   }
@@ -173,12 +173,52 @@ FatAlien.prototype = Object.create(Enemy.prototype);
 FatAlien.prototype.update = function() {
   this.accelerate();
   this.stepAnimation();
-  this.bumpDown(8);
+  if (this.atEdge()) {
+    this.bumpDown(8);
+  }
   this.animationDelay = 5;
 }
 
 FatAlien.prototype.destroy = function() {
   spawnCircle(Alien, this.x, this.y, 6, Math.sign(this.vx), 4, 10);
+}
+
+// -----
+// Tooth
+// -----
+
+function Tooth(x, y) {
+  Enemy.call(this, x, y, 0, 0, 64, 64, toothSprites);
+  //this.accx = 0.3;
+  this.damping = 0.1;
+  this.health = 10; // TODO change this health to lower
+  this.rotationCounter = 0;
+  this.moveCounter = 0;
+  this.moveDirection = 1;
+}
+
+Tooth.prototype = Object.create(Enemy.prototype);
+
+Tooth.prototype.update = function() {
+  this.rotationCounter += 0.025
+  this.rotation = Math.cos(this.rotationCounter) / 2;
+  this.stepAnimation();
+  this.animationDelay = 5
+  if (this.animationTimer == 0 && this.counter == 0) {
+    enemyBullets.push(new EnemyBullet(this.x, this.y, 2, this.rotation + Math.PI / 2 + Math.PI / 8));
+    enemyBullets.push(new EnemyBullet(this.x, this.y, 2, this.rotation + Math.PI / 2 - Math.PI / 8));
+    this.moveCounter++;
+  }
+
+  if (this.moveCounter >= 5) {
+    this.moveCounter = 0;
+    this.vx = 10 * this.moveDirection;
+  }
+  this.accelerate();
+  if (this.atEdge()) {
+    this.bumpDown(5);
+    this.moveDirection *= -1;
+  }
 }
 
 // -------------
@@ -191,6 +231,7 @@ function PlayerBullet(x, y, speed, direction) {
   Entity.call(this, x, y, vx, vy, 32, 32, pBulletSprites);
   this.counter = randRange(this.sprites.length);
   this.lifetime = 48;
+  this.insideBounds = false;
 }
 
 PlayerBullet.prototype = Object.create(Entity.prototype);
@@ -214,6 +255,8 @@ function EnemyBullet(x, y, speed, direction) {
   Entity.call(this, x, y, vx, vy, 32, 32, eBulletSprites);
   this.lifetime = 1000; // shouldn't really die before it leaves the screen anyways
   this.puffCounter = 20;
+  this.insideBounds = false;
+  this.rotation = -Math.atan2(vx, vy);
 }
 
 EnemyBullet.prototype = Object.create(Entity.prototype);
