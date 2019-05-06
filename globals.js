@@ -37,3 +37,13 @@ var fatAlienSources = ["fatalien0", "fatalien1", "fatalien2", "fatalien3"];
 
 var toothSprites = [];
 var toothSources = ["tooth0", "tooth1", "tooth2"]; 
+
+var colors = {
+  red: [255, 58, 31],
+  green: [124, 244, 11],
+  purple: [166, 16, 232],
+  orange: [255, 209, 47],
+  pink: [255, 28, 175]
+}
+
+var coloredPuffSprites = {};

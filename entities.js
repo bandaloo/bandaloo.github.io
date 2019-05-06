@@ -122,9 +122,11 @@ function Enemy(x, y, vx, vy, sx, sy, sprites) {
 
 Enemy.prototype = Object.create(Entity.prototype);
 
-Enemy.prototype.destroy = function() {
-  for (var i = 0; i < 30; i++) {
-    particles.push(new Particle(this.x, this.y, 0, 0, 0.05, 6 + Math.random() * 5, 30, redPuffSprites));
+Enemy.prototype.destroy = function(amount = 30, speedStart = 6, speedMultiplier = 5) {
+  // TODO move this into its own explosion function
+  for (var i = 0; i < amount; i++) {
+    particles.push(new Particle(this.x, this.y, 0, 0, 0.05, speedStart + Math.random() * speedMultiplier,
+                                30, coloredPuffSprites[this.color]));
   }
 }
 
@@ -142,6 +144,7 @@ function Alien(x, y, direction = 1) {
   Enemy.call(this, x, y, 0, 0, 64, 64, alienSprites);
   this.accx = 0.8 * direction;
   this.damping = 0.1;
+  this.color = 'green';
 }
 
 Alien.prototype = Object.create(Enemy.prototype);
@@ -166,6 +169,7 @@ function FatAlien(x, y) {
   this.accx = 0.3;
   this.damping = 0.1;
   this.health = 10;
+  this.color = 'purple';
 }
 
 FatAlien.prototype = Object.create(Enemy.prototype);
@@ -181,6 +185,7 @@ FatAlien.prototype.update = function() {
 
 FatAlien.prototype.destroy = function() {
   spawnCircle(Alien, this.x, this.y, 6, Math.sign(this.vx), 4, 10);
+  Enemy.prototype.destroy.call(this, 50, 10, 10);
 }
 
 // -----
@@ -195,6 +200,7 @@ function Tooth(x, y) {
   this.rotationCounter = 0;
   this.moveCounter = 0;
   this.moveDirection = 1;
+  this.color = 'orange';
 }
 
 Tooth.prototype = Object.create(Enemy.prototype);
@@ -232,12 +238,18 @@ function PlayerBullet(x, y, speed, direction) {
   this.counter = randRange(this.sprites.length);
   this.lifetime = 48;
   this.insideBounds = false;
+  this.color = 'red';
 }
 
 PlayerBullet.prototype = Object.create(Entity.prototype);
 
+PlayerBullet.prototype.destroy = function() {
+  // TODO it's a little weird that player bullet is using enemy destroy function
+  Enemy.prototype.destroy.call(this, 5, 2, 2);
+}
+
 PlayerBullet.prototype.update = function() {
-  particles.push(new Particle(this.x, this.y, 0, 0.4, 0.01, 1.5, 15, redPuffSprites));
+  particles.push(new Particle(this.x, this.y, 0, 0.4, 0.01, 1.5, 15, coloredPuffSprites['red']));
   this.stepAnimation();
   if (!this.inbounds()) {
     this.lifetime = 0;
@@ -265,7 +277,7 @@ EnemyBullet.prototype.update = function() {
   this.puffCounter--;
   if (this.puffCounter <= 0) {
     this.puffCounter = 20;
-    particles.push(new Particle(this.x, this.y, 0, 0, 0.01, 0.2, 60, puffSprites));
+    particles.push(new Particle(this.x, this.y, 0, 0, 0.01, 0.2, 60, coloredPuffSprites['pink']));
   }
   if (!this.inbounds()) {
     this.lifetime = 0;

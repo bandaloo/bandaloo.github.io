@@ -9,12 +9,25 @@ window.addEventListener("load", function() {
 
   redPuffSprites = puffSprites.slice();
 
-  blendImages(alienSprites, 124, 255, 11, 0.2);
+  blendImages(alienSprites, 124, 255, 11, 0.6);
   blendImages(fatAlienSprites, 166, 16, 232);
-  blendImages(pBulletSprites, 255, 68, 31, 0.3);
+  blendImages(pBulletSprites, ...colors.red);
   blendImages(snootSprites, 255, 68, 31);
   blendImages(redPuffSprites, 255, 68, 31, 1, 0.2);
   blendImages(toothSprites, 255, 209, 47);
+  blendImages(eBulletSprites, ...colors.pink);
+
+  // generate set of colored puffs
+  console.log(Object.entries(colors));
+  var entries = Object.entries(colors);
+
+  for (var i = 0; i < entries.length; i++) {
+    var key = entries[i][0];
+    var value = entries[i][1];
+    console.log(key, value);
+    coloredPuffSprites[key] = puffSprites.slice();
+    blendImages(coloredPuffSprites[key], ...colors[key], 0.65, 0.08);
+  }
 
   // TODO get rid of this
   for (var i = 0; i < 1000; i+= 100) {
