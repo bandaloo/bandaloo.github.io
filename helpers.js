@@ -14,11 +14,15 @@ function rectangleCollision(x1, y1, w1, h1, x2, y2, w2, h2) {
   return x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2;
 }
 
-function eCircleCollision(entity1, entity2, scalar1 = 1, scalar2 = 1) {
+function eCircleCollision(entity1, entity2) {
   r1 = entity1.sx / 2;
   r2 = entity2.sx / 2;
-  return circleCollision(entity1.x, entity1.y, r1 * scalar1,
-                         entity2.x, entity2.y, r2 * scalar2);
+  return circleCollision(entity1.x + entity1.collOffX, entity1.y + entity1.collOffY, r1 * entity1.collScalar,
+                         entity2.x + entity2.collOffX, entity2.y + entity2.collOffY, r2 * entity2.collScalar);
+}
+
+function distance(x1, y1, x2, y2) {
+  return Math.sqrt((x1 - x2)**2 + (y1 - y2)**2);
 }
 
 function rgba(r, g = 0, b = 0, a = 1) {
@@ -33,8 +37,6 @@ function blendWithColor(image, r, g, b, a = 1) {
  
   tempCanvas.width = image.width;
   tempCanvas.height = image.height;
-  console.log(image.width);
-  console.log(image.height);
 
   tempContext.drawImage(image, 0, 0);
   tempContext.globalCompositeOperation = 'source-atop';

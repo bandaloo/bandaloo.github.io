@@ -10,6 +10,17 @@ function basicDraw() {
   } else {
     context.drawImage(this.sprites[this.counter], this.x - this.sx / 2, this.y - this.sy / 2);
   }
+  if (debug) {
+    context.beginPath();
+    context.arc(this.x + this.collOffX, this.y + this.collOffY, this.sx / 2 * this.collScalar, 0, 2 * Math.PI);
+    context.stroke();
+  }
+}
+
+function drawLives(amount) {
+  for (var i = 0; i < amount; i++) {
+    context.drawImage(lifeSprites[i % lifeSprites.length], width - (i + 1) * lifeSprites[0].width, 0);
+  }
 }
 
 // spawning functions
@@ -47,6 +58,9 @@ function Entity(x, y, vx, vy, sx, sy, sprites) {
   this.lifetime = null;
   this.insideBounds = true;
   this.health = null;
+  this.collScalar = 1;
+  this.collOffX = 0;
+  this.collOffY = 0;
 }
 
 Entity.prototype.stepAnimation = function() {
@@ -87,6 +101,10 @@ function Player() {
   this.acceleration = 0.8;
   this.maxSpeed = 15;
   this.insideBounds = true;
+  this.collOffY = 16;
+  this.damping = 0;
+  this.jumpCount = 3;
+  this.canSlow = false;
 }
 
 Player.prototype = Object.create(Entity.prototype);
@@ -101,10 +119,37 @@ Player.prototype.update = function() {
     this.vx = 0;
   }
 
+  if (buttons.primaryPressed && this.jumpCount > 0) {
+    this.onGround = false;
+    this.canSlow = true;
+    this.jumpCount--;
+    this.vy = -20;
+    this.accy = 1;
+  }
+
+  if (buttons.primaryReleased && this.canSlow && this.vy < 0) {
+    this.vy *= 0.4;
+  }
+
   this.vx += Math.sign(this.vx) * this.acceleration;
   this.vx = clamp(this.vx, -this.maxSpeed, this.maxSpeed);
-  this.rotation = this.vx / 64;
+  this.rotation = this.vx / 48; // originally / 64
+
+  // TODO maybe move this to an off of screen function
+
+  
   this.stepAnimation();
+  this.accelerate();
+
+  // on ground
+  if (this.y > height - this.sy / 2) {
+    this.accy = 0;
+    this.vy = 0;
+    this.y = height - this.sy / 2;
+    this.onGround = true;
+    this.jumpCount = 3;
+  }
+
   if (this.counter == 0 && this.animationTimer == 0) {
     var pBullet = new PlayerBullet(this.x, this.y - 16, 20, -Math.PI / 2 + this.rotation)
     playerBullets.push(pBullet);

@@ -36,8 +36,6 @@ document.addEventListener('keydown', function(e) {
   if (key == 'W' || code == 38) { // up
     if (!buttons.upHeld) {
       buttons.upPressed = true;
-      console.log(buttons.upHeld);
-      console.log("up pressed");
     }
     buttons.upHeld = true;
   }

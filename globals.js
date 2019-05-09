@@ -5,6 +5,9 @@ const context = canvas.getContext("2d");
 const width = canvas.width;
 const height = canvas.height;
 
+var debug = false;
+var ticks = 0;
+
 // arrays to hold all entities that have an update cycles
 var playerEntities = [];
 var playerBullets = [];
@@ -13,7 +16,7 @@ var enemyBullets = [];
 var particles = [];
 
 // for enemies that got hit by player bullets in that frame
-var hitEnemies = [];
+//var hitEnemies = [];
 
 // arrays for sprites and sprite file names
 var snootSprites = [];
@@ -37,6 +40,9 @@ var fatAlienSources = ["fatalien0", "fatalien1", "fatalien2", "fatalien3"];
 
 var toothSprites = [];
 var toothSources = ["tooth0", "tooth1", "tooth2"]; 
+
+var lifeSprites = [];
+var lifeSources = ["life0", "life1", "life2", "life3"];
 
 var colors = {
   red: [255, 58, 31],
