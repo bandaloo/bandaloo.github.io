@@ -21,6 +21,11 @@ var buttons = {
 document.addEventListener('keydown', function(e) {
   var code = e.keyCode;
   var key = String.fromCharCode(code);
+
+  if ([37, 38, 39, 40, 32].includes(code)) {
+    e.preventDefault();
+  }
+
   if (key == 'A' || code == 37) { // left
     if (!buttons.leftHeld) {
       buttons.leftPressed = true;
