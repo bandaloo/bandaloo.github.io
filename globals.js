@@ -29,7 +29,6 @@ var eBulletSprites = [];
 var eBulletSources = ["ebullet0"];
 
 var puffSprites = [];
-var redPuffSprites = [];
 var puffSources = ["puff0", "puff1", "puff2", "puff3", "puff4"];
 
 var alienSprites = [];
@@ -43,6 +42,9 @@ var toothSources = ["tooth0", "tooth1", "tooth2"];
 
 var lifeSprites = [];
 var lifeSources = ["life0", "life1", "life2", "life3"];
+
+var shapesSprites = [];
+var shapesSources = ["shapes0", "shapes1", "shapes2", "shapes3"];
 
 var colors = {
   red: [255, 58, 31],

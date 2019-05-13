@@ -7,14 +7,14 @@ window.addEventListener("load", function() {
   loadImages(fatAlienSprites, fatAlienSources);
   loadImages(toothSprites, toothSources);
   loadImages(lifeSprites, lifeSources);
+  loadImages(shapesSprites, shapesSources);
 
-  redPuffSprites = puffSprites.slice();
+  //redPuffSprites = puffSprites.slice();
 
   blendImages(alienSprites, 124, 255, 11, 0.6);
   blendImages(fatAlienSprites, 166, 16, 232);
   blendImages(pBulletSprites, ...colors.red);
   blendImages(snootSprites, 255, 68, 31);
-  blendImages(redPuffSprites, 255, 68, 31, 1, 0.2);
   blendImages(toothSprites, 255, 209, 47);
   blendImages(eBulletSprites, ...colors.pink);
   blendImages(lifeSprites, ...colors.red, 0.67);
@@ -125,6 +125,7 @@ function update() {
   // resolving bullets hitting enemies
   for (var i = 0; i < hitEnemies.length; i++) {
     hitEnemies[i][0].health--;
+    hitEnemies[i][0].hit();
     hitEnemies[i][1].lifetime = 0;
   }
 

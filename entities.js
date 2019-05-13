@@ -88,8 +88,15 @@ Entity.prototype.atEdge = function() {
 };
 
 Entity.prototype.inbounds = function() {
-  return rectangleCollision(0, 0, width, height, this.x - this.sx / 2,
-                            this.y - this.sy / 2, this.sx, this.sy);
+  return rectangleCollision(0, 0, width, height, this.x - this.sx / 2, this.y - this.sy / 2, this.sx, this.sy);
+}
+
+Entity.prototype.offTop = function() {
+  return y < -this.sy / 2;
+}
+
+Entity.prototype.offBottom = function() {
+  return y > height + this.sy / 2;
 }
 
 // ------
@@ -105,6 +112,7 @@ function Player() {
   this.damping = 0;
   this.jumpCount = 3;
   this.canSlow = false;
+  this.animationDelay = 4;
 }
 
 Player.prototype = Object.create(Entity.prototype);
@@ -175,6 +183,8 @@ Enemy.prototype.destroy = function(amount = 30, speedStart = 6, speedMultiplier 
   }
 }
 
+Enemy.prototype.hit = function() {};
+
 Enemy.prototype.bumpDown = function(bumpSpeed) {
   this.vy = bumpSpeed;
   this.vx *= -1;
@@ -213,7 +223,7 @@ function FatAlien(x, y) {
   Enemy.call(this, x, y, 0, 0, 128, 128, fatAlienSprites);
   this.accx = 0.3;
   this.damping = 0.1;
-  this.health = 10;
+  this.health = 6;
   this.color = 'purple';
 }
 
@@ -233,6 +243,10 @@ FatAlien.prototype.destroy = function() {
   Enemy.prototype.destroy.call(this, 50, 10, 10);
 }
 
+FatAlien.prototype.hit = function() {
+  this.vy = -2.5;
+}
+
 // -----
 // Tooth
 // -----
@@ -241,11 +255,12 @@ function Tooth(x, y) {
   Enemy.call(this, x, y, 0, 0, 64, 64, toothSprites);
   //this.accx = 0.3;
   this.damping = 0.1;
-  this.health = 10; // TODO change this health to lower
+  this.health = 5; // TODO change this health to lower
   this.rotationCounter = 0;
   this.moveCounter = 0;
   this.moveDirection = 1;
   this.color = 'orange';
+  this.shotSide = 1;
 }
 
 Tooth.prototype = Object.create(Enemy.prototype);
@@ -254,10 +269,12 @@ Tooth.prototype.update = function() {
   this.rotationCounter += 0.025
   this.rotation = Math.cos(this.rotationCounter) / 2;
   this.stepAnimation();
-  this.animationDelay = 5
+  this.animationDelay = 7
   if (this.animationTimer == 0 && this.counter == 0) {
-    enemyBullets.push(new EnemyBullet(this.x, this.y, 2, this.rotation + Math.PI / 2 + Math.PI / 8));
-    enemyBullets.push(new EnemyBullet(this.x, this.y, 2, this.rotation + Math.PI / 2 - Math.PI / 8));
+    var direction = this.rotation + Math.PI / 2 + Math.PI / 6 * this.shotSide;
+    enemyBullets.push(new EnemyBullet(this.x + 20 * Math.cos(direction), this.y + 20 * Math.sin(direction), 2, direction));
+    //enemyBullets.push(new EnemyBullet(this.x, this.y, 2, this.rotation + Math.PI / 2 - Math.PI / 8));
+    this.shotSide *= -1;
     this.moveCounter++;
   }
 
@@ -270,6 +287,10 @@ Tooth.prototype.update = function() {
     this.bumpDown(5);
     this.moveDirection *= -1;
   }
+}
+
+Tooth.prototype.hit = function() {
+  this.vy = -5;
 }
 
 // -------------
