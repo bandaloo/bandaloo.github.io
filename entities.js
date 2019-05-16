@@ -61,6 +61,7 @@ function Entity(x, y, vx, vy, sx, sy, sprites) {
   this.collScalar = 1;
   this.collOffX = 0;
   this.collOffY = 0;
+  this.silent = false;
 }
 
 Entity.prototype.stepAnimation = function() {
@@ -99,6 +100,15 @@ Entity.prototype.offBottom = function() {
   return y > height + this.sy / 2;
 }
 
+// TODO add lifetime argument to this
+Entity.prototype.explode = function(amount = 30, speedStart = 6, speedMultiplier = 5, sprites = coloredPuffSprites[this.color],
+                                    extraLife = 20, randomize = false) {
+  for (var i = 0; i < amount; i++) {
+    particles.push(new Particle(this.x, this.y, 0, 0, 0.05, speedStart + Math.random() * speedMultiplier, 30, sprites,
+                                extraLife, randomize));
+  }
+}
+
 // ------
 // Player
 // ------
@@ -113,6 +123,7 @@ function Player() {
   this.jumpCount = 3;
   this.canSlow = false;
   this.animationDelay = 4;
+  this.collScalar = 0.5;
 }
 
 Player.prototype = Object.create(Entity.prototype);
@@ -142,9 +153,6 @@ Player.prototype.update = function() {
   this.vx += Math.sign(this.vx) * this.acceleration;
   this.vx = clamp(this.vx, -this.maxSpeed, this.maxSpeed);
   this.rotation = this.vx / 48; // originally / 64
-
-  // TODO maybe move this to an off of screen function
-
   
   this.stepAnimation();
   this.accelerate();
@@ -177,13 +185,18 @@ Enemy.prototype = Object.create(Entity.prototype);
 
 Enemy.prototype.destroy = function(amount = 30, speedStart = 6, speedMultiplier = 5) {
   // TODO move this into its own explosion function
+  /*
   for (var i = 0; i < amount; i++) {
     particles.push(new Particle(this.x, this.y, 0, 0, 0.05, speedStart + Math.random() * speedMultiplier,
                                 30, coloredPuffSprites[this.color]));
   }
+  */
+  this.explode(amount, speedStart, speedMultiplier);
 }
 
-Enemy.prototype.hit = function() {};
+Enemy.prototype.hit = function() {
+  pickups.push(new Cube(this.x, this.y));
+};
 
 Enemy.prototype.bumpDown = function(bumpSpeed) {
   this.vy = bumpSpeed;
@@ -244,6 +257,7 @@ FatAlien.prototype.destroy = function() {
 }
 
 FatAlien.prototype.hit = function() {
+  Enemy.prototype.hit.call(this);
   this.vy = -2.5;
 }
 
@@ -290,6 +304,8 @@ Tooth.prototype.update = function() {
 }
 
 Tooth.prototype.hit = function() {
+  // TODO maybe make the bullet turn into the cube
+  Enemy.prototype.hit.call(this);
   this.vy = -5;
 }
 
@@ -311,13 +327,15 @@ PlayerBullet.prototype = Object.create(Entity.prototype);
 
 PlayerBullet.prototype.destroy = function() {
   // TODO it's a little weird that player bullet is using enemy destroy function
-  Enemy.prototype.destroy.call(this, 5, 2, 2);
+  //Enemy.prototype.destroy.call(this, 5, 2, 2);
+  this.explode(5, 4, 2);
 }
 
 PlayerBullet.prototype.update = function() {
   particles.push(new Particle(this.x, this.y, 0, 0.4, 0.01, 1.5, 15, coloredPuffSprites['red']));
   this.stepAnimation();
   if (!this.inbounds()) {
+    this.silent = true;
     this.lifetime = 0;
   }
 };
@@ -354,7 +372,7 @@ EnemyBullet.prototype.update = function() {
 // Particle
 // --------
 
-function Particle(x, y, accx, accy, damping, speed, lifetime, sprites) {
+function Particle(x, y, accx, accy, damping, speed, lifetime, sprites, extraLife = 0, randomize = false) {
   Entity.call(this, x, y, 0, 0, 32, 32, sprites);
   this.lifetime = lifetime;
   this.maxLifetime = lifetime;
@@ -366,6 +384,16 @@ function Particle(x, y, accx, accy, damping, speed, lifetime, sprites) {
   var vy = speed * Math.sin(direction);
   this.vx = vx;
   this.vy = vy;
+  this.animationOffset = 0;
+
+  if (randomize) {
+    this.animationOffset = Math.floor(sprites.length * Math.random());
+  }
+
+  if (extraLife) {
+    this.lifetime += Math.floor(extraLife * Math.random());
+    this.maxLifetime = this.lifetime;
+  }
 }
 
 Particle.prototype = Object.create(Entity.prototype);
@@ -373,6 +401,46 @@ Particle.prototype = Object.create(Entity.prototype);
 Particle.prototype.update = function() {
   this.accelerate();
   var frameCount = Math.ceil(this.sprites.length * this.lifetime / this.maxLifetime) - 1;
-  this.counter = (this.sprites.length - 1) - frameCount; 
+  this.counter = ((this.sprites.length - 1) - frameCount + this.animationOffset) % this.sprites.length;
 }
 
+// ----
+// Cube
+// ----
+
+function Cube(x, y) {
+  Entity.call(this, x, y, 0, 0, 64, 64, cubeSprites);
+  this.accy = 1;
+  this.damping = 0.2;
+  var direction = Math.random() * 2 * Math.PI;
+  this.vx = 20 * Math.cos(direction);
+  this.vy = 20 * Math.sin(direction);
+  this.following = false;
+}
+
+Cube.prototype = Object.create(Entity.prototype);
+
+Cube.prototype.update = function() {
+  this.accelerate();
+  this.stepAnimation();
+  if (!this.inbounds() && !this.following) {
+    this.lifetime = 0;
+  }
+  var distSquared = entityDistSquared(this, playerEntities[0]);
+  if (distSquared <= 200**2) {
+    var accx = playerEntities[0].x - this.x;
+    var accy = playerEntities[0].y - this.y;
+    var dist = distance(0, 0, accx, accy);
+    accx /= dist;
+    accy /= dist;
+    this.accx = 5 * accx;
+    this.accy = 1 + 5 * accy;
+    this.following = true;
+  } else {
+    this.following = false;
+  }
+}
+
+Cube.prototype.destroy = function() {
+  this.explode(12, 4, 3, shapesSprites, 20, true);
+}

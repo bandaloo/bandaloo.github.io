@@ -8,6 +8,7 @@ window.addEventListener("load", function() {
   loadImages(toothSprites, toothSources);
   loadImages(lifeSprites, lifeSources);
   loadImages(shapesSprites, shapesSources);
+  loadImages(cubeSprites, cubeSources);
 
   //redPuffSprites = puffSprites.slice();
 
@@ -18,6 +19,17 @@ window.addEventListener("load", function() {
   blendImages(toothSprites, 255, 209, 47);
   blendImages(eBulletSprites, ...colors.pink);
   blendImages(lifeSprites, ...colors.red, 0.67);
+ 
+  // making cube blink
+  cubeSprites[0] = blendWithColor(cubeSprites[0], ...colors.red);
+  cubeSprites[1] = blendWithColor(cubeSprites[1], ...colors.yellow);
+  cubeSprites[4] = blendWithColor(cubeSprites[4], ...colors.purple);
+  cubeSprites[5] = blendWithColor(cubeSprites[5], ...colors.green);
+
+  shapesSprites[0] = blendWithColor(shapesSprites[0], ...colors.red);
+  shapesSprites[1] = blendWithColor(shapesSprites[1], ...colors.yellow);
+  shapesSprites[2] = blendWithColor(shapesSprites[2], ...colors.purple);
+  shapesSprites[3] = blendWithColor(shapesSprites[3], ...colors.green);
 
   // generate set of colored puffs
   console.log(Object.entries(colors));
@@ -50,7 +62,7 @@ window.addEventListener("load", function() {
   update();
 });
 
-function drawEntities(entities) {
+function drawEntities(entities = 0) {
   for (var i = 0; i < entities.length; i++) {
     entities[i].draw();
   }
@@ -62,13 +74,16 @@ function destroyEntities(entities) {
     var entity = entities[i];
     if (entity.lifetime !== null && entity.lifetime <= 0 
         || entity.health !== null && entity.health <= 0) {
-      entity.destroy();
+      if (!entity.silent) {
+        entity.destroy();
+      }
     }
   }
 }
 
 function updateEntities(entities) {
-  for (var i = 0; i < entities.length; i++) {
+  var len = entities.length;
+  for (var i = 0; i < len; i++) {
     var entity = entities[i];
     entity.update();
     entity.x += entity.vx;
@@ -104,9 +119,11 @@ function update() {
 
   var hitEnemies = collide(enemies, playerBullets);
   var hitPlayers = collide(enemyBullets, playerEntities);
+  var hitCubes = collide(pickups, playerEntities);
 
   // TODO make updating, drawing and clearing better
   // TODO do the thing where each list iterates with original length
+  updateEntities(pickups);
   updateEntities(particles);
   updateEntities(playerEntities);
   updateEntities(playerBullets);
@@ -115,6 +132,7 @@ function update() {
 
   drawLives(5);
 
+  drawEntities(pickups);
   drawEntities(particles);
   drawEntities(playerEntities);
   drawEntities(playerBullets);
@@ -129,21 +147,17 @@ function update() {
     hitEnemies[i][1].lifetime = 0;
   }
 
+  for (var i = 0; i < hitCubes.length; i++) {
+    hitCubes[i][0].lifetime = 0;
+  }
+
   // resolving enemy bullets hitting players
   // TODO figure out how to avoid double hit; probably can do that by filtering afterwards
   for (var i = 0; i < hitPlayers.length; i++) {
-    //distance(hitPlayers[i][0].x, hitPlayers[i][0].y, hitPlayers[i][1].x, hitPlayers[i][1].y));
-    var dist = distance(hitPlayers[i][0].x, hitPlayers[i][0].y, hitPlayers[i][1].x + hitPlayers[i][1].collOffX,
-                            hitPlayers[i][1].y + hitPlayers[i][1].collOffY);
-
-    // TODO get rid of this; grazing is not fun
-    if (dist < 32) {
-      hitPlayers[i][0].lifetime = 0;
-    } else {
-      console.log("grazing");
-    }
+    hitPlayers[i][0].lifetime = 0;
   }
 
+  destroyEntities(pickups);
   destroyEntities(particles);
   destroyEntities(playerEntities);
   destroyEntities(playerBullets);
@@ -151,11 +165,13 @@ function update() {
   destroyEntities(enemyBullets);
 
   // TODO figure out why moving this block after the collision event means destroy doesn't happen
+  pickups = filterEntities(pickups);
   particles = filterEntities(particles);
   playerEntities = filterEntities(playerEntities);
   playerBullets = filterEntities(playerBullets);
   enemies = filterEntities(enemies);
   enemyBullets = filterEntities(enemyBullets);
+
   ticks++;
 
   requestAnimationFrame(update);

@@ -14,9 +14,7 @@ var playerBullets = [];
 var enemies = [];
 var enemyBullets = [];
 var particles = [];
-
-// for enemies that got hit by player bullets in that frame
-//var hitEnemies = [];
+var pickups = [];
 
 // arrays for sprites and sprite file names
 var snootSprites = [];
@@ -46,12 +44,16 @@ var lifeSources = ["life0", "life1", "life2", "life3"];
 var shapesSprites = [];
 var shapesSources = ["shapes0", "shapes1", "shapes2", "shapes3"];
 
+var cubeSprites = [];
+var cubeSources = ["cube0", "cube1", "cube2", "cube3", "cube4", "cube5"];
+
 var colors = {
   red: [255, 58, 31],
   green: [124, 244, 11],
   purple: [166, 16, 232],
   orange: [255, 209, 47],
-  pink: [255, 28, 175]
+  pink: [255, 28, 175],
+  yellow: [255, 238, 40]
 }
 
 var coloredPuffSprites = {};

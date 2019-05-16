@@ -25,6 +25,15 @@ function distance(x1, y1, x2, y2) {
   return Math.sqrt((x1 - x2)**2 + (y1 - y2)**2);
 }
 
+function distanceSquared(x1, y1, x2, y2) {
+  return (x1 - x2)**2 + (y1 - y2)**2;
+}
+
+// TODO check if this function is even useful
+function entityDistSquared(e1, e2) {
+  return distanceSquared(e1.x + e1.collOffX, e1.y + e1.collOffY, e2.x + e2.collOffX, e2.y + e2.collOffY);
+}
+
 function rgba(r, g = 0, b = 0, a = 1) {
   return `rgba(${r},${g},${b},${a})`;
 }
