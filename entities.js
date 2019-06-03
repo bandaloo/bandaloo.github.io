@@ -38,7 +38,7 @@ function drawGauge(amount) {
     drawCentered(sprites[index], width / 2 + s * i * 20, 16 + offset);
   }
   for (var i = 0; i < amount; i++) {
-    for (var j = 0; j < 4; j++) {
+    for (var j = 0; j < 2; j++) {
       d(i, 1, whiteShapesSprites, i + (j + 1) * 10);
       d(i, -1, whiteShapesSprites, i + (j + 1) * 20);
     }
@@ -233,7 +233,7 @@ function Enemy(x, y, vx, vy, sx, sy, sprites) {
 
 Enemy.prototype = Object.create(Entity.prototype);
 
-Enemy.prototype.destroy = function(amount = 30, speedStart = 6, speedMultiplier = 5) {
+Enemy.prototype.destroy = function(amount = 10, speedStart = 6, speedMultiplier = 5) {
   this.explode(amount, speedStart, speedMultiplier);
 }
 
@@ -268,7 +268,7 @@ Alien.prototype.update = function() {
     this.bumpDown(5);
   }
   if (Math.random() > 0.997) {
-    enemyBullets.push(new EnemyBullet(this.x, this.y, 2, Math.PI / 2));
+    enemyBullets.push(new EnemyBullet(this.x, this.y, 3, Math.PI / 2));
   }
 }
 
@@ -330,8 +330,7 @@ Tooth.prototype.update = function() {
   this.animationDelay = 7
   if (this.animationTimer == 0 && this.counter == 0) {
     var direction = this.rotation + Math.PI / 2 + Math.PI / 6 * this.shotSide;
-    enemyBullets.push(new EnemyBullet(this.x + 20 * Math.cos(direction), this.y + 20 * Math.sin(direction), 2, direction));
-    //enemyBullets.push(new EnemyBullet(this.x, this.y, 2, this.rotation + Math.PI / 2 - Math.PI / 8));
+    enemyBullets.push(new EnemyBullet(this.x + 20 * Math.cos(direction), this.y + 20 * Math.sin(direction), 3, direction));
     this.shotSide *= -1;
     this.moveCounter++;
   }
@@ -374,7 +373,7 @@ PlayerBullet.prototype.destroy = function() {
 }
 
 PlayerBullet.prototype.update = function() {
-  particles.push(new Particle(this.x, this.y, 0, 0.4, 0.01, 1.5, 15, coloredPuffSprites['red']));
+  particles.push(new Particle(this.x, this.y, 0, 0.4, 0.01, 1.5, 7, coloredPuffSprites['red']));
   this.stepAnimation();
   if (!this.inbounds()) {
     this.silent = true;
