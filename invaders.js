@@ -10,8 +10,6 @@ window.addEventListener("load", function() {
   loadImages(shapesSprites, shapesSources);
   loadImages(cubeSprites, cubeSources);
 
-  //redPuffSprites = puffSprites.slice();
-
   blendImages(alienSprites, 124, 255, 11, 0.6);
   blendImages(fatAlienSprites, 166, 16, 232);
   blendImages(pBulletSprites, ...colors.red);
@@ -26,6 +24,9 @@ window.addEventListener("load", function() {
   cubeSprites[4] = blendWithColor(cubeSprites[4], ...colors.purple);
   cubeSprites[5] = blendWithColor(cubeSprites[5], ...colors.green);
 
+  whiteShapesSprites = shapesSprites.slice();
+
+  // coloring shapeSprites
   shapesSprites[0] = blendWithColor(shapesSprites[0], ...colors.red);
   shapesSprites[1] = blendWithColor(shapesSprites[1], ...colors.yellow);
   shapesSprites[2] = blendWithColor(shapesSprites[2], ...colors.purple);
@@ -130,14 +131,15 @@ function update() {
   updateEntities(enemies);
   updateEntities(enemyBullets);
 
-  drawLives(5);
-
   drawEntities(pickups);
   drawEntities(particles);
   drawEntities(playerEntities);
   drawEntities(playerBullets);
   drawEntities(enemies);
   drawEntities(enemyBullets);
+
+  drawLives(5);
+  drawGauge(playerEntities[0].gauge);
 
   // TODO check if it makes more sense to filter before draw
   // resolving bullets hitting enemies
@@ -149,10 +151,14 @@ function update() {
 
   for (var i = 0; i < hitCubes.length; i++) {
     hitCubes[i][0].lifetime = 0;
+    if (playerEntities[0].gauge < 32) {
+      playerEntities[0].gauge++;
+    }
   }
 
   // resolving enemy bullets hitting players
   // TODO figure out how to avoid double hit; probably can do that by filtering afterwards
+  // TODO check if above todo is resolved (I think it is)
   for (var i = 0; i < hitPlayers.length; i++) {
     hitPlayers[i][0].lifetime = 0;
   }
@@ -204,7 +210,3 @@ function loadImages(images, sources) {
   }
 }
 
-/*
-function blendAllImages() {
-}
-*/

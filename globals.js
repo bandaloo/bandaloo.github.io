@@ -57,3 +57,5 @@ var colors = {
 }
 
 var coloredPuffSprites = {};
+
+var whiteShapesSprites = [];

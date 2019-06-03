@@ -8,6 +8,7 @@ function basicDraw() {
     context.drawImage(this.sprites[this.counter], -this.sx / 2, -this.sy / 2);
     context.restore();
   } else {
+    // TODO replace functions with drawCentered
     context.drawImage(this.sprites[this.counter], this.x - this.sx / 2, this.y - this.sy / 2);
   }
   if (debug) {
@@ -17,9 +18,32 @@ function basicDraw() {
   }
 }
 
+function drawCentered(sprite, x, y) {
+  var sx = sprite.width;
+  var sy = sprite.height;
+  context.drawImage(sprite, x - sx / 2, y - sy / 2);
+}
+
 function drawLives(amount) {
+  var size = lifeSprites[0].width;
   for (var i = 0; i < amount; i++) {
-    context.drawImage(lifeSprites[i % lifeSprites.length], width - (i + 1) * lifeSprites[0].width, 0);
+    context.drawImage(lifeSprites[i % lifeSprites.length], width - (i + 1) * size, 32);
+  }
+}
+
+function drawGauge(amount) {
+  d = (i, s, sprites, k = 0) => {
+    var offset = 8 * Math.cos((ticks + k) / 50 + i);
+    var index = (Math.floor(ticks / 10) + i) % sprites.length;
+    drawCentered(sprites[index], width / 2 + s * i * 20, 16 + offset);
+  }
+  for (var i = 0; i < amount; i++) {
+    for (var j = 0; j < 4; j++) {
+      d(i, 1, whiteShapesSprites, i + (j + 1) * 10);
+      d(i, -1, whiteShapesSprites, i + (j + 1) * 20);
+    }
+    d(i, 1, shapesSprites);
+    d(i, -1, shapesSprites);
   }
 }
 
@@ -62,6 +86,7 @@ function Entity(x, y, vx, vy, sx, sy, sprites) {
   this.collOffX = 0;
   this.collOffY = 0;
   this.silent = false;
+  this.gauge = 0;
 }
 
 Entity.prototype.stepAnimation = function() {
@@ -124,6 +149,7 @@ function Player() {
   this.canSlow = false;
   this.animationDelay = 4;
   this.collScalar = 0.5;
+  this.breaking = false;
 }
 
 Player.prototype = Object.create(Entity.prototype);
@@ -150,6 +176,10 @@ Player.prototype.update = function() {
     this.vy *= 0.4;
   }
 
+  if (buttons.secondaryPressed && this.gauge >= 16) {
+    this.breaking = true;
+  }
+
   this.vx += Math.sign(this.vx) * this.acceleration;
   this.vx = clamp(this.vx, -this.maxSpeed, this.maxSpeed);
   this.rotation = this.vx / 48; // originally / 64
@@ -167,8 +197,28 @@ Player.prototype.update = function() {
   }
 
   if (this.counter == 0 && this.animationTimer == 0) {
-    var pBullet = new PlayerBullet(this.x, this.y - 16, 20, -Math.PI / 2 + this.rotation)
-    playerBullets.push(pBullet);
+    const shoot = (n) => {
+      var pBullet = new PlayerBullet(this.x + n * 20, this.y - 16, 20, -Math.PI / 2 + this.rotation + n / 10);
+      playerBullets.push(pBullet);
+    }
+
+    var shotAmount = 0;
+    if (this.breaking) {
+      if (this.gauge >= 16) {
+        shotAmount = 3;
+      } else {
+        shotAmount = 2;
+      }
+      this.gauge--;
+      if (this.gauge <= 0) {
+        this.breaking = false;
+      }
+    }
+    shoot(0);
+    for (var i = 1; i < shotAmount; i++) {
+      shoot(i);
+      shoot(-i);
+    }
   }
 }
 
@@ -184,17 +234,11 @@ function Enemy(x, y, vx, vy, sx, sy, sprites) {
 Enemy.prototype = Object.create(Entity.prototype);
 
 Enemy.prototype.destroy = function(amount = 30, speedStart = 6, speedMultiplier = 5) {
-  // TODO move this into its own explosion function
-  /*
-  for (var i = 0; i < amount; i++) {
-    particles.push(new Particle(this.x, this.y, 0, 0, 0.05, speedStart + Math.random() * speedMultiplier,
-                                30, coloredPuffSprites[this.color]));
-  }
-  */
   this.explode(amount, speedStart, speedMultiplier);
 }
 
 Enemy.prototype.hit = function() {
+  // TODO figure out a way to prevent two bullets at same time hitting enemy
   pickups.push(new Cube(this.x, this.y));
 };
 
@@ -326,8 +370,6 @@ function PlayerBullet(x, y, speed, direction) {
 PlayerBullet.prototype = Object.create(Entity.prototype);
 
 PlayerBullet.prototype.destroy = function() {
-  // TODO it's a little weird that player bullet is using enemy destroy function
-  //Enemy.prototype.destroy.call(this, 5, 2, 2);
   this.explode(5, 4, 2);
 }
 
