@@ -38,6 +38,22 @@ function rgba(r, g = 0, b = 0, a = 1) {
   return `rgba(${r},${g},${b},${a})`;
 }
 
+function getPlayer() {
+  if (playerEntities.length != 0) {
+    return playerEntities[0];
+  }
+  return null;
+}
+
+function inPlaceFilter(array, func) {
+  for (var i = 0; i < array.length; i++) {
+    if (!func(array[i])) {
+      array.splice(i, 1);
+      i--;
+    }
+  }
+}
+
 function blendWithColor(image, r, g, b, a = 1) {
   var coloredImage = new Image();
 

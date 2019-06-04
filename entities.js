@@ -31,6 +31,16 @@ function drawLives(amount) {
   }
 }
 
+function setContextText() {
+  context.font = "bold 30px Helvetica";
+  //context.textAlign = "center";
+}
+
+function drawScore(amount) {
+  context.fillStyle = "red";
+  context.fillText(ticks, 10, 64);
+}
+
 function drawGauge(amount) {
   d = (i, s, sprites, k = 0) => {
     var offset = 8 * Math.cos((ticks + k) / 50 + i);
@@ -87,6 +97,7 @@ function Entity(x, y, vx, vy, sx, sy, sprites) {
   this.collOffY = 0;
   this.silent = false;
   this.gauge = 0;
+  this.squishable = false;
 }
 
 Entity.prototype.stepAnimation = function() {
@@ -112,6 +123,16 @@ Entity.prototype.accelerate = function() {
 Entity.prototype.atEdge = function() {
   return this.x == this.sx / 2 || this.x == width-this.sx / 2;
 };
+
+Entity.prototype.belowGround = function() {
+  return this.y > height - this.sy / 2;
+}
+
+Entity.prototype.setOnGround = function() {
+  this.accy = 0;
+  this.vy = 0;
+  this.y = height - this.sy / 2;
+}
 
 Entity.prototype.inbounds = function() {
   return rectangleCollision(0, 0, width, height, this.x - this.sx / 2, this.y - this.sy / 2, this.sx, this.sy);
@@ -188,10 +209,8 @@ Player.prototype.update = function() {
   this.accelerate();
 
   // on ground
-  if (this.y > height - this.sy / 2) {
-    this.accy = 0;
-    this.vy = 0;
-    this.y = height - this.sy / 2;
+  if (this.belowGround()) {
+    this.setOnGround();
     this.onGround = true;
     this.jumpCount = 3;
   }
@@ -229,6 +248,7 @@ Player.prototype.update = function() {
 function Enemy(x, y, vx, vy, sx, sy, sprites) {
   Entity.call(this, x, y, vx, vy, sx, sy, sprites);
   this.health = 1;
+  this.score = 100;
 }
 
 Enemy.prototype = Object.create(Entity.prototype);
@@ -317,7 +337,7 @@ function Tooth(x, y) {
   this.rotationCounter = 0;
   this.moveCounter = 0;
   this.moveDirection = 1;
-  this.color = 'orange';
+  this.color = 'yellow';
   this.shotSide = 1;
 }
 
@@ -350,6 +370,31 @@ Tooth.prototype.hit = function() {
   // TODO maybe make the bullet turn into the cube
   Enemy.prototype.hit.call(this);
   this.vy = -5;
+}
+
+// -------
+// Gumdrop
+// -------
+
+function Gumdrop(x, y, direction = 1) {
+  Enemy.call(this, x, y, 0, 0, 64, 64, gumdropSprites);
+  this.accy = 2;
+  this.accx = 0.8 * direction;
+  this.damping = 0.1;
+  this.color = 'orange';
+}
+
+Gumdrop.prototype = Object.create(Enemy.prototype);
+
+Gumdrop.prototype.update = function() {
+  this.accelerate();
+  this.stepAnimation();
+  if (this.atEdge()) {
+    this.bumpDown(0);
+  }
+  if (this.belowGround()) {
+    this.setOnGround();
+  }
 }
 
 // -------------
@@ -467,18 +512,21 @@ Cube.prototype.update = function() {
   if (!this.inbounds() && !this.following) {
     this.lifetime = 0;
   }
-  var distSquared = entityDistSquared(this, playerEntities[0]);
-  if (distSquared <= 200**2) {
-    var accx = playerEntities[0].x - this.x;
-    var accy = playerEntities[0].y - this.y;
-    var dist = distance(0, 0, accx, accy);
-    accx /= dist;
-    accy /= dist;
-    this.accx = 5 * accx;
-    this.accy = 1 + 5 * accy;
-    this.following = true;
-  } else {
-    this.following = false;
+  var player = playerEntities[0];
+  if (player) {
+    var distSquared = entityDistSquared(this, player);
+    if (distSquared <= 200**2) {
+      var accx = player.x - this.x;
+      var accy = player.y - this.y;
+      var dist = distance(0, 0, accx, accy);
+      accx /= dist;
+      accy /= dist;
+      this.accx = 5 * accx;
+      this.accy = 1 + 5 * accy;
+      this.following = true;
+    } else {
+      this.following = false;
+    }
   }
 }
 

@@ -1,4 +1,6 @@
 window.addEventListener("load", function() {
+  setContextText();
+
   loadImages(snootSprites, snootSources);
   loadImages(pBulletSprites, pBulletSources);
   loadImages(puffSprites, puffSources);
@@ -9,15 +11,17 @@ window.addEventListener("load", function() {
   loadImages(lifeSprites, lifeSources);
   loadImages(shapesSprites, shapesSources);
   loadImages(cubeSprites, cubeSources);
+  loadImages(gumdropSprites, gumdropSources);
 
   blendImages(alienSprites, 124, 255, 11, 0.6);
   blendImages(fatAlienSprites, 166, 16, 232);
   blendImages(pBulletSprites, ...colors.red);
   blendImages(snootSprites, 255, 68, 31);
-  blendImages(toothSprites, 255, 209, 47);
+  blendImages(toothSprites, ...colors.yellow, 47);
   blendImages(eBulletSprites, ...colors.pink);
   blendImages(lifeSprites, ...colors.red, 0.67);
- 
+  blendImages(gumdropSprites, ...colors.orange);
+
   // making cube blink
   cubeSprites[0] = blendWithColor(cubeSprites[0], ...colors.red);
   cubeSprites[1] = blendWithColor(cubeSprites[1], ...colors.yellow);
@@ -57,6 +61,8 @@ window.addEventListener("load", function() {
   enemies.push(new FatAlien(700, 100));
 
   enemies.push(new Tooth(700, 100));
+  
+  enemies.push(new Gumdrop(100, 100));
 
   var player = new Player();
   playerEntities.push(player);
@@ -111,8 +117,8 @@ function collide(colliders, collidees) {
 }
 
 function filterEntities(entities) {
-  return entities.filter(entity => (entity.lifetime === null || entity.lifetime > 0)
-                         && (entity.health === null || entity.health > 0));
+  return inPlaceFilter(entities, entity => (entity.lifetime === null || entity.lifetime > 0)
+                       && (entity.health === null || entity.health > 0));
 }
 
 function update() {
@@ -123,7 +129,6 @@ function update() {
   var hitCubes = collide(pickups, playerEntities);
 
   // TODO make updating, drawing and clearing better
-  // TODO do the thing where each list iterates with original length
   updateEntities(pickups);
   updateEntities(particles);
   updateEntities(playerEntities);
@@ -140,6 +145,7 @@ function update() {
 
   drawLives(5);
   drawGauge(playerEntities[0].gauge);
+  drawScore(100);
 
   // TODO check if it makes more sense to filter before draw
   // resolving bullets hitting enemies
@@ -171,12 +177,12 @@ function update() {
   destroyEntities(enemyBullets);
 
   // TODO figure out why moving this block after the collision event means destroy doesn't happen
-  pickups = filterEntities(pickups);
-  particles = filterEntities(particles);
-  playerEntities = filterEntities(playerEntities);
-  playerBullets = filterEntities(playerBullets);
-  enemies = filterEntities(enemies);
-  enemyBullets = filterEntities(enemyBullets);
+  filterEntities(pickups);
+  filterEntities(particles);
+  filterEntities(playerEntities);
+  filterEntities(playerBullets);
+  filterEntities(enemies);
+  filterEntities(enemyBullets);
 
   ticks++;
 

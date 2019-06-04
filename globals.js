@@ -47,6 +47,9 @@ var shapesSources = ["shapes0", "shapes1", "shapes2", "shapes3"];
 var cubeSprites = [];
 var cubeSources = ["cube0", "cube1", "cube2", "cube3", "cube4", "cube5"];
 
+var gumdropSprites = [];
+var gumdropSources = ["gumdrop0", "gumdrop1", "gumdrop2", "gumdrop3"];
+
 var colors = {
   red: [255, 58, 31],
   green: [124, 244, 11],
