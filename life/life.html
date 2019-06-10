@@ -1,24 +1,36 @@
-
 <html>
   <head>
     <link rel="stylesheet" href="../stylesheet.css">
   </head>
   <body>
     <header>
-      <a class='hlink' href="index.html">Home</a>
-      <a class='hlink' href="granof-spring-2019.pdf">Resume</a>
+      <a class='hlink' href="../index.html">Home</a>
+      <a class='hlink' href="../granof-spring-2019.pdf">Resume</a>
       <a class='hlink' href="https://github.com/bandaloo">Github</a>
-      <a class='hlink' href="mobile.html">3D&nbspRotating&nbsp;Mobile</a>
-      <a class='hlink' href="minesweeper.html">Minesweeper</a>
-      <a class='hlink' href="snake.html">Snake</a>
-      <a class='hlink' href="swap.html">Color&nbspMatch</a>
-      <a class='hlink' href="p5/empty-example/index.html">Earthquake&nbsp;Globe</a>
-      <a class='hlink' href="sketches.html">Sketches</a>
+      <a class='hlink' href="../mobile.html">3D&nbspRotating&nbsp;Mobile</a>
+      <a class='hlink' href="../minesweeper.html">Minesweeper</a>
+      <a class='hlink' href="../snake.html">Snake</a>
+      <a class='hlink' href="../swap.html">Color&nbspMatch</a>
+      <a class='hlink' href="../p5/empty-example/index.html">Earthquake&nbsp;Globe</a>
+      <a class='hlink' href="../sketches.html">Sketches</a>
     </header>
     <h1> life </h1>
-    <canvas id="lifecanvas" width="512" height="512" style = "border: 1px solid black;">
+    <canvas id="lifecanvas" width="832" height="512" style = "border: 1px solid black;">
     </canvas>
+    <div class="controlbox">
+    </div>
     <script src="draw.js"></script>
+    <div style="text-align: center">
+      <button class="button button0 life" id="button0" onClick="changeRules(0)"></button>
+      <button class="button button0 life" id="button1" onClick="changeRules(1)"></button>
+      <button class="button button0 life" id="button2" onClick="changeRules(2)"></button>
+      <button class="button button0 life" id="button3" onClick="changeRules(3)"></button>
+      <button class="button button0 life" id="button4" onClick="changeRules(4)"></button>
+      <button class="button button0 life" id="button5" onClick="changeRules(5)"></button>
+      <button class="button button0 life" id="button6" onClick="changeRules(6)"></button>
+      <button class="button button0 life" id="button7" onClick="changeRules(7)"></button>
+      <button class="button button0 life" id="button8" onClick="changeRules(8)"></button>
+    <div style="text-align: center">
     <script src="life.js"></script>
   </body>
 </html>

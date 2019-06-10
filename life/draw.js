@@ -1,17 +1,24 @@
 "use strict"
 function drawBoard(i, j) {
   clearScreen();
-  context.fillStyle = cellColor;
   let size = animTime * 2 / delay;
   if (size > 1)
     size = 1;
   for (let i = 0; i < boardWidth; i++) {
     for (let j = 0; j < boardHeight; j++) {
+      let age = ageGrid[i][j] * 10;
+      if (age > 150)
+        age = 150;
+      context.fillStyle = hsl(age);
       if (board[i][j]) {
         if (!prevBoard[i][j]) {
           drawRect(i, j, size);
         } else {
           drawRect(i, j);
+        }
+      } else {
+        if (prevBoard[i][j]) {
+          drawRect(i, j, 1 - size);
         }
       }
     }
@@ -25,5 +32,9 @@ function drawRect(i, j, size = 1) {
 }
 
 function rgba(r, g = 0, b = 0, a = 1) {
-  return `rgba(${r},${g},${b},${a})`;
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
+function hsl(h, s = 100, l = 50) {
+  return `hsl(${h}, ${s}%, ${l}%)`;
 }

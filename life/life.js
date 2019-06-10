@@ -3,6 +3,7 @@ var canvas = document.getElementById("lifecanvas");
 var context = canvas.getContext("2d");
 
 var board = [];
+var ageGrid = [];
 
 const DEAD = 0;
 const ALIVE = 1;
@@ -13,6 +14,8 @@ var edge = WRAP;
 const DIE = 0;
 const STAY = 1;
 const BIRTH = 2;
+
+const ruleStrings = ['Die', 'Stay', 'Birth'];
 
 const dirs = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
 
@@ -27,16 +30,23 @@ var animTime = 0;
 
 var prevBoard = [];
 
-const boardWidth = 32;
+const boardWidth = 52;
 const boardHeight = 32;
 
 const cellWidth = canvas.width / boardWidth;
-const cellHeight = canvas.width / boardHeight;
+const cellHeight = canvas.height / boardHeight;
+
+const ruleColors = ["#FC1817", "#244CFF", "#36EB41"];
 
 var gamePaused = false;
 
 var cellColor = rgba(255, 112, 1);
-var backgroundColor = rgba(0);
+
+const playColor = rgba(0);
+const pausedColor = rgba(30, 30, 30);
+var backgroundColor = playColor;
+
+var ruleButtons = [];
 
 Array.prototype.createNumberGrid = function(width, height, number) {
   for (let i = 0; i < width; i++) {
@@ -53,8 +63,31 @@ Number.prototype.mod = function(n) {
 
 prevBoard.createNumberGrid(boardWidth, boardHeight, 0);
 
+function getRuleButtons() {
+  for (let i = 0; i < 9; i++) {
+    ruleButtons.push(document.getElementById("button" + i));
+  }
+}
+
+function setRuleButton(i) {
+  ruleButtons[i].innerHTML = "<strong>" + i + ":</strong> " + ruleStrings[rules[i]];
+  ruleButtons[i].style.background = ruleColors[rules[i]];
+}
+
+function setRuleButtons() {
+  for (let i = 0; i < ruleButtons.length; i++) {
+    setRuleButton(i);
+  }
+}
+
 function posInbounds(i, j) {
   return i >= 0 && i < boardWidth && j >= 0 && j < boardHeight;
+}
+
+function changeRules(i) {
+  rules[i]++;
+  rules[i] %= 3;
+  setRuleButton(i);
 }
 
 function countNeighbors(iCurrent, jCurrent) {
@@ -63,8 +96,8 @@ function countNeighbors(iCurrent, jCurrent) {
     let iNeighbor = iCurrent + dirs[k][0];
     let jNeighbor = jCurrent + dirs[k][1];
     if (edge == WRAP) {
-      iNeighbor.mod(boardWidth);
-      jNeighbor.mod(boardHeight);
+      iNeighbor = iNeighbor.mod(boardWidth);
+      jNeighbor = jNeighbor.mod(boardHeight);
     }
     if (posInbounds(iNeighbor, jNeighbor)) {
       if (board[iNeighbor][jNeighbor])
@@ -81,15 +114,19 @@ function stepBoard() {
   let tempBoard = [];
   tempBoard.createNumberGrid(boardWidth, boardHeight, 0);
   prevBoard = board;
-  console.log(prevBoard.length);
   for (let i = 0; i < boardWidth; i++) {
     for (let j = 0; j < boardHeight; j++) {
       switch(rules[countNeighbors(i, j)]) {
         case STAY:
           tempBoard[i][j] = board[i][j]
+          ageGrid[i][j]++;
           break;
         case BIRTH:
           tempBoard[i][j] = 1;
+          if (board[i][j] == 0)
+            ageGrid[i][j] = 1;
+          else
+            ageGrid[i][j]++;
           break;
       }
     }
@@ -101,7 +138,6 @@ function update(currTime) {
   let deltaTime = currTime - prevTime;
   prevTime = currTime;
 
-  //console.log(animTime);
   drawBoard();
   animTime += deltaTime;
   if (!gamePaused) {
@@ -121,8 +157,16 @@ function clearScreen() {
 document.addEventListener('keydown', function(e) {
   var code = e.keyCode;
   var key = String.fromCharCode(code);
-  if (key == 'P' || code == 32) {
+  if (key == 'P') {
     gamePaused = !gamePaused;
+    backgroundColor = gamePaused? pausedColor : playColor;
+  } else if (key == 'Z') {
+    for (let i = 0; i < boardWidth; i++) {
+      for (let j = 0; j < boardHeight; j++) {
+        board[i][j] = Math.floor(2 * Math.random());
+        ageGrid[i][j] = 0;
+      }
+    }
   }
 });
 
@@ -135,12 +179,12 @@ canvas.addEventListener('click', function(e) {
   if (boardX > canvas.width - 1) boardX = canvas.width - 1;
   if (boardY > canvas.height - 1) boardY = canvas.height - 1;
   if (gamePaused) {
-    board[boardX][boardY] = 1;
+    board[boardX][boardY] = !board[boardX][boardY] | 0;
   }
 });
 
-
 board.createNumberGrid(boardWidth, boardHeight, 0);
+ageGrid.createNumberGrid(boardWidth, boardHeight, 0);
 
 board[20][21] = 1;
 board[20][22] = 1;
@@ -148,3 +192,5 @@ board[20][23] = 1;
 
 update(0);
 
+getRuleButtons();
+setRuleButtons();

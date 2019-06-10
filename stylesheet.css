@@ -95,6 +95,11 @@ header {
   transition-duration: 0.2s;
 }
 
+.life {
+  width: 90px;
+  color: white;
+}
+
 .button0 {
   background-color: #4c4c4c;
 }
