@@ -40,13 +40,20 @@ const ruleColors = ["#FC1817", "#244CFF", "#36EB41"];
 
 var gamePaused = false;
 
-var cellColor = rgba(255, 112, 1);
+//var cellColor = rgba(255, 112, 1);
+const buttonColor = rgba(255, 112, 1);
 
 const playColor = rgba(0);
 const pausedColor = rgba(30, 30, 30);
+
 var backgroundColor = playColor;
 
 var ruleButtons = [];
+var speedButtons = [];
+//var edgeButtons = [];
+
+var pauseButton = document.getElementById("pausebutton");
+var randomizeButton = document.getElementById("randomizebutton");
 
 Array.prototype.createNumberGrid = function(width, height, number) {
   for (let i = 0; i < width; i++) {
@@ -63,10 +70,25 @@ Number.prototype.mod = function(n) {
 
 prevBoard.createNumberGrid(boardWidth, boardHeight, 0);
 
+function getSpeedButtons() {
+  let names = ["slowbutton", "mediumbutton", "fastbutton"];
+  for (let i = 0; i < names.length; i++)
+    speedButtons.push(document.getElementById(names[i]));
+  speedButtons[1].style.background = buttonColor;
+}
+
 function getRuleButtons() {
   for (let i = 0; i < 9; i++) {
     ruleButtons.push(document.getElementById("button" + i));
   }
+}
+
+function changeSpeed(i, speedDelay) {
+  for (let i = 0; i < speedButtons.length; i++) {
+    speedButtons[i].style.background = "#4c4c4c";
+  }
+  delay = speedDelay;
+  speedButtons[i].style.background = buttonColor;
 }
 
 function setRuleButton(i) {
@@ -154,19 +176,28 @@ function clearScreen() {
   context.fillRect(0, 0, canvas.width, canvas.height);
 }
 
+function pause() {
+  gamePaused = !gamePaused;
+  backgroundColor = gamePaused? pausedColor : playColor;
+  pauseButton.innerHTML = gamePaused ? "Play" : "Pause";
+}
+
+function randomize() {
+  for (let i = 0; i < boardWidth; i++) {
+    for (let j = 0; j < boardHeight; j++) {
+      board[i][j] = Math.floor(2 * Math.random());
+      ageGrid[i][j] = 0;
+    }
+  }
+}
+
 document.addEventListener('keydown', function(e) {
   var code = e.keyCode;
   var key = String.fromCharCode(code);
   if (key == 'P') {
-    gamePaused = !gamePaused;
-    backgroundColor = gamePaused? pausedColor : playColor;
+    pause();
   } else if (key == 'Z') {
-    for (let i = 0; i < boardWidth; i++) {
-      for (let j = 0; j < boardHeight; j++) {
-        board[i][j] = Math.floor(2 * Math.random());
-        ageGrid[i][j] = 0;
-      }
-    }
+    randomize();
   }
 });
 
@@ -180,17 +211,17 @@ canvas.addEventListener('click', function(e) {
   if (boardY > canvas.height - 1) boardY = canvas.height - 1;
   if (gamePaused) {
     board[boardX][boardY] = !board[boardX][boardY] | 0;
+    ageGrid[boardX][boardY] = 0;
   }
 });
 
 board.createNumberGrid(boardWidth, boardHeight, 0);
 ageGrid.createNumberGrid(boardWidth, boardHeight, 0);
 
-board[20][21] = 1;
-board[20][22] = 1;
-board[20][23] = 1;
-
-update(0);
+randomize();
 
 getRuleButtons();
 setRuleButtons();
+getSpeedButtons();
+
+update(0);

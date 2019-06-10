@@ -14,23 +14,39 @@
       <a class='hlink' href="../p5/empty-example/index.html">Earthquake&nbsp;Globe</a>
       <a class='hlink' href="../sketches.html">Sketches</a>
     </header>
-    <h1> life </h1>
-    <canvas id="lifecanvas" width="832" height="512" style = "border: 1px solid black;">
-    </canvas>
-    <div class="controlbox">
+    <h1>Games of Lives</h1>
+    <div class="controlbox" style="width: 1100">
+      <div style="text-align: center; max-width: 100px">
+        <h2 style="margin-top: 0">Speed</h2>
+        <button class="button button0 life" id="slowbutton" onClick="changeSpeed(0, 1000)">Slow</button>
+        <button class="button button0 life" id="mediumbutton" onClick="changeSpeed(1, 400)">Medium</button>
+        <button class="button button0 life" id="fastbutton" onClick="changeSpeed(2, 150)">Fast</button>
+        <h2>Controls</h2>
+        <button class="button button0 life" id="pausebutton" onClick="pause()">Pause</button>
+        <button class="button button0 life" id="randomizebutton" onClick="randomize()">Random</button>
+        <!--
+        <h2>Edges</h2>
+        <button class="button button0 life" id="wrapbutton" onClick="setEdges(WRAP)">Wrap</button>
+        <button class="button button0 life" id="deadbutton" onClick="setEdges(DEAD)">Dead</button>
+        <button class="button button0 life" id="alivebutton" onClick="setEdges(ALIVE)">Alive</button>
+        -->
+      </div>
+      <canvas id="lifecanvas" width="832" height="512" style = "border: 1px solid black;">
+      </canvas>
+      <div style="text-align: center; max-width: 100px">
+        <h2 style="margin-top: 0">Rules</h2>
+        <button class="button button0 life" id="button0" onClick="changeRules(0)"></button>
+        <button class="button button0 life" id="button1" onClick="changeRules(1)"></button>
+        <button class="button button0 life" id="button2" onClick="changeRules(2)"></button>
+        <button class="button button0 life" id="button3" onClick="changeRules(3)"></button>
+        <button class="button button0 life" id="button4" onClick="changeRules(4)"></button>
+        <button class="button button0 life" id="button5" onClick="changeRules(5)"></button>
+        <button class="button button0 life" id="button6" onClick="changeRules(6)"></button>
+        <button class="button button0 life" id="button7" onClick="changeRules(7)"></button>
+        <button class="button button0 life" id="button8" onClick="changeRules(8)"></button>
+      </div>
     </div>
     <script src="draw.js"></script>
-    <div style="text-align: center">
-      <button class="button button0 life" id="button0" onClick="changeRules(0)"></button>
-      <button class="button button0 life" id="button1" onClick="changeRules(1)"></button>
-      <button class="button button0 life" id="button2" onClick="changeRules(2)"></button>
-      <button class="button button0 life" id="button3" onClick="changeRules(3)"></button>
-      <button class="button button0 life" id="button4" onClick="changeRules(4)"></button>
-      <button class="button button0 life" id="button5" onClick="changeRules(5)"></button>
-      <button class="button button0 life" id="button6" onClick="changeRules(6)"></button>
-      <button class="button button0 life" id="button7" onClick="changeRules(7)"></button>
-      <button class="button button0 life" id="button8" onClick="changeRules(8)"></button>
-    <div style="text-align: center">
     <script src="life.js"></script>
   </body>
 </html>
