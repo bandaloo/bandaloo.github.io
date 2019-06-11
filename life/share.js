@@ -59,9 +59,6 @@ const encodeBoard = () => {
     }
   }
 
-  console.log('encode bitstring: ' + bitString);
-  console.log(binToB64(bitString));
-
   return compressA(binToB64(bitString));
 }
 
@@ -71,9 +68,7 @@ const encodeBoard = () => {
  * opposite of `encodeBoard()', which you should see for more information
  */
 const decodeBoard = (inString) => {
-  console.log(uncompressA(inString));
   let bitString = b64ToBin(uncompressA(inString));
-  console.log(bitString);
   let c = 0;
 
   for (let j = 0; j < boardHeight; ++j) {
@@ -114,9 +109,6 @@ const binToB64 = (bitString) => {
 const b64ToBin = (b64String) => {
   let bitString = '';
   for (let i = 0; i < b64String.length; ++i) {
-    //console.log(b64String[i]);
-    //console.log(decodeChar(b64String[i]));
-    //console.log(decodeChar(b64String[i]).toString(2));
     bitString += decodeChar(b64String[i]).toString(2).padStart(6, '0');
   }
   return bitString
