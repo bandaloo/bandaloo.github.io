@@ -135,12 +135,14 @@ function countNeighbors(iCurrent, jCurrent) {
 }
 
 function setTextArea() {
-  let boardChars = binToChars(boardToBinary());
-  let rulesStr = "";
+  //let boardChars = binToChars(boardToBinary());
+  let boardChars = encodeBoard();
+
+  let rulesStr = ""; // binary string of bits representing rules
   for (let i = 0; i < rules.length; i++) {
-    rulesStr += rules[i];
+    rulesStr += rules[i].toString(2).padStart(2, '0');
   }
-  shareTextArea.innerHTML = window.location.href.split('?')[0] + "?b=" + boardChars + "&r=" + rulesStr;
+  shareTextArea.innerHTML = window.location.href.split('?')[0] + "?b=" + boardChars + "&r=" + binToB64(rulesStr);
 }
 
 function stepBoard() {
@@ -239,9 +241,9 @@ board.createNumberGrid(boardWidth, boardHeight, 0);
 ageGrid.createNumberGrid(boardWidth, boardHeight, 0);
 
 let initialBoard = getVariable('b');
-console.log(initialBoard);
 if (initialBoard) {
-  binaryToBoard(charsToBin(initialBoard));
+  //binaryToBoard(charsToBin(initialBoard));
+  decodeBoard(initialBoard);
   pause();
 } else {
   randomize();
@@ -249,8 +251,10 @@ if (initialBoard) {
 
 let initialRules = getVariable('r');
 if (initialRules) {
-  for (let i = 0; i < initialRules.length; i++) {
-    rules[i] = parseInt(initialRules.charAt(i));
+  initialRules = b64ToBin(initialRules);
+
+  for (let i = 0; i < 9; ++i) {
+    rules[i] = parseInt(initialRules.substring(i * 2, (i * 2) + 2), 2);
   }
 }
 
@@ -258,4 +262,5 @@ getRuleButtons();
 setRuleButtons();
 getSpeedButtons();
 
+setTextArea();
 update(0);
