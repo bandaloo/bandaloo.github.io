@@ -24,6 +24,7 @@
         <h2>Controls</h2>
         <button class="button button0 life" id="pausebutton" onClick="pause()">Pause</button>
         <button class="button button0 life" id="randomizebutton" onClick="randomize()">Random</button>
+        <button class="button button0 life" id="clearbutton" onClick="clearBoard()">Clear</button>
         <!--
         <h2>Edges</h2>
         <button class="button button0 life" id="wrapbutton" onClick="setEdges(WRAP)">Wrap</button>
@@ -46,6 +47,13 @@
         <button class="button button0 life" id="button8" onClick="changeRules(8)"></button>
       </div>
     </div>
+    <div class="controlbox" style="width: 832">
+      <button class="button button0 life" id="copyButton" style="width: 100px" onClick="copyLink()">
+      Copy link</button>
+      <textarea readonly id="sharetextarea" rows="4" cols="99" style="resize: none; background: black;
+      color: white; font-family: monospace; display: block; word-break: break-all;"></textarea>
+    </div>
+    <script src="share.js"></script>
     <script src="draw.js"></script>
     <script src="life.js"></script>
   </body>

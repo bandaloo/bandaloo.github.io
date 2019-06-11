@@ -6,10 +6,11 @@ function drawBoard(i, j) {
     size = 1;
   for (let i = 0; i < boardWidth; i++) {
     for (let j = 0; j < boardHeight; j++) {
-      let age = ageGrid[i][j] * 10;
-      if (age > 150)
-        age = 150;
-      context.fillStyle = hsl(age);
+      let age = ageGrid[i][j] * 5;
+      if (age > 100)
+        age = 100;
+      //context.fillStyle = colorHeatmap(age);
+      context.fillStyle = colorHeatmap(age);
       if (board[i][j]) {
         if (!prevBoard[i][j]) {
           drawRect(i, j, size);
@@ -37,4 +38,8 @@ function rgba(r, g = 0, b = 0, a = 1) {
 
 function hsl(h, s = 100, l = 50) {
   return `hsl(${h}, ${s}%, ${l}%)`;
+}
+
+function colorHeatmap(age) {
+  return hsl(age * 1.5);
 }
