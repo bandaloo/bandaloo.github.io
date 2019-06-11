@@ -79,7 +79,7 @@ const decodeBoard = (inString) => {
 
   /**
    * TODO: b64ToBin() pads each b64 digit out to six bits, which means that if
-   * the number of squares on the board isn't divisble by 6 some data will get
+   * the number of squares on the board isn't divisible by 6 some data will get
    * pushed off the end and not read. Here's a dumb way to fix that, but you
    * should come up with a better one Cole. The easy way would be to just make
    * the board size a multiple of 6.
