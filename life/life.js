@@ -151,25 +151,24 @@ function stepBoard() {
   for (let i = 0; i < boardWidth; i++) {
     for (let j = 0; j < boardHeight; j++) {
       switch(rules[countNeighbors(i, j)]) {
-        case STAY:
-          tempBoard[i][j] = board[i][j]
+      case STAY:
+        tempBoard[i][j] = board[i][j]
+        ageGrid[i][j]++;
+        break;
+      case BOTH:
+        tempBoard[i][j] = 1;
+        if (board[i][j] == 0)
+          ageGrid[i][j] = 1;
+        else
           ageGrid[i][j]++;
-          break;
-        case BOTH:
+        break;
+      case BIRTH:
+        if (board[i][j] == 0) {
           tempBoard[i][j] = 1;
-          if (board[i][j] == 0)
-            ageGrid[i][j] = 1;
-          else
-            ageGrid[i][j]++;
-          break;
-        case BIRTH:
-        // TODO put in function
-          if (board[i][j] == 0) {
-            tempBoard[i][j] = 1;
-            ageGrid[i][j] = 1;
-            ageGrid[i][j]++;
-            break;
-          }
+          ageGrid[i][j] = 1;
+          ageGrid[i][j]++;
+        }
+        break;
       }
     }
   }
