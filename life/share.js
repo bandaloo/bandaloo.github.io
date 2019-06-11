@@ -59,6 +59,9 @@ const encodeBoard = () => {
     }
   }
 
+  console.log('encode bitstring: ' + bitString);
+  console.log(binToB64(bitString));
+
   return compressA(binToB64(bitString));
 }
 
@@ -68,13 +71,26 @@ const encodeBoard = () => {
  * opposite of `encodeBoard()', which you should see for more information
  */
 const decodeBoard = (inString) => {
+  console.log(uncompressA(inString));
   let bitString = b64ToBin(uncompressA(inString));
+  console.log(bitString);
   let c = 0;
 
   for (let j = 0; j < boardHeight; ++j) {
     for (let i = 0; i < boardWidth; ++i) {
       board[i][j] = parseInt(bitString[(j * boardWidth) + i]);
     }
+  }
+
+  /**
+   * TODO: b64ToBin() pads each b64 digit out to six bits, which means that if
+   * the number of squares on the board isn't divisble by 6 some data will get
+   * pushed off the end and not read. Here's a dumb way to fix that, but you
+   * should come up with a better one Cole. The easy way would be to just make
+   * the board size a multiple of 6.
+   */
+  for (z = boardHeight * boardWidth % 6; z > 0; --z) {
+    board[boardWidth - z][boardHeight - 1] = parseInt(bitString[bitString.length - z]);
   }
 }
 
@@ -98,6 +114,9 @@ const binToB64 = (bitString) => {
 const b64ToBin = (b64String) => {
   let bitString = '';
   for (let i = 0; i < b64String.length; ++i) {
+    //console.log(b64String[i]);
+    //console.log(decodeChar(b64String[i]));
+    //console.log(decodeChar(b64String[i]).toString(2));
     bitString += decodeChar(b64String[i]).toString(2).padStart(6, '0');
   }
   return bitString
@@ -128,6 +147,10 @@ const compressA = (b64String) => {
       outString += b64String[i];
     }
   }
+
+  // edge case where we end with an A
+  if (zeroCounter > 0)
+    outString += 'A';
   
   return outString;
 }
