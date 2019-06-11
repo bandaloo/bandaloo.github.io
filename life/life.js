@@ -36,7 +36,7 @@ const boardHeight = 32;
 const cellWidth = canvas.width / boardWidth;
 const cellHeight = canvas.height / boardHeight;
 
-const ruleColors = ["#FC1817", "#244CFF", "#36EB41"];
+const ruleColors = ["#FC1817", "#3B6CFF", "#36EB41"];
 
 var gamePaused = false;
 
@@ -54,6 +54,7 @@ var speedButtons = [];
 
 var pauseButton = document.getElementById("pausebutton");
 var randomizeButton = document.getElementById("randomizebutton");
+var shareTextArea = document.getElementById("sharetextarea");
 
 Array.prototype.createNumberGrid = function(width, height, number) {
   for (let i = 0; i < width; i++) {
@@ -110,6 +111,7 @@ function changeRules(i) {
   rules[i]++;
   rules[i] %= 3;
   setRuleButton(i);
+  setTextArea();
 }
 
 function countNeighbors(iCurrent, jCurrent) {
@@ -130,6 +132,15 @@ function countNeighbors(iCurrent, jCurrent) {
     }
   }
   return count;
+}
+
+function setTextArea() {
+  let boardChars = binToChars(boardToBinary());
+  let rulesStr = "";
+  for (let i = 0; i < rules.length; i++) {
+    rulesStr += rules[i];
+  }
+  shareTextArea.innerHTML = window.location.href.split('?')[0] + "?b=" + boardChars + "&r=" + rulesStr;
 }
 
 function stepBoard() {
@@ -154,6 +165,7 @@ function stepBoard() {
     }
   }
   board = tempBoard;
+  setTextArea();
 }
 
 function update(currTime) {
@@ -176,6 +188,12 @@ function clearScreen() {
   context.fillRect(0, 0, canvas.width, canvas.height);
 }
 
+function clearBoard() {
+  board = []
+  board.createNumberGrid(boardWidth, boardHeight, 0);
+  setTextArea();
+}
+
 function pause() {
   gamePaused = !gamePaused;
   backgroundColor = gamePaused? pausedColor : playColor;
@@ -189,6 +207,7 @@ function randomize() {
       ageGrid[i][j] = 0;
     }
   }
+  setTextArea();
 }
 
 document.addEventListener('keydown', function(e) {
@@ -209,16 +228,31 @@ canvas.addEventListener('click', function(e) {
   let boardY = Math.floor(clickY / cellHeight);
   if (boardX > canvas.width - 1) boardX = canvas.width - 1;
   if (boardY > canvas.height - 1) boardY = canvas.height - 1;
-  if (gamePaused) {
-    board[boardX][boardY] = !board[boardX][boardY] | 0;
-    ageGrid[boardX][boardY] = 0;
-  }
+  if (!gamePaused)
+    pause();
+  board[boardX][boardY] = !board[boardX][boardY] | 0;
+  ageGrid[boardX][boardY] = 0;
+  setTextArea();
 });
 
 board.createNumberGrid(boardWidth, boardHeight, 0);
 ageGrid.createNumberGrid(boardWidth, boardHeight, 0);
 
-randomize();
+let initialBoard = getVariable('b');
+console.log(initialBoard);
+if (initialBoard) {
+  binaryToBoard(charsToBin(initialBoard));
+  pause();
+} else {
+  randomize();
+}
+
+let initialRules = getVariable('r');
+if (initialRules) {
+  for (let i = 0; i < initialRules.length; i++) {
+    rules[i] = parseInt(initialRules.charAt(i));
+  }
+}
 
 getRuleButtons();
 setRuleButtons();
