@@ -13,15 +13,16 @@ var edge = WRAP;
 
 const DIE = 0;
 const STAY = 1;
-const BIRTH = 2;
+const BOTH = 2;
+const BIRTH = 3;
 
-const ruleStrings = ['Die', 'Stay', 'Birth'];
+const ruleStrings = ['Die', 'Stay', 'Both', 'Birth'];
 
 const dirs = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
 
 // cave rules
-//var rules = [DIE, DIE, DIE, STAY, STAY, BIRTH, BIRTH, BIRTH, BIRTH];
-var rules = [DIE, DIE, STAY, BIRTH, DIE, DIE, DIE, DIE, DIE]
+//var rules = [DIE, DIE, DIE, STAY, STAY, BOTH, BOTH, BOTH, BOTH];
+var rules = [DIE, DIE, STAY, BOTH, DIE, DIE, DIE, DIE, DIE]
 
 var prevTime = 0;
 
@@ -36,7 +37,7 @@ const boardHeight = 32;
 const cellWidth = canvas.width / boardWidth;
 const cellHeight = canvas.height / boardHeight;
 
-const ruleColors = ["#FC1817", "#3B6CFF", "#36EB41"];
+const ruleColors = ["#FC1817", "#3B6CFF", "#36EB41", "#FFDD3D"];
 
 var gamePaused = false;
 
@@ -109,7 +110,7 @@ function posInbounds(i, j) {
 
 function changeRules(i) {
   rules[i]++;
-  rules[i] %= 3;
+  rules[i] %= 4;
   setRuleButton(i);
   setTextArea();
 }
@@ -154,13 +155,21 @@ function stepBoard() {
           tempBoard[i][j] = board[i][j]
           ageGrid[i][j]++;
           break;
-        case BIRTH:
+        case BOTH:
           tempBoard[i][j] = 1;
           if (board[i][j] == 0)
             ageGrid[i][j] = 1;
           else
             ageGrid[i][j]++;
           break;
+        case BIRTH:
+        // TODO put in function
+          if (board[i][j] == 0) {
+            tempBoard[i][j] = 1;
+            ageGrid[i][j] = 1;
+            ageGrid[i][j]++;
+            break;
+          }
       }
     }
   }
@@ -257,5 +266,7 @@ if (initialRules) {
 getRuleButtons();
 setRuleButtons();
 getSpeedButtons();
+
+setTextArea();
 
 update(0);
