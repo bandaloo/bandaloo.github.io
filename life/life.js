@@ -57,6 +57,11 @@ var pauseButton = document.getElementById("pausebutton");
 var randomizeButton = document.getElementById("randomizebutton");
 var shareTextArea = document.getElementById("sharetextarea");
 
+var currentX1;
+var currentY1;
+var currentX2;
+var currentY2;
+
 Array.prototype.createNumberGrid = function(width, height, number) {
   for (let i = 0; i < width; i++) {
     this.push([]);
@@ -137,13 +142,20 @@ function countNeighbors(iCurrent, jCurrent) {
 
 function setTextArea() {
   //let boardChars = binToChars(boardToBinary());
+  setCorners();
   let boardChars = encodeBoard();
 
   let rulesStr = ""; // binary string of bits representing rules
   for (let i = 0; i < rules.length; i++) {
     rulesStr += rules[i].toString(2).padStart(2, '0');
   }
-  shareTextArea.innerHTML = window.location.href.split('?')[0] + "?b=" + boardChars + "&r=" + binToB64(rulesStr);
+  let posChars = "";
+  if (currentX1 != 0 && currentY1 != 0 && currentX2 != boardWidth - 1 && currentY2 != boardHeight - 1) {
+    posChars = encodeNum(currentX1) + encodeNum(currentY1) + encodeNum(currentX2) + encodeNum(currentY2) + ".";
+  }
+  let boardText = "?b=" + posChars + boardChars;
+  let ruleText = "&r=" + binToB64(rulesStr);
+  shareTextArea.innerHTML = window.location.href.split('?')[0] + boardText + ruleText;
 }
 
 function stepBoard() {
@@ -176,6 +188,42 @@ function stepBoard() {
   }
   board = tempBoard;
   setTextArea();
+}
+
+function setCorners() {
+  currentX1 = undefined;
+  currentY1 = undefined;
+  currentX2 = undefined;
+  currentY2 = undefined;
+
+  // TODO there is definitely a more clever way to do this
+  for (let i = 0; i < boardWidth; i++) {
+    for (let j = 0; j < boardHeight; j++) {
+      if (board[i][j]) {
+        if (currentX1 === undefined || currentX1 > i) {
+          currentX1 = i;
+        }
+        if (currentY1 === undefined || currentY1 > j) {
+          currentY1 = j;
+        }
+        if (currentX2 === undefined || currentX2 < i) {
+          currentX2 = i;
+        }
+        if (currentY2 === undefined || currentY2 < j) {
+          currentY2 = j;
+        }
+      }
+    }
+  }
+
+  if (currentX1 === undefined) {
+    currentX1 = 0;
+    currentY1 = 0;
+    currentX2 = 0;
+    currentY2 = 0;
+  }
+
+  console.log(currentX1, currentY1, currentX2, currentY2);
 }
 
 function update(currTime) {
@@ -248,16 +296,35 @@ canvas.addEventListener('click', function(e) {
 board.createNumberGrid(boardWidth, boardHeight, 0);
 ageGrid.createNumberGrid(boardWidth, boardHeight, 0);
 
-let initialBoard = getVariable('b');
+var initialBoard = getVariable('b');
+var initialX1 = 0;
+var initialY1 = 0;
+var initialWidth = boardWidth;
+var initialHeight = boardHeight;
+
 if (initialBoard) {
-  //binaryToBoard(charsToBin(initialBoard));
+  let boardArgs = initialBoard.split('.');
+  initialBoard = boardArgs[boardArgs.length - 1];
+  console.log('initialBoard: ' + initialBoard);
+  if (boardArgs.length > 1) {
+    let cornerStr = boardArgs[0];
+    currentX1 = decodeChar(cornerStr.charAt(0));
+    currentY1 = decodeChar(cornerStr.charAt(1));
+    currentX2 = decodeChar(cornerStr.charAt(2));
+    currentY2 = decodeChar(cornerStr.charAt(3));
+  } else {
+    currentX1 = 0;
+    currentY1 = 0;
+    currentX2 = boardWidth - 1;
+    currentY2 = boardHeight - 1;
+  }
   decodeBoard(initialBoard);
   pause();
 } else {
   randomize();
 }
 
-let initialRules = getVariable('r');
+var initialRules = getVariable('r');
 if (initialRules) {
   initialRules = b64ToBin(initialRules);
 

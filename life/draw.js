@@ -9,7 +9,6 @@ function drawBoard(i, j) {
       let age = ageGrid[i][j] * 5;
       if (age > 100)
         age = 100;
-      //context.fillStyle = colorHeatmap(age);
       context.fillStyle = colorHeatmap(age);
       if (board[i][j]) {
         if (!prevBoard[i][j]) {
