@@ -6,7 +6,12 @@ function drawBoard(i, j) {
     size = 1;
   for (let i = 0; i < boardWidth; i++) {
     for (let j = 0; j < boardHeight; j++) {
-      let age = ageGrid[i][j] * 5;
+      if (!gamePaused && trailBoard[i][j]) {
+        let d = trailBoard[i][j] * 4;
+        context.fillStyle = rgba(d, d, d);
+        drawRect(i, j);
+      }
+      let age = ageBoard[i][j] * 5;
       if (age > 100)
         age = 100;
       context.fillStyle = colorHeatmap(age);

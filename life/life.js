@@ -3,7 +3,8 @@ var canvas = document.getElementById("lifecanvas");
 var context = canvas.getContext("2d");
 
 var board = [];
-var ageGrid = [];
+var ageBoard = [];
+var trailBoard = [];
 
 const DEAD = 0;
 const ALIVE = 1;
@@ -174,22 +175,28 @@ function stepBoard() {
       switch(rules[countNeighbors(i, j)]) {
       case STAY:
         tempBoard[i][j] = board[i][j]
-        ageGrid[i][j]++;
+        ageBoard[i][j]++;
         break;
       case BOTH:
         tempBoard[i][j] = 1;
         if (board[i][j] == 0)
-          ageGrid[i][j] = 1;
+          ageBoard[i][j] = 1;
         else
-          ageGrid[i][j]++;
+          ageBoard[i][j]++;
         break;
       case BIRTH:
         if (board[i][j] == 0) {
           tempBoard[i][j] = 1;
-          ageGrid[i][j] = 1;
-          ageGrid[i][j]++;
+          ageBoard[i][j] = 1;
+          //ageBoard[i][j]++;
         }
         break;
+      }
+      if (tempBoard[i][j]) {
+        trailBoard[i][j] = 15;
+      }
+      if (trailBoard[i][j] > 0) {
+        trailBoard[i][j]--;
       }
     }
   }
@@ -267,7 +274,7 @@ function randomize() {
   for (let i = 0; i < boardWidth; i++) {
     for (let j = 0; j < boardHeight; j++) {
       board[i][j] = Math.floor(2 * Math.random());
-      ageGrid[i][j] = 0;
+      ageBoard[i][j] = 0;
     }
   }
   setTextArea();
@@ -297,7 +304,7 @@ function clickToBoard(e) {
 
 function placeCell({x: boardX, y: boardY}) {
   board[boardX][boardY] = paintVal;
-  ageGrid[boardX][boardY] = 0;
+  ageBoard[boardX][boardY] = 0;
   setTextArea();
 }
 
@@ -323,7 +330,8 @@ canvas.addEventListener('mouseup', function(e) {
 });
 
 board.createNumberGrid(boardWidth, boardHeight, 0);
-ageGrid.createNumberGrid(boardWidth, boardHeight, 0);
+ageBoard.createNumberGrid(boardWidth, boardHeight, 0);
+trailBoard.createNumberGrid(boardWidth, boardHeight, 0);
 
 var initialBoard = getVariable('b'); // TODO this leaks into global scope forever
 //var initialX1 = 0;
