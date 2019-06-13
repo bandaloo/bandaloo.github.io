@@ -52,12 +52,17 @@ function numToPaddedBinary(n, p) {
  */
 const encodeBoard = () => {
   let bitString = '';
+  let sectionWidth = currentX2 - currentX1 + 1;
+  let sectionHeight = currentY2 - currentY1 + 1;
 
-  for (let j = 0; j < boardHeight; ++j) {
-    for (let i = 0; i < boardWidth; ++i) {
+  // TODO iterate row-major
+  for (let j = currentY1; j < currentY2 + 1; ++j) {
+    for (let i = currentX1; i < currentX2 + 1; ++i) {
       bitString += board[i][j];
     }
   }
+  let boardSize = sectionWidth * sectionHeight;
+  bitString = bitString.padEnd(boardSize + (6 - boardSize % 6), '0');
 
   return compressA(binToB64(bitString));
 }
@@ -70,23 +75,27 @@ const encodeBoard = () => {
 const decodeBoard = (inString) => {
   let bitString = b64ToBin(uncompressA(inString));
   let c = 0;
+  let sectionWidth = currentX2 - currentX1 + 1;
+  let sectionHeight = currentY2 - currentY1 + 1;
+  bitString = bitString.slice(0, sectionWidth * sectionHeight);
 
-  for (let j = 0; j < boardHeight; ++j) {
-    for (let i = 0; i < boardWidth; ++i) {
-      board[i][j] = parseInt(bitString[(j * boardWidth) + i]);
+  // TODO iterate row-major
+  for (let j = 0; j < sectionHeight; ++j) {
+    for (let i = 0; i < sectionWidth; ++i) {
+      board[i + currentX1][j + currentY1] = parseInt(bitString[(j * (currentX2 + 1 - currentX1) + i) % bitString.length]);
     }
   }
 
   /**
    * TODO: b64ToBin() pads each b64 digit out to six bits, which means that if
-   * the number of squares on the board isn't divisble by 6 some data will get
+   * the number of squares on the board isn't divisible by 6 some data will get
    * pushed off the end and not read. Here's a dumb way to fix that, but you
    * should come up with a better one Cole. The easy way would be to just make
    * the board size a multiple of 6.
    */
-  for (z = boardHeight * boardWidth % 6; z > 0; --z) {
-    board[boardWidth - z][boardHeight - 1] = parseInt(bitString[bitString.length - z]);
-  }
+  //for (z = sectionWidth * sectionHeight % 6; z > 0; --z) {
+    //board[boardWidth - z][boardHeight - 1] = parseInt(bitString[bitString.length - z]);
+  //}
 }
 
 
