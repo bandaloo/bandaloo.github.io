@@ -26,6 +26,8 @@ var rules = [DIE, DIE, STAY, BOTH, DIE, DIE, DIE, DIE, DIE]
 
 var prevTime = 0;
 
+var isClicked = true;
+
 var delay = 400;
 var animTime = 0;
 
@@ -40,6 +42,8 @@ const cellHeight = canvas.height / boardHeight;
 const ruleColors = ["#FC1817", "#3B6CFF", "#36EB41", "#FFDD3D"];
 
 var gamePaused = false;
+
+var clicked = false;
 
 //var cellColor = rgba(255, 112, 1);
 const buttonColor = rgba(255, 112, 1);
@@ -57,10 +61,13 @@ var pauseButton = document.getElementById("pausebutton");
 var randomizeButton = document.getElementById("randomizebutton");
 var shareTextArea = document.getElementById("sharetextarea");
 
+// TODO put these into a corners object
 var currentX1;
 var currentY1;
 var currentX2;
 var currentY2;
+
+var paintVal;
 
 Array.prototype.createNumberGrid = function(width, height, number) {
   for (let i = 0; i < width; i++) {
@@ -222,8 +229,6 @@ function setCorners() {
     currentX2 = 0;
     currentY2 = 0;
   }
-
-  console.log(currentX1, currentY1, currentX2, currentY2);
 }
 
 function update(currTime) {
@@ -278,7 +283,8 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-canvas.addEventListener('click', function(e) {
+// TODO group clicks and board positions into objects
+function clickToBoard(e) {
   let rect = canvas.getBoundingClientRect();
   let clickX = e.clientX - rect.left;
   let clickY = e.clientY - rect.top;
@@ -286,26 +292,48 @@ canvas.addEventListener('click', function(e) {
   let boardY = Math.floor(clickY / cellHeight);
   if (boardX > canvas.width - 1) boardX = canvas.width - 1;
   if (boardY > canvas.height - 1) boardY = canvas.height - 1;
-  if (!gamePaused)
-    pause();
-  board[boardX][boardY] = !board[boardX][boardY] | 0;
+  return {x: boardX, y: boardY};
+}
+
+function placeCell({x: boardX, y: boardY}) {
+  board[boardX][boardY] = paintVal;
   ageGrid[boardX][boardY] = 0;
   setTextArea();
+}
+
+canvas.addEventListener('mousedown', function(e) {
+  clicked = true;
+  /*
+  if (!gamePaused) // TODO might be fun to to paint while board is moving
+    pause();
+  */
+  let pos = clickToBoard(e);
+  paintVal = !board[pos.x][pos.y] | 0;
+  placeCell(clickToBoard(e));
+});
+
+canvas.addEventListener('mousemove', function(e) {
+  let pos = clickToBoard(e);
+  if (clicked)
+    placeCell(clickToBoard(e));
+});
+
+canvas.addEventListener('mouseup', function(e) {
+  clicked = false;
 });
 
 board.createNumberGrid(boardWidth, boardHeight, 0);
 ageGrid.createNumberGrid(boardWidth, boardHeight, 0);
 
-var initialBoard = getVariable('b');
-var initialX1 = 0;
-var initialY1 = 0;
-var initialWidth = boardWidth;
-var initialHeight = boardHeight;
+var initialBoard = getVariable('b'); // TODO this leaks into global scope forever
+//var initialX1 = 0;
+//var initialY1 = 0;
+//var initialWidth = boardWidth;
+//var initialHeight = boardHeight;
 
 if (initialBoard) {
   let boardArgs = initialBoard.split('.');
   initialBoard = boardArgs[boardArgs.length - 1];
-  console.log('initialBoard: ' + initialBoard);
   if (boardArgs.length > 1) {
     let cornerStr = boardArgs[0];
     currentX1 = decodeChar(cornerStr.charAt(0));
