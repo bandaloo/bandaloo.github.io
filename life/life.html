@@ -17,23 +17,28 @@
     <h1>Games of Lives</h1>
     <div class="controlbox" style="width: 1100">
       <div style="text-align: center; max-width: 100px">
+
         <h2 style="margin-top: 0">Speed</h2>
         <button class="button life" id="slowbutton" onClick="changeSpeed(0, 1000)">Slow</button>
         <button class="button life" id="mediumbutton" onClick="changeSpeed(1, 400)">Medium</button>
         <button class="button life" id="fastbutton" onClick="changeSpeed(2, 150)">Fast</button>
+
         <h2>Controls</h2>
         <button class="button life" id="pausebutton" onClick="pause()">Pause</button>
         <button class="button life" id="randomizebutton" onClick="randomize()">Random</button>
         <button class="button life" id="clearbutton" onClick="clearBoard()">Clear</button>
+
         <!--
         <h2>Edges</h2>
         <button class="button button0 life" id="wrapbutton" onClick="setEdges(WRAP)">Wrap</button>
         <button class="button button0 life" id="deadbutton" onClick="setEdges(DEAD)">Dead</button>
         <button class="button button0 life" id="alivebutton" onClick="setEdges(ALIVE)">Alive</button>
         -->
+
       </div>
       <canvas id="lifecanvas" width="832" height="512" style = "border: 1px solid black;">
       </canvas>
+
       <div style="text-align: center; max-width: 100px">
         <h2 style="margin-top: 0">Rules</h2>
         <button class="button life" id="button0" onClick="changeRules(0)"></button>
@@ -47,6 +52,7 @@
         <button class="button life" id="button8" onClick="changeRules(8)"></button>
       </div>
     </div>
+
     <div class="controlbox" style="width: 832">
       <button class="button button0 life" id="copyButton" style="width: 100px" onClick="copyLink()">
       Copy link</button>

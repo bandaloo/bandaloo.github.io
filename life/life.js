@@ -12,6 +12,10 @@ const WRAP = 2;
 
 var edge = WRAP;
 
+var showGrid = false;
+var showTrail = true;
+var showSeparations = true;
+
 const DIE = 0;
 const STAY = 1;
 const BOTH = 2;
@@ -49,10 +53,10 @@ var clicked = false;
 //var cellColor = rgba(255, 112, 1);
 const buttonColor = rgba(255, 112, 1);
 
-const playColor = rgba(0);
-const pausedColor = rgba(30, 30, 30);
+//const playColor = rgba(0);
+//const pausedColor = rgba(30, 30, 30);
 
-var backgroundColor = playColor;
+const backgroundColor = "#000000";
 
 var ruleButtons = [];
 var speedButtons = [];
@@ -266,7 +270,7 @@ function clearBoard() {
 
 function pause() {
   gamePaused = !gamePaused;
-  backgroundColor = gamePaused? pausedColor : playColor;
+  //backgroundColor = gamePaused? pausedColor : playColor;
   pauseButton.innerHTML = gamePaused ? "Play" : "Pause";
 }
 
@@ -285,8 +289,14 @@ document.addEventListener('keydown', function(e) {
   var key = String.fromCharCode(code);
   if (key == 'P') {
     pause();
-  } else if (key == 'Z') {
+  } else if (key == 'R') {
     randomize();
+  } else if (key == 'S') {
+    showSeparations = !showSeparations;
+  } else if (key == 'T') {
+    showTrail = !showTrail;
+  } else if (key == 'G') {
+    showGrid = !showGrid;
   }
 });
 
@@ -310,10 +320,6 @@ function placeCell({x: boardX, y: boardY}) {
 
 canvas.addEventListener('mousedown', function(e) {
   clicked = true;
-  /*
-  if (!gamePaused) // TODO might be fun to to paint while board is moving
-    pause();
-  */
   let pos = clickToBoard(e);
   paintVal = !board[pos.x][pos.y] | 0;
   placeCell(clickToBoard(e));
