@@ -304,6 +304,8 @@ function update(currTime) {
     if (animTime >= delay) {
       stepBoard();
       animTime -= delay;
+      if (animTime > delay)
+        animTime = 0;
     }
   }
   requestAnimationFrame(update);
