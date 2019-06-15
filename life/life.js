@@ -62,8 +62,8 @@ const backgroundColor = "#000000";
 
 var ruleButtons = [];
 // TODO could these be const?
-var speedWheel = new ButtonWheel(1, "slowbutton", "mediumbutton", "fastbutton");
-var edgeWheel = new ButtonWheel(0, "wrapbutton", "deadbutton", "alivebutton");
+const speedWheel = new ButtonWheel(1, "slowbutton", "mediumbutton", "fastbutton");
+const edgeWheel = new ButtonWheel(0, "wrapbutton", "deadbutton", "alivebutton");
 
 var pauseButton = document.getElementById("pausebutton");
 var randomizeButton = document.getElementById("randomizebutton");
@@ -95,7 +95,7 @@ ButtonWheel.prototype.adjust = function(index) {
   this.buttons[this.onIndex].classList.toggle('lifeselected');
   this.buttons[index].classList.toggle('lifeselected');
   this.onIndex = index;
-}
+};
 
 function ButtonToggle(isOn, name) {
   this.isOn = isOn;
@@ -134,14 +134,13 @@ Array.prototype.createNumberGrid = function(width, height, number) {
       this[i].push(number);
     }
   }
-}
+};
 
 Number.prototype.mod = function(n) {
   return ((this + n) % n);
-}
+};
 
-prevBoard.createNumberGrid(boardWidth, boardHeight, 0); // TODO is this necessary?
-
+prevBoard.createNumberGrid(boardWidth, boardHeight, 0);
 
 function getRuleButtons() {
   for (let i = 0; i < 9; i++) {
@@ -150,14 +149,14 @@ function getRuleButtons() {
 }
 
 function changeSpeed(i, speedDelay) {
+  animTime = speedDelay * animTime / delay
   delay = speedDelay;
   speedWheel.adjust(i);
 }
 
-function changeEdges(edgeRule, setText = true) { // TODO check if we need setText
+function changeEdges(edgeRule) {
   edge = edgeRule;
-  if (setText)
-    setTextArea();
+  setTextArea();
   edgeWheel.adjust(edgeRule);
 }
 
@@ -297,13 +296,14 @@ function setCorners() {
 function update(currTime) {
   let deltaTime = currTime - prevTime;
   prevTime = currTime;
+  // TODO deal with leftover time
 
   drawBoard();
   animTime += deltaTime;
   if (!gamePaused) {
     if (animTime >= delay) {
       stepBoard();
-      animTime = 0;
+      animTime -= delay;
     }
   }
   requestAnimationFrame(update);
