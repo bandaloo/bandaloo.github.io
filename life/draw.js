@@ -7,7 +7,7 @@ function drawBoard(i, j) {
     size = 1;
   for (let i = 0; i < boardWidth; i++) {
     for (let j = 0; j < boardHeight; j++) {
-      if (trailToggle.isOn && !gamePaused && trailBoard[i][j]) {
+      if (trailToggle.isOn && trailBoard[i][j]) {
         let d = trailBoard[i][j] * 4;
         context.fillStyle = rgba(d, d, d);
         drawRect(i, j);
