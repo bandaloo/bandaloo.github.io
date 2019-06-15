@@ -6,9 +6,9 @@ var board = [];
 var ageBoard = [];
 var trailBoard = [];
 
-const DEAD = 0;
-const ALIVE = 1;
-const WRAP = 2;
+const WRAP = 0;
+const DEAD = 1;
+const ALIVE = 2;
 
 var edge = WRAP;
 
@@ -59,8 +59,8 @@ const buttonColor = rgba(255, 112, 1);
 const backgroundColor = "#000000";
 
 var ruleButtons = [];
-var speedButtons = [];
-//var edgeButtons = [];
+var speedWheel = new ButtonWheel(1, "slowbutton", "mediumbutton", "fastbutton");
+var edgeWheel = new ButtonWheel(0, "wrapbutton", "deadbutton", "alivebutton");
 
 var pauseButton = document.getElementById("pausebutton");
 var randomizeButton = document.getElementById("randomizebutton");
@@ -73,6 +73,27 @@ var currentX2;
 var currentY2;
 
 var paintVal;
+
+function ButtonWheel(onIndex, ...rest) {
+  this.buttons = [];
+  this.onIndex = onIndex;
+
+  for (let i = 0; i < rest.length; i++) {
+    let button = document.getElementById(rest[i]);
+    button.classList.add('lifeselected');
+    if (i != onIndex) { // leave currently set button selected
+      button.classList.toggle('lifeselected');
+    }
+    this.buttons.push(button);
+  }
+}
+
+ButtonWheel.prototype.adjust = function(index) {
+  this.buttons[this.onIndex].classList.toggle('lifeselected');
+  this.buttons[index].classList.toggle('lifeselected');
+  this.onIndex = index;
+  console.log('adjust: ' + this.onIndex);
+}
 
 Array.prototype.createNumberGrid = function(width, height, number) {
   for (let i = 0; i < width; i++) {
@@ -89,12 +110,6 @@ Number.prototype.mod = function(n) {
 
 prevBoard.createNumberGrid(boardWidth, boardHeight, 0);
 
-function getSpeedButtons() {
-  let names = ["slowbutton", "mediumbutton", "fastbutton"];
-  for (let i = 0; i < names.length; i++)
-    speedButtons.push(document.getElementById(names[i]));
-  speedButtons[1].style.background = buttonColor;
-}
 
 function getRuleButtons() {
   for (let i = 0; i < 9; i++) {
@@ -103,11 +118,15 @@ function getRuleButtons() {
 }
 
 function changeSpeed(i, speedDelay) {
-  for (let i = 0; i < speedButtons.length; i++) {
-    speedButtons[i].style.background = "#4c4c4c";
-  }
   delay = speedDelay;
-  speedButtons[i].style.background = buttonColor;
+  speedWheel.adjust(i);
+}
+
+function changeEdges(edgeRule, setText = true) { // TODO check if we need setText
+  edge = edgeRule;
+  if (setText)
+    setTextArea();
+  edgeWheel.adjust(edgeRule);
 }
 
 function setRuleButton(i) {
@@ -156,7 +175,6 @@ function setTextArea() {
   //let boardChars = binToChars(boardToBinary());
   setCorners();
   let boardChars = encodeBoard();
-
   let rulesStr = ""; // binary string of bits representing rules
   for (let i = 0; i < rules.length; i++) {
     rulesStr += rules[i].toString(2).padStart(2, '0');
@@ -166,7 +184,13 @@ function setTextArea() {
     posChars = encodeNum(currentX1) + encodeNum(currentY1) + encodeNum(currentX2) + encodeNum(currentY2) + ".";
   }
   let boardText = "?b=" + posChars + boardChars;
+  console.log(rulesStr + edge.toString(2).padStart(2, '0'));
+  console.log(binToB64(rulesStr + edge.toString(2).padStart(2, '0')));
+  console.log(edge)
+  console.log(edge.toString(2).padStart(2, '0'));
   let ruleText = "&r=" + binToB64(rulesStr);
+  if (edge)
+    ruleText += edge.toString();
   shareTextArea.innerHTML = window.location.href.split('?')[0] + boardText + ruleText;
 }
 
@@ -297,6 +321,8 @@ document.addEventListener('keydown', function(e) {
     showTrail = !showTrail;
   } else if (key == 'G') {
     showGrid = !showGrid;
+  } else if (key == 'C') {
+    clearBoard();
   }
 });
 
@@ -368,16 +394,25 @@ if (initialBoard) {
 
 var initialRules = getVariable('r');
 if (initialRules) {
-  initialRules = b64ToBin(initialRules);
-
-  for (let i = 0; i < 9; ++i) {
-    rules[i] = parseInt(initialRules.substring(i * 2, (i * 2) + 2), 2);
+  let boardRules = initialRules.substring(0, 3);
+  if (initialRules.length > 3) {
+    let edgeRule = initialRules.charAt(3);
+    changeEdges(parseInt(edgeRule));
   }
+  console.log("b: " + boardRules)
+  //console.log("e: " + edgeRule)
+  let boardRulesBin = b64ToBin(boardRules);
+  for (let i = 0; i < 9; ++i) {
+    //rules[i] = parseInt(initialRules.substring(i * 2, (i * 2) + 2), 2);
+    let num = parseInt(boardRulesBin.substring(i * 2, i * 2 + 2), 2);
+    rules[i] = num;
+  }
+
 }
 
 getRuleButtons();
 setRuleButtons();
-getSpeedButtons();
+//getSpeedButtons();
 
 setTextArea();
 

@@ -98,12 +98,18 @@ header {
 .life {
   border-radius: 2px;
   width: 90px;
+  padding: 6px; 6px;
   background: #4c4c4c;
   color: white;
 }
 
+.lifeselected {
+  background-color: #ff7001;
+}
+
 .life:hover {
-  color: black;
+  background-color: white;
+  color: #4c4c4c;
 }
 
 .button0 {
@@ -111,8 +117,8 @@ header {
 }
 
 .button0:hover {
-  background-color: white; !important
-  color: #4c4c4c; !important
+  background-color: white;
+  color: #4c4c4c;
 }
 
 .button1 {

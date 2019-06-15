@@ -28,12 +28,10 @@
         <button class="button life" id="randomizebutton" onClick="randomize()">Random</button>
         <button class="button life" id="clearbutton" onClick="clearBoard()">Clear</button>
 
-        <!--
         <h2>Edges</h2>
-        <button class="button button0 life" id="wrapbutton" onClick="setEdges(WRAP)">Wrap</button>
-        <button class="button button0 life" id="deadbutton" onClick="setEdges(DEAD)">Dead</button>
-        <button class="button button0 life" id="alivebutton" onClick="setEdges(ALIVE)">Alive</button>
-        -->
+        <button class="button life" id="wrapbutton" onClick="changeEdges(WRAP)">Wrap</button>
+        <button class="button life" id="deadbutton" onClick="changeEdges(DEAD)">Dead</button>
+        <button class="button life" id="alivebutton" onClick="changeEdges(ALIVE)">Alive</button>
 
       </div>
       <canvas id="lifecanvas" width="832" height="512" style = "border: 1px solid black;">
