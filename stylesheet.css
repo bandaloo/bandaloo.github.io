@@ -29,6 +29,14 @@ code {
   padding: 0;
 }
 
+.sidebox {
+  text-align: center;
+  max-width: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between
+}
+
 .hlink {
   margin: 32px;
   color: white;
@@ -97,10 +105,14 @@ header {
 
 .life {
   border-radius: 2px;
-  width: 90px;
+  width: 105px;
   padding: 6px; 6px;
   background: #4c4c4c;
   color: white;
+}
+
+.rules {
+  padding: 2px; 2px;
 }
 
 .lifeselected {
@@ -137,4 +149,9 @@ header {
 .button2:hover {
   background-color: white;
   color: #0b54ef;
+}
+
+.lifelabel {
+  margin-top: 8px;
+  margin-bottom: 8px;
 }

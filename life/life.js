@@ -12,9 +12,11 @@ const ALIVE = 2;
 
 var edge = WRAP;
 
+/*
 var showGrid = false;
-var showTrail = true;
 var showSeparations = true;
+var showTrail = true;
+*/
 
 const DIE = 0;
 const STAY = 1;
@@ -59,6 +61,7 @@ const buttonColor = rgba(255, 112, 1);
 const backgroundColor = "#000000";
 
 var ruleButtons = [];
+// TODO could these be const?
 var speedWheel = new ButtonWheel(1, "slowbutton", "mediumbutton", "fastbutton");
 var edgeWheel = new ButtonWheel(0, "wrapbutton", "deadbutton", "alivebutton");
 
@@ -92,8 +95,37 @@ ButtonWheel.prototype.adjust = function(index) {
   this.buttons[this.onIndex].classList.toggle('lifeselected');
   this.buttons[index].classList.toggle('lifeselected');
   this.onIndex = index;
-  console.log('adjust: ' + this.onIndex);
 }
+
+function ButtonToggle(isOn, name) {
+  this.isOn = isOn;
+  this.button = document.getElementById(name);
+  this.button.classList.add('lifeselected');
+  if (!isOn) {
+    this.button.classList.toggle('lifeselected');
+  }
+  this.button.onclick = () => { this.adjust(); }
+  //console.log(this);
+  //console.log(this.setName);
+  this.setName();
+}
+
+ButtonToggle.prototype.setName = function() {
+  let inner = this.button.innerHTML.split(':')[0];
+  console.log(this.isOn);
+  let str = this.isOn ? 'ON' : 'OFF';
+  this.button.innerHTML = inner + ": " + str;
+}
+
+ButtonToggle.prototype.adjust = function() {
+  this.isOn = !this.isOn;
+  this.button.classList.toggle('lifeselected');
+  this.setName();
+}
+
+var borderToggle = new ButtonToggle(true, "borderbutton");
+var trailToggle = new ButtonToggle(true, "trailbutton");
+var gridToggle = new ButtonToggle(false, "gridbutton");
 
 Array.prototype.createNumberGrid = function(width, height, number) {
   for (let i = 0; i < width; i++) {
@@ -108,7 +140,7 @@ Number.prototype.mod = function(n) {
   return ((this + n) % n);
 }
 
-prevBoard.createNumberGrid(boardWidth, boardHeight, 0);
+prevBoard.createNumberGrid(boardWidth, boardHeight, 0); // TODO is this necessary?
 
 
 function getRuleButtons() {
@@ -184,10 +216,6 @@ function setTextArea() {
     posChars = encodeNum(currentX1) + encodeNum(currentY1) + encodeNum(currentX2) + encodeNum(currentY2) + ".";
   }
   let boardText = "?b=" + posChars + boardChars;
-  console.log(rulesStr + edge.toString(2).padStart(2, '0'));
-  console.log(binToB64(rulesStr + edge.toString(2).padStart(2, '0')));
-  console.log(edge)
-  console.log(edge.toString(2).padStart(2, '0'));
   let ruleText = "&r=" + binToB64(rulesStr);
   if (edge)
     ruleText += edge.toString();
@@ -315,12 +343,12 @@ document.addEventListener('keydown', function(e) {
     pause();
   } else if (key == 'R') {
     randomize();
-  } else if (key == 'S') {
-    showSeparations = !showSeparations;
+  } else if (key == 'B') {
+    borderToggle.adjust();
   } else if (key == 'T') {
-    showTrail = !showTrail;
+    trailToggle.adjust();
   } else if (key == 'G') {
-    showGrid = !showGrid;
+    gridToggle.adjust();
   } else if (key == 'C') {
     clearBoard();
   }
@@ -399,8 +427,6 @@ if (initialRules) {
     let edgeRule = initialRules.charAt(3);
     changeEdges(parseInt(edgeRule));
   }
-  console.log("b: " + boardRules)
-  //console.log("e: " + edgeRule)
   let boardRulesBin = b64ToBin(boardRules);
   for (let i = 0; i < 9; ++i) {
     //rules[i] = parseInt(initialRules.substring(i * 2, (i * 2) + 2), 2);

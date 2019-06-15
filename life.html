@@ -16,19 +16,19 @@
     </header>
     <h1>Games of Lives</h1>
     <div class="controlbox" style="width: 1100">
-      <div style="text-align: center; max-width: 100px">
+      <div class="sidebox">
 
-        <h2 style="margin-top: 0">Speed</h2>
+        <h2 class="lifelabel">Speed</h2>
         <button class="button life" id="slowbutton" onClick="changeSpeed(0, 1000)">Slow</button>
         <button class="button life" id="mediumbutton" onClick="changeSpeed(1, 400)">Medium</button>
         <button class="button life" id="fastbutton" onClick="changeSpeed(2, 150)">Fast</button>
 
-        <h2>Controls</h2>
+        <h2 class="lifelabel">Controls</h2>
         <button class="button life" id="pausebutton" onClick="pause()">Pause</button>
         <button class="button life" id="randomizebutton" onClick="randomize()">Random</button>
         <button class="button life" id="clearbutton" onClick="clearBoard()">Clear</button>
 
-        <h2>Edges</h2>
+        <h2 class="lifelabel">Edges</h2>
         <button class="button life" id="wrapbutton" onClick="changeEdges(WRAP)">Wrap</button>
         <button class="button life" id="deadbutton" onClick="changeEdges(DEAD)">Dead</button>
         <button class="button life" id="alivebutton" onClick="changeEdges(ALIVE)">Alive</button>
@@ -37,17 +37,21 @@
       <canvas id="lifecanvas" width="832" height="512" style = "border: 1px solid black;">
       </canvas>
 
-      <div style="text-align: center; max-width: 100px">
-        <h2 style="margin-top: 0">Rules</h2>
-        <button class="button life" id="button0" onClick="changeRules(0)"></button>
-        <button class="button life" id="button1" onClick="changeRules(1)"></button>
-        <button class="button life" id="button2" onClick="changeRules(2)"></button>
-        <button class="button life" id="button3" onClick="changeRules(3)"></button>
-        <button class="button life" id="button4" onClick="changeRules(4)"></button>
-        <button class="button life" id="button5" onClick="changeRules(5)"></button>
-        <button class="button life" id="button6" onClick="changeRules(6)"></button>
-        <button class="button life" id="button7" onClick="changeRules(7)"></button>
-        <button class="button life" id="button8" onClick="changeRules(8)"></button>
+      <div class="sidebox">
+        <h2 class="lifelabel">Rules</h2>
+        <button class="button life rules" id="button0" onClick="changeRules(0)"></button>
+        <button class="button life rules" id="button1" onClick="changeRules(1)"></button>
+        <button class="button life rules" id="button2" onClick="changeRules(2)"></button>
+        <button class="button life rules" id="button3" onClick="changeRules(3)"></button>
+        <button class="button life rules" id="button4" onClick="changeRules(4)"></button>
+        <button class="button life rules" id="button5" onClick="changeRules(5)"></button>
+        <button class="button life rules" id="button6" onClick="changeRules(6)"></button>
+        <button class="button life rules" id="button7" onClick="changeRules(7)"></button>
+        <button class="button life rules" id="button8" onClick="changeRules(8)"></button>
+        <h2 class="lifelabel">Look</h2>
+        <button class="button life" id="borderbutton" onClick=" ">Border:</button>
+        <button class="button life" id="trailbutton" onClick=" ">Trail:</button>
+        <button class="button life" id="gridbutton" onClick=" ">Grid:</button>
       </div>
     </div>
 

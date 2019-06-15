@@ -2,12 +2,12 @@
 function drawBoard(i, j) {
   clearScreen();
   let size = animTime * 2 / delay;
-  let sizeScalar = showSeparations ? 0.9 : 1;
+  let sizeScalar = borderToggle.isOn ? 0.9 : 1;
   if (size > 1)
     size = 1;
   for (let i = 0; i < boardWidth; i++) {
     for (let j = 0; j < boardHeight; j++) {
-      if (showTrail && !gamePaused && trailBoard[i][j]) {
+      if (trailToggle.isOn && !gamePaused && trailBoard[i][j]) {
         let d = trailBoard[i][j] * 4;
         context.fillStyle = rgba(d, d, d);
         drawRect(i, j);
@@ -27,13 +27,13 @@ function drawBoard(i, j) {
           drawRect(i, j, (1 - size) * sizeScalar);
         }
       }
-      if (showGrid) {
+      if (gridToggle.isOn) {
         context.strokeStyle = "#bbbbbb"; // TODO move this
         drawHollowRect(i, j);
       }
     }
   }
-  if (showGrid) {
+  if (gridToggle.isOn) {
     context.strokeStyle = "green";
     context.beginPath();
     context.moveTo(0, canvas.height / 2);
