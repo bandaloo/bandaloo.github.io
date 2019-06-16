@@ -6,6 +6,9 @@ var board = [];
 var ageBoard = [];
 var trailBoard = [];
 
+var shift = false;
+var dragging = false;
+
 const WRAP = 0;
 const DEAD = 1;
 const ALIVE = 2;
@@ -58,9 +61,8 @@ var pauseButton = document.getElementById("pausebutton");
 var randomizeButton = document.getElementById("randomizebutton");
 var shareTextArea = document.getElementById("sharetextarea");
 
-// TODO put these into a corners object
-
 var corner = {};
+var shiftCorner = {};
 
 var paintVal;
 
@@ -245,27 +247,22 @@ function stepBoard() {
 function setCorners() {
   corner = {};
 
-  // TODO there is definitely a more clever way to do this
   for (let i = 0; i < boardWidth; i++) {
     for (let j = 0; j < boardHeight; j++) {
       if (board[i][j]) {
-        if (corner.x1 === undefined || corner.x1 > i) {
+        if (corner.x1 === undefined || corner.x1 > i)
           corner.x1 = i;
-        }
-        if (corner.y1 === undefined || corner.y1 > j) {
+        if (corner.y1 === undefined || corner.y1 > j)
           corner.y1 = j;
-        }
-        if (corner.x2 === undefined || corner.x2 < i) {
+        if (corner.x2 === undefined || corner.x2 < i)
           corner.x2 = i;
-        }
-        if (corner.y2 === undefined || corner.y2 < j) {
+        if (corner.y2 === undefined || corner.y2 < j)
           corner.y2 = j;
-        }
       }
     }
   }
 
-  if (corner.x1 === undefined)
+  if (corner.x1 === undefined) // board was empty
     corner = {x1: 0, y1: 0, x2: 0, y2: 0};
 }
 
@@ -312,8 +309,8 @@ function randomize() {
 }
 
 document.addEventListener('keydown', function(e) {
-  var code = e.keyCode;
-  var key = String.fromCharCode(code);
+  let code = e.keyCode;
+  let key = String.fromCharCode(code);
   if (key == 'P') {
     pause();
   } else if (key == 'R') {
@@ -326,7 +323,15 @@ document.addEventListener('keydown', function(e) {
     gridToggle.adjust();
   } else if (key == 'C') {
     clearBoard();
+  } else if (code == 16) {
+    shift = true;
   }
+});
+
+document.addEventListener('keyup', function(e) {
+  let code = e.keyCode;
+  if (code == 16)
+    shift = false;
 });
 
 // TODO group clicks and board positions into objects
@@ -350,18 +355,33 @@ function placeCell({x: boardX, y: boardY}) {
 canvas.addEventListener('mousedown', function(e) {
   clicked = true;
   let pos = clickToBoard(e);
-  paintVal = !board[pos.x][pos.y] | 0;
-  placeCell(clickToBoard(e));
+  if (shift) {
+    shiftCorner = {x1: pos.x, y1: pos.y};
+    console.log("shift click detected at " + pos.x + " " + pos.y);
+    dragging = true;
+  } else {
+    paintVal = !board[pos.x][pos.y] | 0;
+    placeCell(clickToBoard(e));
+  }
 });
 
 canvas.addEventListener('mousemove', function(e) {
   let pos = clickToBoard(e);
-  if (clicked)
-    placeCell(clickToBoard(e));
+  if (clicked) {
+    let pos = clickToBoard(e);
+    if (!shift)
+      placeCell(pos);
+  }
 });
 
 canvas.addEventListener('mouseup', function(e) {
   clicked = false;
+  if (dragging) { // shift click has already been started
+    let pos = clickToBoard(e);
+    console.log("shift click ended at " + pos.x + " " + pos.y);
+    shiftCorner = Object.assign(shiftCorner, {x2: pos.x, y2: pos.y});
+    dragging = false;
+  }
 });
 
 board.createNumberGrid(boardWidth, boardHeight, 0);
@@ -400,8 +420,6 @@ trailBoard.createNumberGrid(boardWidth, boardHeight, 0);
     let boardRulesBin = b64ToBin(boardRules);
     console.log(initialRules);
     for (let i = 0; i < 9; ++i) {
-      //console.log(initialRules);
-      //console.log(parseInt(boardRulesBin.substring(i * 2, i * 2 + 2), 2));
       rules[i] = parseInt(boardRulesBin.substring(i * 2, i * 2 + 2), 2);
     }
   }
