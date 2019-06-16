@@ -12,12 +12,6 @@ const ALIVE = 2;
 
 var edge = WRAP;
 
-/*
-var showGrid = false;
-var showSeparations = true;
-var showTrail = true;
-*/
-
 const DIE = 0;
 const STAY = 1;
 const BOTH = 2;
@@ -52,12 +46,7 @@ var gamePaused = false;
 
 var clicked = false;
 
-//var cellColor = rgba(255, 112, 1);
 const buttonColor = rgba(255, 112, 1);
-
-//const playColor = rgba(0);
-//const pausedColor = rgba(30, 30, 30);
-
 const backgroundColor = "#000000";
 
 var ruleButtons = [];
@@ -70,10 +59,8 @@ var randomizeButton = document.getElementById("randomizebutton");
 var shareTextArea = document.getElementById("sharetextarea");
 
 // TODO put these into a corners object
-var currentX1;
-var currentY1;
-var currentX2;
-var currentY2;
+
+var corner = {};
 
 var paintVal;
 
@@ -105,8 +92,6 @@ function ButtonToggle(isOn, name) {
     this.button.classList.toggle('lifeselected');
   }
   this.button.onclick = () => { this.adjust(); }
-  //console.log(this);
-  //console.log(this.setName);
   this.setName();
 }
 
@@ -203,7 +188,6 @@ function countNeighbors(iCurrent, jCurrent) {
 }
 
 function setTextArea() {
-  //let boardChars = binToChars(boardToBinary());
   setCorners();
   let boardChars = encodeBoard();
   let rulesStr = ""; // binary string of bits representing rules
@@ -211,8 +195,8 @@ function setTextArea() {
     rulesStr += rules[i].toString(2).padStart(2, '0');
   }
   let posChars = "";
-  if (currentX1 != 0 && currentY1 != 0 && currentX2 != boardWidth - 1 && currentY2 != boardHeight - 1) {
-    posChars = encodeNum(currentX1) + encodeNum(currentY1) + encodeNum(currentX2) + encodeNum(currentY2) + ".";
+  if (corner.x1 != 0 && corner.y1 != 0 && corner.x2 != boardWidth - 1 && corner.y2 != boardHeight - 1) {
+    posChars = encodeNum(corner.x1) + encodeNum(corner.y1) + encodeNum(corner.x2) + encodeNum(corner.y2) + ".";
   }
   let boardText = "?b=" + posChars + boardChars;
   let ruleText = "&r=" + binToB64(rulesStr);
@@ -243,7 +227,6 @@ function stepBoard() {
         if (board[i][j] == 0) {
           tempBoard[i][j] = 1;
           ageBoard[i][j] = 1;
-          //ageBoard[i][j]++;
         }
         break;
       }
@@ -260,44 +243,35 @@ function stepBoard() {
 }
 
 function setCorners() {
-  currentX1 = undefined;
-  currentY1 = undefined;
-  currentX2 = undefined;
-  currentY2 = undefined;
+  corner = {};
 
   // TODO there is definitely a more clever way to do this
   for (let i = 0; i < boardWidth; i++) {
     for (let j = 0; j < boardHeight; j++) {
       if (board[i][j]) {
-        if (currentX1 === undefined || currentX1 > i) {
-          currentX1 = i;
+        if (corner.x1 === undefined || corner.x1 > i) {
+          corner.x1 = i;
         }
-        if (currentY1 === undefined || currentY1 > j) {
-          currentY1 = j;
+        if (corner.y1 === undefined || corner.y1 > j) {
+          corner.y1 = j;
         }
-        if (currentX2 === undefined || currentX2 < i) {
-          currentX2 = i;
+        if (corner.x2 === undefined || corner.x2 < i) {
+          corner.x2 = i;
         }
-        if (currentY2 === undefined || currentY2 < j) {
-          currentY2 = j;
+        if (corner.y2 === undefined || corner.y2 < j) {
+          corner.y2 = j;
         }
       }
     }
   }
 
-  if (currentX1 === undefined) {
-    currentX1 = 0;
-    currentY1 = 0;
-    currentX2 = 0;
-    currentY2 = 0;
-  }
+  if (corner.x1 === undefined)
+    corner = {x1: 0, y1: 0, x2: 0, y2: 0};
 }
 
 function update(currTime) {
   let deltaTime = currTime - prevTime;
   prevTime = currTime;
-  // TODO deal with leftover time
-
   drawBoard();
   animTime += deltaTime;
   if (!gamePaused) {
@@ -317,14 +291,13 @@ function clearScreen() {
 }
 
 function clearBoard() {
-  board = []
+  board = [];
   board.createNumberGrid(boardWidth, boardHeight, 0);
   setTextArea();
 }
 
 function pause() {
   gamePaused = !gamePaused;
-  //backgroundColor = gamePaused? pausedColor : playColor;
   pauseButton.innerHTML = gamePaused ? "Play" : "Pause";
 }
 
@@ -395,52 +368,47 @@ board.createNumberGrid(boardWidth, boardHeight, 0);
 ageBoard.createNumberGrid(boardWidth, boardHeight, 0);
 trailBoard.createNumberGrid(boardWidth, boardHeight, 0);
 
-var initialBoard = getVariable('b'); // TODO this leaks into global scope forever
-//var initialX1 = 0;
-//var initialY1 = 0;
-//var initialWidth = boardWidth;
-//var initialHeight = boardHeight;
 
-if (initialBoard) {
-  let boardArgs = initialBoard.split('.');
-  initialBoard = boardArgs[boardArgs.length - 1];
-  if (boardArgs.length > 1) {
-    let cornerStr = boardArgs[0];
-    currentX1 = decodeChar(cornerStr.charAt(0));
-    currentY1 = decodeChar(cornerStr.charAt(1));
-    currentX2 = decodeChar(cornerStr.charAt(2));
-    currentY2 = decodeChar(cornerStr.charAt(3));
+{ // block so initialBoard and initialRules don't leak into global scope
+  let initialBoard = getVariable('b');
+  if (initialBoard) {
+    let boardArgs = initialBoard.split('.');
+    initialBoard = boardArgs[boardArgs.length - 1];
+    if (boardArgs.length > 1) {
+      let cornerStr = boardArgs[0];
+      corner = {
+        x1: decodeChar(cornerStr.charAt(0)),
+        y1: decodeChar(cornerStr.charAt(1)),
+        x2: decodeChar(cornerStr.charAt(2)),
+        y2: decodeChar(cornerStr.charAt(3))
+      }
+    } else
+      corner = { x1: 0, y1: 0, x2: boardWidth - 1, y2: boardHeight - 1 };
+    decodeBoard(initialBoard);
+    pause();
   } else {
-    currentX1 = 0;
-    currentY1 = 0;
-    currentX2 = boardWidth - 1;
-    currentY2 = boardHeight - 1;
-  }
-  decodeBoard(initialBoard);
-  pause();
-} else {
-  randomize();
-}
-
-var initialRules = getVariable('r');
-if (initialRules) {
-  let boardRules = initialRules.substring(0, 3);
-  if (initialRules.length > 3) {
-    let edgeRule = initialRules.charAt(3);
-    changeEdges(parseInt(edgeRule));
-  }
-  let boardRulesBin = b64ToBin(boardRules);
-  for (let i = 0; i < 9; ++i) {
-    //rules[i] = parseInt(initialRules.substring(i * 2, (i * 2) + 2), 2);
-    let num = parseInt(boardRulesBin.substring(i * 2, i * 2 + 2), 2);
-    rules[i] = num;
+    randomize();
   }
 
+  let initialRules = getVariable('r');
+  if (initialRules) {
+    let boardRules = initialRules.substring(0, 3);
+    if (initialRules.length > 3) {
+      let edgeRule = initialRules.charAt(3);
+      changeEdges(parseInt(edgeRule));
+    }
+    let boardRulesBin = b64ToBin(boardRules);
+    console.log(initialRules);
+    for (let i = 0; i < 9; ++i) {
+      //console.log(initialRules);
+      //console.log(parseInt(boardRulesBin.substring(i * 2, i * 2 + 2), 2));
+      rules[i] = parseInt(boardRulesBin.substring(i * 2, i * 2 + 2), 2);
+    }
+  }
 }
 
 getRuleButtons();
 setRuleButtons();
-//getSpeedButtons();
 
 setTextArea();
 

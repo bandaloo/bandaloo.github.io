@@ -20,14 +20,14 @@ function getVariable(variable) {
  * following base64 character. In other words, the next X * 6 bits are all
  * zeroes.
  */
-const encodeBoard = () => {
+function encodeBoard() {
   let bitString = '';
-  let sectionWidth = currentX2 - currentX1 + 1;
-  let sectionHeight = currentY2 - currentY1 + 1;
+  let sectionWidth = corner.x2 - corner.x1 + 1;
+  let sectionHeight = corner.y2 - corner.y1 + 1;
 
   // TODO iterate row-major
-  for (let j = currentY1; j < currentY2 + 1; ++j) {
-    for (let i = currentX1; i < currentX2 + 1; ++i) {
+  for (let j = corner.y1; j < corner.y2 + 1; ++j) {
+    for (let i = corner.x1; i < corner.x2 + 1; ++i) {
       bitString += board[i][j];
     }
   }
@@ -42,17 +42,17 @@ const encodeBoard = () => {
  * Decodes a board state from a special, compressed base64 string. Is the
  * opposite of `encodeBoard()', which you should see for more information
  */
-const decodeBoard = (inString) => {
+function decodeBoard(inString) {
   let bitString = b64ToBin(uncompressA(inString));
   let c = 0;
-  let sectionWidth = currentX2 - currentX1 + 1;
-  let sectionHeight = currentY2 - currentY1 + 1;
+  let sectionWidth = corner.x2 - corner.x1 + 1;
+  let sectionHeight = corner.y2 - corner.y1 + 1;
   bitString = bitString.slice(0, sectionWidth * sectionHeight);
 
   // TODO iterate row-major
   for (let j = 0; j < sectionHeight; ++j) {
     for (let i = 0; i < sectionWidth; ++i) {
-      board[i + currentX1][j + currentY1] = parseInt(bitString[(j * (currentX2 + 1 - currentX1) + i) % bitString.length]);
+      board[i + corner.x1][j + corner.y1] = parseInt(bitString[(j * (corner.x2 + 1 - corner.x1) + i) % bitString.length]);
     }
   }
 }
@@ -62,7 +62,7 @@ const decodeBoard = (inString) => {
  * Converts a binary string to base64, except that decimal 63 is represented by
  * `-' instead of `/', for safer URL encoding
  */
-const binToB64 = (bitString) => {
+function binToB64(bitString) {
   let b64String = '';
   for (let i = 0; i < bitString.length; i += 6) {
     b64String += encodeNum(parseInt(bitString.substring(i, i + 6), 2));
@@ -74,7 +74,7 @@ const binToB64 = (bitString) => {
 /**
  * Converts a special base64 string to a binary string of six-bit numbers
  */
-const b64ToBin = (b64String) => {
+function b64ToBin(b64String) {
   let bitString = '';
   for (let i = 0; i < b64String.length; ++i) {
     bitString += decodeChar(b64String[i]).toString(2).padStart(6, '0');
@@ -88,7 +88,7 @@ const b64ToBin = (b64String) => {
  * be represented by a `~' followed by a base64 number, which represents the
  * number of hidden `A's. A single A is still represented as just an A.
  */
-const compressA = (b64String) => {
+function compressA(b64String) {
   let outString = '';
   let zeroCounter = 0;
 
@@ -120,7 +120,7 @@ const compressA = (b64String) => {
  * Uncompresses consecutive `A's according to the scheme from `compressA()',
  * returning a special base64 string
  */
-const uncompressA = (inString) => {
+function uncompressA(inString) {
   let b64String = '';
 
   for (let i = 0; i < inString.length; ++i) {
