@@ -375,7 +375,7 @@ canvas.addEventListener('mousedown', function(e) {
     shiftCorner = {x1: pos.x, y1: pos.y, x2: pos.x, y2: pos.y};
     dragging = true;
   } else {
-    if (inSelection(pos)) {
+    if (shiftCorner.x1 !== undefined && inSelection(pos)) {
       console.log("in selection");
       moving = true;
       // capture current state of selection
