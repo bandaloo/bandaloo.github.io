@@ -47,8 +47,10 @@ function drawBoard(i, j) {
     context.stroke();
   }
 
-  if (shiftCorner.x2 !== undefined)
-    drawSelection();
+  if (shiftCorner.x2 !== undefined) // TODO check this
+    drawSelection(selectBox);
+  if (moving)
+    drawSelection(moveBox);
 }
 
 function drawRect(i, j, size = 1) {
@@ -57,25 +59,16 @@ function drawRect(i, j, size = 1) {
   context.fillRect(x1, y1, cellWidth * size, cellHeight * size);
 }
 
-function drawSelection() {
+function drawSelection(box) {
   context.save();
   context.setLineDash([10, 10]);
   context.lineWidth = 3;
   context.strokeStyle = "white";
 
-  if (shiftCorner.x2 < shiftCorner.x1)
-    selectBox = {x1: shiftCorner.x2, x2: shiftCorner.x1};
-  else
-    selectBox = {x1: shiftCorner.x1, x2: shiftCorner.x2};
-
-  if (shiftCorner.y2 < shiftCorner.y1)
-    selectBox = Object.assign(selectBox, {y1: shiftCorner.y2, y2: shiftCorner.y1});
-  else
-    selectBox = Object.assign(selectBox, {y1: shiftCorner.y1, y2: shiftCorner.y2});
-
-  const rWidth = selectBox.x2 - selectBox.x1 + 1;
-  const rHeight = selectBox.y2 - selectBox.y1 + 1;
-  context.strokeRect(selectBox.x1 * cellWidth, selectBox.y1 * cellHeight,
+  // TODO this should probably go somewhere else
+  const rWidth = box.x2 - box.x1 + 1;
+  const rHeight = box.y2 - box.y1 + 1;
+  context.strokeRect(box.x1 * cellWidth, box.y1 * cellHeight,
                      rWidth * cellWidth, rHeight * cellHeight);
   context.restore();
 }

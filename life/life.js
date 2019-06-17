@@ -8,6 +8,7 @@ var trailBoard = [];
 
 var shift = false;
 var dragging = false;
+var moving = false;
 
 const WRAP = 0;
 const DEAD = 1;
@@ -38,6 +39,9 @@ var animTime = 0;
 var prevBoard = [];
 
 var selectBox = {};
+var moveBox = {};
+
+var movePos = {};
 
 const boardWidth = 52;
 const boardHeight = 32;
@@ -101,7 +105,6 @@ function ButtonToggle(isOn, name) {
 
 ButtonToggle.prototype.setName = function() {
   let inner = this.button.innerHTML.split(':')[0];
-  console.log(this.isOn);
   let str = this.isOn ? 'ON' : 'OFF';
   this.button.innerHTML = inner + ": " + str;
 }
@@ -327,6 +330,11 @@ document.addEventListener('keydown', function(e) {
     clearBoard();
   } else if (code == 16) {
     shift = true;
+  } else if (code == 27) {
+    console.log ("escaping");
+    moving = 0;
+    dragging = 0;
+    shiftCorner = {};
   }
 });
 
@@ -354,27 +362,49 @@ function placeCell({x: boardX, y: boardY}) {
   setTextArea();
 }
 
+function inSelection(pos) {
+  // TODO see if I can move these parens
+  return (pos.x >= selectBox.x1 && pos.x <= selectBox.x2 &&
+          pos.y >= selectBox.y1 && pos.y <= selectBox.y2);
+}
+
 canvas.addEventListener('mousedown', function(e) {
   clicked = true;
-  let pos = clickToBoard(e);
+  const pos = clickToBoard(e);
   if (shift) {
     shiftCorner = {x1: pos.x, y1: pos.y, x2: pos.x, y2: pos.y};
-    console.log("shift click detected at " + pos.x + " " + pos.y);
     dragging = true;
   } else {
-    paintVal = !board[pos.x][pos.y] | 0;
-    placeCell(clickToBoard(e));
+    if (inSelection(pos)) {
+      console.log("in selection");
+      moving = true;
+      // capture current state of selection
+      // start drawing additional selection box
+      movePos = Object.assign({}, pos); // TODO could I just directly assign?
+      moveBox = Object.assign({}, selectBox);
+    } else { 
+      paintVal = !board[pos.x][pos.y] | 0;
+      placeCell(clickToBoard(e));
+    }
   }
 });
 
 canvas.addEventListener('mousemove', function(e) {
-  let pos = clickToBoard(e);
+  const pos = clickToBoard(e);
   if (clicked) {
-    let pos = clickToBoard(e);
-    if (!shift) {
-      placeCell(pos);
-    } else if (dragging) {
+    if (dragging) {
       assignLastCorner(pos);
+    } else if (moving) {
+      // TODO can I just assign movePos to pos if I change from const?
+      console.log('test');
+      moveBox = {
+        x1: selectBox.x1 + pos.x - movePos.x,
+        y1: selectBox.y1 + pos.y - movePos.y,
+        x2: selectBox.x2 + pos.x - movePos.x,
+        y2: selectBox.y2 + pos.y - movePos.y
+      };
+    } else if (!shift) {
+      placeCell(pos);
     }
   }
 });
@@ -384,23 +414,47 @@ canvas.addEventListener('mouseup', function(e) {
   if (dragging) { // shift click has already been started
     let pos = clickToBoard(e);
     assignLastCorner(pos);
-    /*
-    shiftCorner.x2 = pos.x;
-    shiftCorner.y2 = pos.y;
-    //shiftCorner = Object.assign(shiftCorner, {x2: pos.x, y2: pos.y});
     dragging = false;
-    */
-    dragging = false;
+  } if (moving) {
+    // copy selection into temporary space (important for overlapping boxes)
+    const sBoxWidth = selectBox.x2 - selectBox.x1 + 1;
+    const sBoxHeight = selectBox.y2 - selectBox.y1 + 1;
+    let tempBoard = [];
+    tempBoard.createNumberGrid(sBoxWidth, sBoxHeight, 0);
+    for (let i = 0; i < sBoxWidth; i++) {
+      for (let j = 0; j < sBoxHeight; j++) {
+        tempBoard[i][j] = board[i + selectBox.x1][j + selectBox.y1];
+      }
+    }
+    // plonk down selection
+    for (let i = 0; i < sBoxWidth; i++) {
+      for (let j = 0; j < sBoxHeight; j++) {
+        // TODO overlapping selection boxes will cause a problem
+        //board[i + selectBox.x1][j + selectBox.x1] = board[i + moveBox.x1][j + moveBox.y1];
+        //board[i + moveBox.x1][j + moveBox.y1] = board[i + selectBox.x1][j + selectBox.y1];
+        const x = i + moveBox.x1;
+        const y = j + moveBox.y1;
+        if (x >= 0 && x < boardWidth && y >= 0 && y < boardHeight)
+          board[x][y] = tempBoard[i][j];
+      }
+    }
+    moving = false;
   }
 });
 
 function assignLastCorner(pos) { // for shiftCorner
-  //let pos = clickToBoard(e);
-  console.log("shift click ended at " + pos.x + " " + pos.y);
   shiftCorner.x2 = pos.x;
   shiftCorner.y2 = pos.y;
-  //shiftCorner = Object.assign(shiftCorner, {x2: pos.x, y2: pos.y});
-  //dragging = false;
+
+  if (shiftCorner.x2 < shiftCorner.x1)
+    selectBox = {x1: shiftCorner.x2, x2: shiftCorner.x1};
+  else
+    selectBox = {x1: shiftCorner.x1, x2: shiftCorner.x2};
+
+  if (shiftCorner.y2 < shiftCorner.y1)
+    selectBox = Object.assign(selectBox, {y1: shiftCorner.y2, y2: shiftCorner.y1});
+  else
+    selectBox = Object.assign(selectBox, {y1: shiftCorner.y1, y2: shiftCorner.y2});
 }
 
 board.createNumberGrid(boardWidth, boardHeight, 0);
@@ -416,10 +470,8 @@ trailBoard.createNumberGrid(boardWidth, boardHeight, 0);
     if (boardArgs.length > 1) {
       let cornerStr = boardArgs[0];
       corner = {
-        x1: decodeChar(cornerStr.charAt(0)),
-        y1: decodeChar(cornerStr.charAt(1)),
-        x2: decodeChar(cornerStr.charAt(2)),
-        y2: decodeChar(cornerStr.charAt(3))
+        x1: decodeChar(cornerStr.charAt(0)), y1: decodeChar(cornerStr.charAt(1)),
+        x2: decodeChar(cornerStr.charAt(2)), y2: decodeChar(cornerStr.charAt(3))
       }
     } else
       corner = { x1: 0, y1: 0, x2: boardWidth - 1, y2: boardHeight - 1 };
@@ -437,7 +489,6 @@ trailBoard.createNumberGrid(boardWidth, boardHeight, 0);
       changeEdges(parseInt(edgeRule));
     }
     let boardRulesBin = b64ToBin(boardRules);
-    console.log(initialRules);
     for (let i = 0; i < 9; ++i) {
       rules[i] = parseInt(boardRulesBin.substring(i * 2, i * 2 + 2), 2);
     }
