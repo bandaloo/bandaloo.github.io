@@ -434,8 +434,10 @@ canvas.addEventListener('mouseup', function(e) {
         //board[i + moveBox.x1][j + moveBox.y1] = board[i + selectBox.x1][j + selectBox.y1];
         const x = i + moveBox.x1;
         const y = j + moveBox.y1;
-        if (x >= 0 && x < boardWidth && y >= 0 && y < boardHeight)
+        if (x >= 0 && x < boardWidth && y >= 0 && y < boardHeight) {
           board[x][y] = tempBoard[i][j];
+          ageBoard[x][y] = 0;
+        }
       }
     }
     moving = false;
