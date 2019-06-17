@@ -37,6 +37,8 @@ var animTime = 0;
 
 var prevBoard = [];
 
+var selectBox = {};
+
 const boardWidth = 52;
 const boardHeight = 32;
 
@@ -356,7 +358,7 @@ canvas.addEventListener('mousedown', function(e) {
   clicked = true;
   let pos = clickToBoard(e);
   if (shift) {
-    shiftCorner = {x1: pos.x, y1: pos.y};
+    shiftCorner = {x1: pos.x, y1: pos.y, x2: pos.x, y2: pos.y};
     console.log("shift click detected at " + pos.x + " " + pos.y);
     dragging = true;
   } else {
@@ -369,8 +371,11 @@ canvas.addEventListener('mousemove', function(e) {
   let pos = clickToBoard(e);
   if (clicked) {
     let pos = clickToBoard(e);
-    if (!shift)
+    if (!shift) {
       placeCell(pos);
+    } else if (dragging) {
+      assignLastCorner(pos);
+    }
   }
 });
 
@@ -378,11 +383,25 @@ canvas.addEventListener('mouseup', function(e) {
   clicked = false;
   if (dragging) { // shift click has already been started
     let pos = clickToBoard(e);
-    console.log("shift click ended at " + pos.x + " " + pos.y);
-    shiftCorner = Object.assign(shiftCorner, {x2: pos.x, y2: pos.y});
+    assignLastCorner(pos);
+    /*
+    shiftCorner.x2 = pos.x;
+    shiftCorner.y2 = pos.y;
+    //shiftCorner = Object.assign(shiftCorner, {x2: pos.x, y2: pos.y});
+    dragging = false;
+    */
     dragging = false;
   }
 });
+
+function assignLastCorner(pos) { // for shiftCorner
+  //let pos = clickToBoard(e);
+  console.log("shift click ended at " + pos.x + " " + pos.y);
+  shiftCorner.x2 = pos.x;
+  shiftCorner.y2 = pos.y;
+  //shiftCorner = Object.assign(shiftCorner, {x2: pos.x, y2: pos.y});
+  //dragging = false;
+}
 
 board.createNumberGrid(boardWidth, boardHeight, 0);
 ageBoard.createNumberGrid(boardWidth, boardHeight, 0);
