@@ -440,6 +440,7 @@ canvas.addEventListener('mouseup', function(e) {
         }
       }
     }
+    setTextArea();
     moving = false;
   }
 });
