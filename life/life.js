@@ -202,7 +202,7 @@ function setTextArea() {
     rulesStr += rules[i].toString(2).padStart(2, '0');
   }
   let posChars = "";
-  if (corner.x1 != 0 && corner.y1 != 0 && corner.x2 != boardWidth - 1 && corner.y2 != boardHeight - 1) {
+  if (!(corner.x1 == 0 && corner.y1 == 0 && corner.x2 == boardWidth - 1 && corner.y2 == boardHeight - 1)) {
     posChars = encodeNum(corner.x1) + encodeNum(corner.y1) + encodeNum(corner.x2) + encodeNum(corner.y2) + ".";
   }
   let boardText = "?b=" + posChars + boardChars;
