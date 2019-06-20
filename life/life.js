@@ -429,12 +429,9 @@ canvas.addEventListener('mouseup', function(e) {
     // plonk down selection
     for (let i = 0; i < sBoxWidth; i++) {
       for (let j = 0; j < sBoxHeight; j++) {
-        // TODO overlapping selection boxes will cause a problem
-        //board[i + selectBox.x1][j + selectBox.x1] = board[i + moveBox.x1][j + moveBox.y1];
-        //board[i + moveBox.x1][j + moveBox.y1] = board[i + selectBox.x1][j + selectBox.y1];
         const x = i + moveBox.x1;
         const y = j + moveBox.y1;
-        if (x >= 0 && x < boardWidth && y >= 0 && y < boardHeight) {
+        if (x >= 0 && x < boardWidth && y >= 0 && y < boardHeight && tempBoard[i][j]) {
           board[x][y] = tempBoard[i][j];
           ageBoard[x][y] = 0;
         }
