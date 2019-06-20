@@ -16,7 +16,10 @@ function drawBoard(i, j) {
       if (age > 100)
         age = 100;
       context.fillStyle = colorHeatmap(age);
+      drawSizedRect(i, j, size, sizeScalar);
+      /*
       if (board[i][j]) {
+        // TODO move this to function
         if (!prevBoard[i][j]) {
           drawRect(i, j, size * sizeScalar);
         } else {
@@ -27,9 +30,23 @@ function drawBoard(i, j) {
           drawRect(i, j, (1 - size) * sizeScalar);
         }
       }
+      */
       if (gridToggle.isOn) {
         context.strokeStyle = "#bbbbbb"; // TODO move this
         drawHollowRect(i, j);
+      }
+    }
+    // draw grid if box is being dragged
+    if (moving) {
+      context.fillStyle = "white";
+      for (let i = 0; i < moveBox.x2 - moveBox.x1 + 1; i++) {
+        for (let j = 0; j < moveBox.y2 - moveBox.y1 + 1; j++) {
+          const pos = {x: i + selectBox.x1, y: j + selectBox.y1};
+          if (posInbounds(pos.x, pos.y)) {
+            drawSizedRect(pos.x, pos.y, size, sizeScalar,
+                          moveBox.x1 - selectBox.x1, moveBox.y1 - selectBox.y1);
+          }
+        }
       }
     }
   }
@@ -39,6 +56,7 @@ function drawBoard(i, j) {
     context.moveTo(0, canvas.height / 2);
     context.lineTo(canvas.width, canvas.height / 2);
     context.stroke();
+
 
     context.strokeStyle = "blue";
     context.beginPath();
@@ -51,6 +69,22 @@ function drawBoard(i, j) {
     drawSelection(selectBox);
   if (moving)
     drawSelection(moveBox);
+}
+
+function drawSizedRect(i, j, size, sizeScalar, offsetX = 0, offsetY = 0) {
+  const pos = {x: i + offsetX, y: j + offsetY};
+  if (board[i][j]) {
+    // TODO move this to function
+    if (!prevBoard[i][j]) {
+      drawRect(pos.x, pos.y, size * sizeScalar);
+    } else {
+      drawRect(pos.x, pos.y, sizeScalar);
+    }
+  } else {
+    if (prevBoard[i][j]) {
+      drawRect(pos.x, pos.y, (1 - size) * sizeScalar);
+    }
+  }
 }
 
 function drawRect(i, j, size = 1) {
