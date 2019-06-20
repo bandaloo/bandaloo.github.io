@@ -328,13 +328,26 @@ document.addEventListener('keydown', function(e) {
     gridToggle.adjust();
   } else if (key == 'C') {
     clearBoard();
+  } else if (key == 'S') {
+    changeSpeed(0, 1000);
+  } else if (key == 'M') {
+    changeSpeed(1, 400);
+  } else if (key == 'F') {
+    changeSpeed(2, 150);
+  } else if (key == 'W') {
+    changeEdges(WRAP);
+  } else if (key == 'D') {
+    changeEdges(DEAD);
+  } else if (key == 'A') {
+    changeEdges(ALIVE);
   } else if (code == 16) {
     shift = true;
   } else if (code == 27) {
-    console.log ("escaping");
     moving = 0;
     dragging = 0;
     shiftCorner = {};
+  } else if (code >= 48 && code <= 56) {
+    changeRules(code - 48);
   }
 });
 
