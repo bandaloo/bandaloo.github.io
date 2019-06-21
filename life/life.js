@@ -24,6 +24,7 @@ const BIRTH = 3;
 const ruleStrings = ['Die', 'Stay', 'Both', 'Birth'];
 
 const dirs = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
+const speeds = [1000, 400, 150, 40];
 
 // cave rules
 //var rules = [DIE, DIE, DIE, STAY, STAY, BOTH, BOTH, BOTH, BOTH];
@@ -60,7 +61,7 @@ const backgroundColor = "#000000";
 
 var ruleButtons = [];
 // TODO could these be const?
-const speedWheel = new ButtonWheel(1, "slowbutton", "mediumbutton", "fastbutton");
+const speedWheel = new ButtonWheel(1, "slowbutton", "mediumbutton", "fastbutton", "veryfastbutton");
 const edgeWheel = new ButtonWheel(0, "wrapbutton", "deadbutton", "alivebutton");
 
 var pauseButton = document.getElementById("pausebutton");
@@ -140,9 +141,9 @@ function getRuleButtons() {
   }
 }
 
-function changeSpeed(i, speedDelay) {
-  animTime = speedDelay * animTime / delay
-  delay = speedDelay;
+function changeSpeed(i) {
+  animTime = speeds[i] * animTime / delay
+  delay = speeds[i];
   speedWheel.adjust(i);
 }
 
@@ -329,11 +330,13 @@ document.addEventListener('keydown', function(e) {
   } else if (key == 'C') {
     clearBoard();
   } else if (key == 'S') {
-    changeSpeed(0, 1000);
+    changeSpeed(0);
   } else if (key == 'M') {
-    changeSpeed(1, 400);
+    changeSpeed(1);
   } else if (key == 'F') {
-    changeSpeed(2, 150);
+    changeSpeed(2);
+  } else if (key == 'V') {
+    changeSpeed(3);
   } else if (key == 'W') {
     changeEdges(WRAP);
   } else if (key == 'D') {
