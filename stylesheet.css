@@ -155,3 +155,8 @@ header {
   margin-top: 8px;
   margin-bottom: 8px;
 }
+
+.colorpicker {
+  background: black;
+  border-width: 1px;
+}

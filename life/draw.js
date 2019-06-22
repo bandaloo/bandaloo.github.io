@@ -1,4 +1,7 @@
 "use strict"
+var startColor = {r: 0, g: 0, b: 255};
+var endColor = {r: 255, g: 0, b: 0};
+
 function drawBoard(i, j) {
   clearScreen();
   let size = animTime * 2 / delay;
@@ -12,32 +15,21 @@ function drawBoard(i, j) {
         context.fillStyle = rgba(d, d, d);
         drawRect(i, j);
       }
+
       let age = ageBoard[i][j] * 5;
       if (age > 100)
         age = 100;
       context.fillStyle = colorHeatmap(age);
+      //context.fillStyle = blendColor(age);
       drawSizedRect(i, j, size, sizeScalar);
-      /*
-      if (board[i][j]) {
-        // TODO move this to function
-        if (!prevBoard[i][j]) {
-          drawRect(i, j, size * sizeScalar);
-        } else {
-          drawRect(i, j, sizeScalar);
-        }
-      } else {
-        if (prevBoard[i][j]) {
-          drawRect(i, j, (1 - size) * sizeScalar);
-        }
-      }
-      */
+
       if (gridToggle.isOn) {
         context.strokeStyle = "#bbbbbb"; // TODO move this
         drawHollowRect(i, j);
       }
     }
-    // draw grid if box is being dragged
-    if (moving) {
+
+    if (moving) { // draw grid if box is being dragged
       context.fillStyle = "white";
       for (let i = 0; i < moveBox.x2 - moveBox.x1 + 1; i++) {
         for (let j = 0; j < moveBox.y2 - moveBox.y1 + 1; j++) {
@@ -50,13 +42,13 @@ function drawBoard(i, j) {
       }
     }
   }
+
   if (gridToggle.isOn) {
     context.strokeStyle = "green";
     context.beginPath();
     context.moveTo(0, canvas.height / 2);
     context.lineTo(canvas.width, canvas.height / 2);
     context.stroke();
-
 
     context.strokeStyle = "blue";
     context.beginPath();
@@ -119,6 +111,22 @@ function hsl(h, s = 100, l = 50) {
   return `hsl(${h}, ${s}%, ${l}%)`;
 }
 
+function convertHexColor(str) {
+  str = str.substr(1, 6);
+  let list = str.match(/.{1,2}/g);
+  return {r: parseInt(list[0], 16), g: parseInt(list[1], 16), b: parseInt(list[2], 16)};
+}
+
 function colorHeatmap(age) {
   return hsl(age * 1.5);
+}
+
+function blendColor(age) {
+  let m = (c1, c2) => age / 100 * c1 + (1 - age / 100) * c2;
+  return rgba(m(startColor.r, endColor.r), m(startColor.g, endColor.g),
+              m(startColor.b, endColor.b));
+}
+
+function colorRedBlue(age) {
+  return rgba((1 - age / 200)* 255, 0, age / 200 * 255);
 }
