@@ -317,6 +317,11 @@ function randomize() {
 document.addEventListener('keydown', function(e) {
   let code = e.keyCode;
   let key = String.fromCharCode(code);
+
+  if ([37, 38, 39, 40, 32].includes(code)) {
+    e.preventDefault();
+  }
+
   if (key == 'P') {
     pause();
   } else if (key == 'R') {
@@ -349,7 +354,11 @@ document.addEventListener('keydown', function(e) {
     moving = 0;
     dragging = 0;
     shiftCorner = {};
-  } else if (code >= 48 && code <= 56) {
+  } else if (code == 8) { // backspace
+    fillSelection(0);
+  } else if (code == 32) { // space
+    fillSelection(1);
+  } else if (code >= 48 && code <= 56) { // number keys
     changeRules(code - 48);
   }
 });
@@ -370,6 +379,14 @@ function clickToBoard(e) {
   if (boardX > canvas.width - 1) boardX = canvas.width - 1;
   if (boardY > canvas.height - 1) boardY = canvas.height - 1;
   return {x: boardX, y: boardY};
+}
+
+function fillSelection(num) {
+  for (let i = selectBox.x1; i < selectBox.x2 + 1; i++) {
+    for (let j = selectBox.y1; j < selectBox.y2 + 1; j++) {
+      board[i][j] = num;
+    }
+  }
 }
 
 function placeCell({x: boardX, y: boardY}) {
