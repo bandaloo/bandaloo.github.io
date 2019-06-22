@@ -387,6 +387,7 @@ function fillSelection(num) {
       board[i][j] = num;
     }
   }
+  setTextArea();
 }
 
 function placeCell({x: boardX, y: boardY}) {
