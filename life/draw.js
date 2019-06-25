@@ -19,8 +19,8 @@ function drawBoard(i, j) {
       let age = ageBoard[i][j] * 5;
       if (age > 100)
         age = 100;
-      context.fillStyle = colorHeatmap(age);
-      //context.fillStyle = blendColor(age);
+      //context.fillStyle = colorHeatmap(age);
+      context.fillStyle = blendColor(age);
       drawSizedRect(i, j, size, sizeScalar);
 
       /*
