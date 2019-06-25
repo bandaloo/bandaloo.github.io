@@ -23,10 +23,12 @@ function drawBoard(i, j) {
       //context.fillStyle = blendColor(age);
       drawSizedRect(i, j, size, sizeScalar);
 
+      /*
       if (gridToggle.isOn) {
         context.strokeStyle = "#bbbbbb"; // TODO move this
         drawHollowRect(i, j);
       }
+      */
     }
 
     if (moving) { // draw grid if box is being dragged
@@ -44,6 +46,28 @@ function drawBoard(i, j) {
   }
 
   if (gridToggle.isOn) {
+    context.save();
+
+    context.strokeStyle = "white";
+
+    for (let i = 0; i < boardHeight + 1; i++) {
+      context.lineWidth = (i - boardHeight / 2).mod(8) ? 1 : 3;
+      context.beginPath();
+      context.moveTo(0, i * cellWidth);
+      context.lineTo(canvas.width, i * cellWidth);
+      context.stroke();
+    }
+
+    for (let j = 0; j < boardWidth + 1; j++) {
+      context.lineWidth = (j - boardWidth / 2).mod(8) ? 1 : 3;
+      context.beginPath();
+      context.moveTo(j * cellHeight, 0);
+      context.lineTo(j * cellHeight, canvas.height);
+      context.stroke();
+    }
+
+    context.lineWidth = 4;
+
     context.strokeStyle = "green";
     context.beginPath();
     context.moveTo(0, canvas.height / 2);
@@ -55,6 +79,8 @@ function drawBoard(i, j) {
     context.moveTo(canvas.width / 2, 0);
     context.lineTo(canvas.width / 2, canvas.height);
     context.stroke();
+
+    context.restore();
   }
 
   if (shiftCorner.x2 !== undefined) // TODO check this
@@ -99,9 +125,11 @@ function drawSelection(box) {
   context.restore();
 }
 
+/*
 function drawHollowRect(i, j) {
   context.strokeRect(i * cellWidth, j * cellHeight, cellWidth, cellHeight);
 }
+*/
 
 function rgba(r, g = 0, b = 0, a = 1) {
   return `rgba(${r}, ${g}, ${b}, ${a})`;

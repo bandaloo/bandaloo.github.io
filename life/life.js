@@ -222,23 +222,21 @@ function stepBoard() {
       switch(rules[countNeighbors(i, j)]) {
       case STAY:
         tempBoard[i][j] = board[i][j]
-        ageBoard[i][j]++;
+        if (board[i][j])
+          ageBoard[i][j]++;
         break;
       case BOTH:
         tempBoard[i][j] = 1;
-        if (board[i][j] == 0)
-          ageBoard[i][j] = 1;
-        else
-          ageBoard[i][j]++;
+        ageBoard[i][j]++;
         break;
       case BIRTH:
-        if (board[i][j] == 0) {
+        if (board[i][j] == 0)
           tempBoard[i][j] = 1;
-          ageBoard[i][j] = 1;
-        }
         break;
+      case DIE:
+        ageBoard[i][j] = 0;
       }
-      if (tempBoard[i][j]) {
+      if (prevBoard[i][j] && !tempBoard[i][j]) {
         trailBoard[i][j] = 15;
       }
       if (trailBoard[i][j] > 0) {
