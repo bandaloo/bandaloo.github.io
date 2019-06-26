@@ -294,6 +294,7 @@ function clearScreen() {
 function clearBoard() {
   board = [];
   board.createNumberGrid(boardWidth, boardHeight, 0);
+  ageBoard.createNumberGrid(boardWidth, boardHeight, 0);
   setTextArea();
 }
 
