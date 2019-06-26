@@ -383,6 +383,7 @@ function clickToBoard(e) {
 function fillSelection(num) {
   for (let i = selectBox.x1; i < selectBox.x2 + 1; i++) {
     for (let j = selectBox.y1; j < selectBox.y2 + 1; j++) {
+      ageBoard[i][j] = 0;
       board[i][j] = num;
     }
   }
