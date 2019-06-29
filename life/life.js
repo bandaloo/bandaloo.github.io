@@ -6,6 +6,9 @@ var board = [];
 var ageBoard = [];
 var trailBoard = [];
 
+var startColor = {r: 255, g: 0, b: 0};
+var endColor = {r: 0, g: 0, b: 255};
+
 var shift = false;
 var dragging = false;
 var moving = false;
@@ -67,6 +70,9 @@ const edgeWheel = new ButtonWheel(0, "wrapbutton", "deadbutton", "alivebutton");
 var pauseButton = document.getElementById("pausebutton");
 var randomizeButton = document.getElementById("randomizebutton");
 var shareTextArea = document.getElementById("sharetextarea");
+
+var startColorPicker = document.getElementById("startcolorpicker");
+var endColorPicker = document.getElementById("endcolorpicker");
 
 var corner = {};
 var shiftCorner = {};
@@ -208,9 +214,19 @@ function setTextArea() {
   }
   let boardText = "?b=" + posChars + boardChars;
   let ruleText = "&r=" + binToB64(rulesStr);
+  let startColorText = "&s=" + startColorPicker.value.substr(1, 6);
+  let endColorText = "&e=" + endColorPicker.value.substr(1, 6);
+  let result = window.location.href.split('?')[0] + boardText + ruleText;
   if (edge)
     ruleText += edge.toString();
-  shareTextArea.innerHTML = window.location.href.split('?')[0] + boardText + ruleText;
+
+  if (startColorText && endColorText
+      && (startColorText != "&s=ff0000" || endColorText != "&e=0000ff")) {
+    result += startColorText + endColorText;
+  }
+    console.log(`${startColorText} ${endColorText}`);
+
+  shareTextArea.innerHTML = result;
 }
 
 function stepBoard() {
@@ -366,6 +382,16 @@ document.addEventListener('keyup', function(e) {
   let code = e.keyCode;
   if (code == 16)
     shift = false;
+});
+
+startColorPicker.addEventListener('change', function(e) {
+  startColor = convertHexColor(e.target.value);
+  setTextArea();
+});
+
+endColorPicker.addEventListener('change', function(e) {
+  endColor = convertHexColor(e.target.value);
+  setTextArea();
 });
 
 // TODO group clicks and board positions into objects
@@ -526,6 +552,20 @@ trailBoard.createNumberGrid(boardWidth, boardHeight, 0);
     for (let i = 0; i < 9; ++i) {
       rules[i] = parseInt(boardRulesBin.substring(i * 2, i * 2 + 2), 2);
     }
+  }
+
+  let initialStartColor = getVariable('s');
+  let initialEndColor = getVariable('e');
+  console.log(initialStartColor);
+  console.log(initialEndColor);
+
+  if (initialStartColor && initialEndColor) {
+    initialStartColor = '#' + initialStartColor;
+    initialEndColor = '#' + initialEndColor
+    startColorPicker.value = initialStartColor;
+    endColorPicker.value = initialEndColor;
+    startColor = convertHexColor(initialStartColor);
+    endColor = convertHexColor(initialEndColor);
   }
 }
 

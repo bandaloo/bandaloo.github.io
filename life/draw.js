@@ -1,6 +1,4 @@
 "use strict"
-var startColor = {r: 0, g: 0, b: 255};
-var endColor = {r: 255, g: 0, b: 0};
 
 function drawBoard(i, j) {
   clearScreen();
@@ -22,13 +20,6 @@ function drawBoard(i, j) {
       //context.fillStyle = colorHeatmap(age);
       context.fillStyle = blendColor(age);
       drawSizedRect(i, j, size, sizeScalar);
-
-      /*
-      if (gridToggle.isOn) {
-        context.strokeStyle = "#bbbbbb"; // TODO move this
-        drawHollowRect(i, j);
-      }
-      */
     }
 
     if (moving) { // draw grid if box is being dragged
@@ -125,12 +116,6 @@ function drawSelection(box) {
   context.restore();
 }
 
-/*
-function drawHollowRect(i, j) {
-  context.strokeRect(i * cellWidth, j * cellHeight, cellWidth, cellHeight);
-}
-*/
-
 function rgba(r, g = 0, b = 0, a = 1) {
   return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
@@ -151,8 +136,8 @@ function colorHeatmap(age) {
 
 function blendColor(age) {
   let m = (c1, c2) => age / 100 * c1 + (1 - age / 100) * c2;
-  return rgba(m(startColor.r, endColor.r), m(startColor.g, endColor.g),
-              m(startColor.b, endColor.b));
+  return rgba(m(endColor.r, startColor.r), m(endColor.g, startColor.g),
+              m(endColor.b, startColor.b));
 }
 
 function colorRedBlue(age) {
