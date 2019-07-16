@@ -224,7 +224,6 @@ function setTextArea() {
       && (startColorText != "&s=ff0000" || endColorText != "&e=0000ff")) {
     result += startColorText + endColorText;
   }
-    console.log(`${startColorText} ${endColorText}`);
 
   shareTextArea.innerHTML = result;
 }
@@ -365,7 +364,7 @@ document.addEventListener('keydown', function(e) {
     changeEdges(ALIVE);
   } else if (code == 16) {
     shift = true;
-  } else if (code == 27) {
+  } else if (code == 27) { // esc
     moving = 0;
     dragging = 0;
     shiftCorner = {};
@@ -407,13 +406,15 @@ function clickToBoard(e) {
 }
 
 function fillSelection(num) {
-  for (let i = selectBox.x1; i < selectBox.x2 + 1; i++) {
-    for (let j = selectBox.y1; j < selectBox.y2 + 1; j++) {
-      ageBoard[i][j] = 0;
-      board[i][j] = num;
+  if (shiftCorner.x1) { // if shiftCorner is not empty object
+    for (let i = selectBox.x1; i < selectBox.x2 + 1; i++) {
+      for (let j = selectBox.y1; j < selectBox.y2 + 1; j++) {
+        ageBoard[i][j] = 0;
+        board[i][j] = num;
+      }
     }
+    setTextArea();
   }
-  setTextArea();
 }
 
 function placeCell({x: boardX, y: boardY}) {
@@ -433,10 +434,10 @@ canvas.addEventListener('mousedown', function(e) {
   const pos = clickToBoard(e);
   if (shift) {
     shiftCorner = {x1: pos.x, y1: pos.y, x2: pos.x, y2: pos.y};
+    selectBox = Object.assign({}, shiftCorner);
     dragging = true;
   } else {
     if (shiftCorner.x1 !== undefined && inSelection(pos)) {
-      console.log("in selection");
       moving = true;
       // capture current state of selection
       // start drawing additional selection box
@@ -456,7 +457,6 @@ canvas.addEventListener('mousemove', function(e) {
       assignLastCorner(pos);
     } else if (moving) {
       // TODO can I just assign movePos to pos if I change from const?
-      console.log('test');
       moveBox = {
         x1: selectBox.x1 + pos.x - movePos.x,
         y1: selectBox.y1 + pos.y - movePos.y,
@@ -556,8 +556,6 @@ trailBoard.createNumberGrid(boardWidth, boardHeight, 0);
 
   let initialStartColor = getVariable('s');
   let initialEndColor = getVariable('e');
-  console.log(initialStartColor);
-  console.log(initialEndColor);
 
   if (initialStartColor && initialEndColor) {
     initialStartColor = '#' + initialStartColor;
