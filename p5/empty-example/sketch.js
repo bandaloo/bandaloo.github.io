@@ -29,7 +29,7 @@ var timelabel = document.getElementById("timelabel");
 var cnv;
 
 function preload() {
-  img = loadImage("https://bandaloo.github.io/images/world-map-bw-reduced-size.png");
+  img = loadImage("../../images/world-map-bw-reduced-size.png");
   currepoch = earthquakes[0].time.epoch;
   console.log(currepoch);
 }
