@@ -111,6 +111,14 @@ header {
   color: white;
 }
 
+.life::first-letter {
+  text-decoration: underline;
+}
+
+.copy::first-letter {
+  text-decoration: none;
+}
+
 .rules {
   padding: 2px; 2px;
 }
