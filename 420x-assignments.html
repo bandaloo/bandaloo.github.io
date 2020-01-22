@@ -1,0 +1,95 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="stylesheet.css" />
+  </head>
+  <body>
+    <header>
+      <a class="hlink" href="index.html">Home</a>
+      <a class="hlink" href="granof-spring-2019.pdf">Resume</a>
+      <a class="hlink" href="https://github.com/bandaloo">Github</a>
+      <a class="hlink" href="mobile.html">3D&nbspRotating&nbsp;Mobile</a>
+      <a class="hlink" href="minesweeper.html">Minesweeper</a>
+      <a class="hlink" href="snake.html">Snake</a>
+      <a class="hlink" href="swap.html">Color&nbspMatch</a>
+      <a class="hlink" href="p5/empty-example/index.html"
+        >Earthquake&nbsp;Globe</a
+      >
+      <a class="hlink" href="sketches.html">Sketches</a>
+      <a class="hlink" href="life.html">Life</a>
+    </header>
+
+    <main>
+      <title>420X Assignments</title>
+      <h1>Assignment 2 - Shader Live Coding</h1>
+      <div style="text-align: left">
+        <iframe
+          class="center"
+          width="560"
+          height="315"
+          src="https://www.youtube.com/embed/EmkmgNOJ9HY"
+          frameborder="0"
+          allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+        ></iframe>
+
+        <h2>Goal</h2>
+        <p>
+          My main goal for this shader was to practice using various techniques
+          from the early chapters of <i>The Book of Shaders</i>, such as shaping
+          functions and basic shapes.
+        </p>
+        <p>
+          Early on, I wrote a function that produced a slanted wave-like effect.
+          I parameterized this function and learned that I could create a
+          variety of distinct effects with it.
+        </p>
+        <p>
+          I also had a lot of fun using basic shapes to create masks for more
+          complex patterns. I used blurry rectangles to mask off different
+          versions of the wave-like effect, creating a sort of gallery of
+          slightly different framed animations.
+        </p>
+        <p>
+          Originally, I intended to only work in monochrome. By the end of the
+          process, went for a bright but restricted color scheme, using a
+          distance field to create a subtle purple glowing effect.
+        </p>
+        <p>
+          Originally, I intended to only work in monochrome. By the end of the
+          Overlapping the wavy rectangles was the final addition. I discovered
+          the overlapping effect purely by accident. The rectangles start still,
+          and slowly begin to rotate around one another, speeding up over time
+          until the max speed is reached.
+        </p>
+        <h2>Reaction to Feedback</h2>
+        <p>
+          Alex Osner was kind enough to give feedback on my shader. To be
+          honest, I did not think about what mood or theme the animation should
+          convey. At the same time, I was happy to hear my animation gave off an
+          eerie feeling based on the colors and the movement of the shapes. Alex
+          also mentioned that the color choice had a "vaporwave" aesthetic.
+        </p>
+        <p>
+          Alex also remarked on an optical illusion that was happening due to
+          the movement of the three vertical bars of waves. As the animation
+          progresses, the bars move horizontally out of phase with one another
+          in a sine wave. This gave the effect that the bars were moving in 3D
+          space along a ground plane.
+        </p>
+        <p>
+          I was pleased that Alex appreciated the repeating theme of three
+          different vertical bars with a similar pattern. Like Alex, I thought
+          one of the most interesting aspects was how the bars blended together
+          while overlapping.
+        </p>
+        <p>
+          Overall, this type of feedback was excellent. Alex has already given
+          me ideas for techniques I want to experiment with in future shaders.
+          The code for the shader is
+          <a href="https://github.com/bandaloo/shaders">in this repo</a> in
+          "wave-windows.frag".
+        </p>
+      </div>
+    </main>
+  </body>
+</html>
