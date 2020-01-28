@@ -1,0 +1,3 @@
+[submodule "proc-cave-game"]
+	path = proc-cave-game
+	url = https://github.com/bandaloo/proc-cave-game.git
