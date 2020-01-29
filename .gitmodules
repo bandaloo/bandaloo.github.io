@@ -1,3 +1,6 @@
 [submodule "proc-cave-game"]
 	path = proc-cave-game
 	url = https://github.com/bandaloo/proc-cave-game.git
+[submodule "analog-inspired-shader"]
+	path = analog-inspired-shader
+	url = https://github.com/bandaloo/analog-inspired-shader.git
