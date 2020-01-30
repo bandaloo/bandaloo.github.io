@@ -20,6 +20,100 @@
 
     <main>
       <title>420X Assignments</title>
+      <h1>Assignment 3 - Analog to Digital</h1>
+      <p>
+        Instead of watching the video or reading this, you can
+        <a href="analog-inspired-shader/analog-shader.html"
+          >play with the shader instead.</a
+        >
+        You can see the GLSL code by viewing the source of that web page, or you
+        can go to
+        <a href="https://github.com/bandaloo/analog-inspired-shader"
+          >this repo.</a
+        >
+      </p>
+      <iframe
+        class="center"
+        width="560"
+        height="315"
+        src="https://www.youtube.com/embed/ukqDP1MP0Ys"
+        frameborder="0"
+        allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen
+      ></iframe>
+      <h2>Aesthetic Intent</h2>
+      <p>
+        I got to play with the Vidiot, which is an analog video synthesizer. I
+        spent my timeslot in the lab with Alex and Alp. Below are some of the
+        pictures we captured of the video output.
+      </p>
+      <div style="width: 560px" class="center">
+        <img src="images/pink-rows.jpg" class="blogimage" /><img />
+        <img src="images/blue-yellow-ladders.jpg" class="blogimage" /><img />
+        <img src="images/blue-orange-columns.jpg" class="blogimage" /><img />
+        <img
+          src="images/orange-blue-checkerboard.jpg"
+          class="blogimage"
+        /><img />
+      </div>
+      <p>
+        I was particularly inspired by the picture directly above. The color
+        inversions combined with square waves created a complex checkerboard
+        effect. If you want to try to recreate this effect, the patches look
+        something like this:
+      </p>
+      <div style="width: 560px" class="center">
+        <img src="images/vidiot-patches.jpg" class="blogimage" /><img />
+      </div>
+      <p>
+        In designing my shader, my goal was not necessarily to recreate this
+        pattern. Instead, I wanted to play with the idea of creating grid-like
+        patterns by inverting the luma and colors with square waves.
+      </p>
+      <p>
+        Because part of the joy of playing with the Vidiot involves twiddling
+        the knobs and watching the output in real time, I decided that I wanted
+        to make it easy for someone to manipulate my shader to get new effects.
+        This is why I decided to include sliders on the web page that
+        manipulated various uniforms in the GLSL code.
+      </p>
+      <p>
+        The square waves allow the user to invert the color and luma of the
+        underlying sin waves. What is nice about this is that complementary
+        colors are always on the screen. It is easier than it might seem to
+        create an aesthetically pleasing color scheme. You can change the
+        frequency of both the sine and square waves in either the x or y
+        direction. I locked these sliders to integers because this makes it
+        easier to line up the wavelengths to create a symmetrical pattern.
+      </p>
+      <p>
+        There is also a rolling noise effect that is masked off by a triangle
+        wave. You can control the speed and size of this, or get rid of it
+        altogether by zeroing out the sliders. I was inspired by the effect you
+        get when you attempt to film a CRT screen.
+      </p>
+      <h2>Reaction to Feedback</h2>
+      <p>
+        Cem noticed that I was able to recreate some of the vertical and
+        horizontal patterns we achieved while playing with the Vidiot in the
+        lab. He also mentioned that it would be interesting if you were able to
+        create a zooming effect with the sliders.
+      </p>
+      <p>
+        I was glad to hear that Alex had fun playing around with the sliders to
+        change the pattern. He mentioned that a tool like this could be used to
+        ease a beginner into video synthesizers since the Vidiot can be somewhat
+        unintuitive. I was worried that the tool wouldn't be too limited in
+        regard to customizability to be fun. But, even with the limited amount
+        of parameters he mentioned was able to create a nice variety of images.
+        In fact, he liked simplicity with its focus on square waves and sine
+        waves. Alex mentioned that it would be nice to be able to see the
+        numerical output of the slider, making it easier to save your design.
+        This gave me the idea that this kind of tool might benefit from the
+        ability to download and upload sets of parameters. The feedback I got
+        was great, and I hope I was as helpful to Alex and Cem as they were to
+        me.
+      </p>
       <h1>Assignment 2 - Shader Live Coding</h1>
       <div style="text-align: left">
         <iframe
