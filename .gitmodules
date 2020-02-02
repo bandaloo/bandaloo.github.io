@@ -4,3 +4,6 @@
 [submodule "analog-inspired-shader"]
 	path = analog-inspired-shader
 	url = https://github.com/bandaloo/analog-inspired-shader.git
+[submodule "feedback-mini-proj"]
+	path = feedback-mini-proj
+	url = https://github.com/bandaloo/feedback-mini-proj
