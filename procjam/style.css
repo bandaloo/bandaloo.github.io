@@ -18,3 +18,7 @@ div#gamediv-holder {
   justify-content: center;
   align-items: center;
 }
+
+.blogimage {
+  max-width: 100%;
+}
