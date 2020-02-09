@@ -17,6 +17,9 @@
   <body>
     <canvas></canvas>
   </body>
+  <!-- external script for gui -->
+  <script type="text/javascript" src="dat.gui.min.js"></script>
+
   <!-- --- add script tags to hold all the shaders we will use --- -->
   <script id="vshader" type="whatever">
     precision mediump float;
@@ -41,8 +44,12 @@
     precision mediump float;
     uniform sampler2D state;
     uniform vec2 scale;
+    uniform float f;
+    uniform float k;
+    uniform float dA;
+    uniform float dB;
     //float f=.0545, k=.062, dA = 1., dB = 0.; // coral preset
-    float f = .0457, k = .0635, dA = 1., dB = .5;
+    //float f = .0457, k = .0635, dA = 1., dB = .5;
 
     vec2 get(int x, int y) {
       return texture2D( state, ( gl_FragCoord.xy + vec2(x, y) ) / scale ).rg;
@@ -238,6 +245,24 @@
 
       reset();
 
+      // gui stuff
+      const Properties = function() {
+        this.f = 0.0457;
+        this.k = 0.0635;
+        this.dA = 1.0;
+        this.dB = 0.5;
+        this.reset = () => {
+          reset();
+        };
+      };
+      const gui = new dat.GUI();
+      const properties = new Properties();
+      gui.add(properties, "reset");
+      gui.add(properties, "f", 0.04, 0.08);
+      gui.add(properties, "k", 0.06, 0.07);
+      gui.add(properties, "dA", 0.9, 1.1);
+      gui.add(properties, "dB", 0.4, 0.6);
+
       // --- create our framebuffers and a function to bounce between them ---
       const fb = gl.createFramebuffer();
       const fb2 = gl.createFramebuffer();
@@ -279,9 +304,23 @@
         gl.drawArrays(gl.TRIANGLES, 0, 6);
       };
 
+      // get all those uniforms
+      // TODO do these have to move?
+      const f = gl.getUniformLocation(programRender, "f");
+      const k = gl.getUniformLocation(programRender, "k");
+      const dA = gl.getUniformLocation(programRender, "dA");
+      const dB = gl.getUniformLocation(programRender, "dB");
+
       // --- (almost) last but not least, draw! ---
       const draw = function() {
         gl.useProgram(programRender);
+
+        // set all those uniforms
+        gl.uniform1f(f, properties.f);
+        gl.uniform1f(k, properties.k);
+        gl.uniform1f(dA, properties.dA);
+        gl.uniform1f(dB, properties.dB);
+
         for (let i = 0; i < 12; i++) pingpong();
 
         // use the default framebuffer object by passing null
