@@ -21,7 +21,78 @@
     <main>
       <title>420X Assignments</title>
       <h1>Assignment 4 - Simulation Programming</h1>
-      <p><a href="gpu-rps/gpu-rps.html">Click here to play it.</a></p>
+      <p>
+        I chose to implement a rock paper scissors cellular automata that runs
+        on the GPU.
+        <a href="gpu-rps/gpu-rps.html">Click here to play it.</a> You can find
+        the code
+        <a href="https://github.com/bandaloo/gpu-rps">here.</a>
+      </p>
+      <h2>Aesthetic Intent</h2>
+      <p>
+        When I was browsing the web for an interactive version of this cellular
+        automata, strangely enough, there were very few examples.
+        Coincidentally, the top result was an implementation by my friend Joe
+        that can not run at full speed in real time because it runs on the CPU.
+        You can play it <a href="https://josephpetitti.com/rps">here.</a> Once a
+        few thousand cells are on the screen, the simulation will run at two
+        frames per second or less. (Joe wrote this almost two years ago so it's
+        not very fair to criticize; the point is that this is the first
+        interactive example that appears when you Google "rock paper scissors
+        cellular automata.") There are not many web-based implementations. You
+        could argue that this form of cellular automata is not really
+        established, as it doesn't even have its own Wikipedia page. Therefore,
+        my implementation probably varies rule-wise compared to others,
+        especially with regard to how fuel is spent per-cell. One thing that is
+        not intuitive about the way this simulation is usually presented is that
+        each cell has a hidden "fuel" value. This is why a single cell won't
+        consume the entire screen, but will instead stop eventually. I wanted to
+        visualize this by representing fuel as the brightness of the cell,
+        making the simulation both easier to understand and more interesting to
+        look at. I also wanted to have a very minimalist UI that could be easily
+        hidden. With the controls, you can place red, green and blue cells,
+        erase cells in a large rectangle, or clear the screen. The goal was not
+        to create a software suite to tweak every variable of this simulation.
+        Instead, I wanted to create a relatively simple web toy using this
+        interesting cellular automata that people do not often discuss alongside
+        the famous cellular automata, such as Conway's Game of Life or Rule 110.
+      </p>
+      <h2>Reaction to Feedback</h2>
+      <p>
+        Nick Krichevsky was kind enough to give me feedback on my project, even
+        though he had already received feedback on his. He mentioned that he
+        liked the concept of cells eating other cells. Nick suggested that I
+        should include a dot underneath the cursor so the user knows what color
+        they have selected. I liked that idea so I implemented that change. Nick
+        also sent me a screenshot displaying a possible bug, where very dark
+        cells (meaning they were nearly out of fuel) consumed an entire field of
+        green cells. I explained that this is actually intended behavior, as
+        eating another cell does not spend fuel (however, expanding to an empty
+        space does.) However, this is something to keep in mind, since this kind
+        of behavior might be counterintuitive.
+      </p>
+      <h2>Implementation</h2>
+      <p>
+        In order to get acquainted with <tt>glslify</tt>, I took Charlie
+        Robert's game of life tutorial and pulled out the three shaders we used
+        to run the simulation. I also added type information in jsdoc comments
+        in order to help myself understand how the front buffer and back buffer
+        were set up, and what kind of WebGL objects were being passed around. I
+        built off of this to create my rock paper scissors shader. The fuel each
+        cell has left is represented by the brightness of the color. This gives
+        the gradient effect as cells spread out, and keeps things simple because
+        I can step the simulation solely based on the contents of the buffer,
+        much like game of life. In order to avoid any floating point errors, I
+        reduced the fuel of each cell by increments of 1/64, or 0.015625 each
+        time. One major difference between this simulation and Game of Life is
+        that psuedo-randomness is used. I modified the <tt>rand</tt> function
+        from The Book of Shaders in order to get an integer from 0 to 7. This
+        choice determines from what direction each cell will be attacked by. I
+        used branching but I'm sure it's possible to eliminate this. Even still,
+        I was impressed with how fast the simulation was able to run. At 1920 by
+        1080 (the resolution of my second monitor) 2,073,600 cells are being
+        simulated every step!
+      </p>
       <h1>Mini Project 3 - Reaction Diffusion with GUI</h1>
       <p>
         I completed the in-class tutorial and added a GUI, which
