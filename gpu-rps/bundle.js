@@ -58,7 +58,7 @@ window.onload = function() {
     "hidebutton"
   ));
 
-  hideButton.addEventListener("click", e => {
+  hideButton.addEventListener("mousedown", e => {
     e.stopImmediatePropagation();
     document.getElementById("messagebox").style.display = "none";
     return false;
