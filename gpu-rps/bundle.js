@@ -28,21 +28,70 @@ let textureFront;
 /** @type {{width: number, height: number}} */
 let dimensions = { width: null, height: null };
 
+let pressed = false;
+let erase = false;
+
+/**
+ * helper function for clamping a number
+ * @param {number} n
+ * @param {number} lo
+ * @param {number} hi
+ * @returns {number}
+ */
+function clamp(n, lo, hi) {
+  return Math.min(hi, Math.max(n, lo));
+}
+
+/**
+ * helper function to clamp coordinates to dimensions
+ * @param {number} x
+ * @param {number} y
+ */
+function clampToDimensions(x, y) {
+  x = clamp(x, 0, dimensions.width - 1);
+  y = clamp(y, 0, dimensions.height - 1);
+  return { x: x, y: y };
+}
+
 window.onload = function() {
   const hideButton = /** @type {HTMLButtonElement} */ (document.getElementById(
     "hidebutton"
   ));
 
   hideButton.addEventListener("click", e => {
-    console.log("test");
     e.stopImmediatePropagation();
     document.getElementById("messagebox").style.display = "none";
     return false;
   });
 
-  document.addEventListener("click", e => {
-    console.log(console.log("x: " + e.clientX + " y: " + e.clientY));
-    poke(e.clientX, dimensions.height - e.clientY, drawColor, textureBack);
+  document.addEventListener("mousedown", e => {
+    pressed = true;
+    paint(e.clientX, dimensions.height - e.clientY);
+  });
+
+  document.addEventListener("mouseup", e => {
+    pressed = false;
+  });
+
+  document.addEventListener("mousemove", e => {
+    if (pressed) paint(e.clientX, dimensions.height - e.clientY);
+  });
+
+  document.addEventListener("keydown", e => {
+    if (e.key === "r") {
+      drawColor = [255, 0, 0];
+      erase = false;
+    } else if (e.key === "g") {
+      drawColor = [0, 255, 0];
+      erase = false;
+    } else if (e.key === "b") {
+      drawColor = [0, 0, 255];
+      erase = false;
+    } else if (e.key === "e") {
+      erase = true;
+    } else if (e.key === "c") {
+      clearSection(0, 0, dimensions.width, dimensions.height, textureBack);
+    }
   });
 
   const canvas = /** @type {HTMLCanvasElement} */ (document.getElementById(
@@ -62,12 +111,28 @@ window.onload = function() {
 };
 
 /**
+ * draw color on the board or erase
+ * @param {number} x
+ * @param {number} y
+ */
+function paint(x, y) {
+  if (!erase) {
+    poke(x, y, drawColor, textureBack);
+  } else {
+    clearSection(x - 32, y - 32, 64, 64, textureBack);
+  }
+}
+
+/**
  * @param {number} x
  * @param {number} y
  * @param {number[]} color
  * @param {WebGLTexture} texture
  */
 function poke(x, y, color, texture) {
+  // this prevents the webgl warnings
+  ({ x, y } = clampToDimensions(x, y));
+
   gl.bindTexture(gl.TEXTURE_2D, texture);
 
   // https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texSubImage2D
@@ -86,19 +151,39 @@ function poke(x, y, color, texture) {
   );
 }
 
+/**
+ * clears a rectangle
+ * @param {number} x
+ * @param {number} y
+ * @param {number} width
+ * @param {number} height
+ * @param {WebGLTexture} texture
+ */
+function clearSection(x, y, width, height, texture) {
+  // this prevents the webgl warnings
+  ({ x, y } = clampToDimensions(x, y));
+
+  if (x + width > dimensions.width) width = dimensions.width - x;
+  if (y + height > dimensions.height) x = dimensions.height - y;
+
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+
+  // https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texSubImage2D
+  gl.texSubImage2D(
+    gl.TEXTURE_2D,
+    0,
+    x,
+    y,
+    width,
+    height,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    // empty array of all zero of appropriate size
+    new Uint8Array(width * height * 4)
+  );
+}
+
 let drawColor = [255, 0, 0];
-
-document.addEventListener("keydown", e => {
-  if (e.key === "r") {
-    drawColor = [255, 0, 0];
-  } else if (e.key === "g") {
-    drawColor = [0, 255, 0];
-  } else if (e.key === "b") {
-    drawColor = [0, 0, 255];
-  }
-});
-
-document.addEventListener;
 
 function makeBuffer() {
   // create a buffer object to store vertices
@@ -127,6 +212,7 @@ function makeShaders() {
   const drawFragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
   gl.shaderSource(drawFragmentShader, fragmentSource);
   gl.compileShader(drawFragmentShader);
+  // reports problem if there was issue with compiling shader
   console.log(gl.getShaderInfoLog(drawFragmentShader));
 
   // create render program that draws to screen
@@ -149,10 +235,11 @@ function makeShaders() {
   // example, we only use one array buffer, where we're storing our vertices
   gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
 
-  const simulationSource = glslify(["#ifdef GL_ES\nprecision mediump float;\n#define GLSLIFY 1\n#endif\n\nuniform float time;\nuniform vec2 resolution;\n\n// simulation texture state, swapped each frame\nuniform sampler2D state;\n\n// from The Book of Shaders\nfloat random(vec2 st) {\n  return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);\n}\n\n// look up individual cell values\nvec3 get(int x, int y) {\n  return texture2D(state, (mod(gl_FragCoord.xy + vec2(x, y), resolution)) / resolution).rgb;\n}\n\n// change color\nvec3 munch(vec3 center, int x, int y) {\n  vec3 neighbor = get(x, y);\n  // if adjacent to a hostile neighbor or empty\n  if (\n    (neighbor.g > 0.0 && center.r > 0.0)\n    ||(neighbor.b > 0.0 && center.g > 0.0)\n    ||(neighbor.r > 0.0 && center.b > 0.0)\n  ) {\n    gl_FragColor = vec4(vec3(neighbor), 1.0);\n  }\n  else if (center == vec3(0.0)) {\n    gl_FragColor = vec4(vec3(neighbor - sign(neighbor) * vec3(0.0125)), 1.0);\n  } else {\n    gl_FragColor = vec4(center, 1.0);\n  }\n  return neighbor;\n}\n\nvoid main() {\n  float r = random(gl_FragCoord.xy * 1.234 + time);\n  float i = r * 8.0;\n  vec3 center = get(0, 0); // cache this so it so lookup doesn't happen every munch\n  \n  if (i < 1.0) {munch(center, - 1, - 1); }\n  else if (i < 2.0) {munch(center, - 1, 0); }\n  else if (i < 3.0) {munch(center, - 1, 1); }\n  else if (i < 4.0) {munch(center, 0, - 1); }\n  else if (i < 5.0) {munch(center, 0, 1); }\n  else if (i < 6.0) {munch(center, 1, - 1); }\n  else if (i < 7.0) {munch(center, 1, 0); }\n  else if (i < 8.0) {munch(center, 1, 1); }\n}\n"]);
+  const simulationSource = glslify(["#ifdef GL_ES\nprecision mediump float;\n#define GLSLIFY 1\n#endif\n\nuniform float time;\nuniform vec2 resolution;\n\n// simulation texture state, swapped each frame\nuniform sampler2D state;\n\n// from The Book of Shaders\nfloat random(vec2 st) {\n  return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);\n}\n\n// look up individual cell values\nvec3 get(int x, int y) {\n  return texture2D(state, (mod(gl_FragCoord.xy + vec2(x, y), resolution)) / resolution).rgb;\n}\n\n// change color\nvec3 munch(vec3 center, int x, int y) {\n  vec3 neighbor = get(x, y);\n  const float minimum = 0.0625; // equivalent to 1/16\n  // if adjacent to a hostile neighbor or empty\n  if (\n    (neighbor.g > 0.0 && center.r > 0.0)\n    ||(neighbor.b > 0.0 && center.g > 0.0)\n    ||(neighbor.r > 0.0 && center.b > 0.0)\n  ) {\n    gl_FragColor = vec4(vec3(neighbor), 1.0);\n  }\n  else if (center.r < minimum && center.g < minimum && center.b < minimum) {\n    // reduction in fuel equivalent to -1/64\n    gl_FragColor = vec4(vec3(neighbor - sign(neighbor) * vec3(0.015625)), 1.0);\n  } else {\n    gl_FragColor = vec4(center, 1.0);\n  }\n  return neighbor;\n}\n\nvoid main() {\n  // the scalar for the coordinate is to increase randomness\n  // (we get some weird patterns otherwise)\n  float r = random(gl_FragCoord.xy * 1.234 + time);\n  float i = r * 8.0;\n  vec3 center = get(0, 0); // cache this so it so lookup doesn't happen every munch\n  \n  if (i < 1.0) { munch(center, - 1, - 1); }\n  else if (i < 2.0) { munch(center, - 1, 0); }\n  else if (i < 3.0) { munch(center, - 1, 1); }\n  else if (i < 4.0) { munch(center, 0, - 1); }\n  else if (i < 5.0) { munch(center, 0, 1); }\n  else if (i < 6.0) { munch(center, 1, - 1); }\n  else if (i < 7.0) { munch(center, 1, 0); }\n  else if (i < 8.0) { munch(center, 1, 1); }\n}\n"]);
   const simulationFragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
   gl.shaderSource(simulationFragmentShader, simulationSource);
   gl.compileShader(simulationFragmentShader);
+  // reports problem if there was issue with compiling shader
   console.log(gl.getShaderInfoLog(simulationFragmentShader));
 
   // create simulation program
@@ -270,10 +357,10 @@ function render() {
   // set our viewport to be the size of our canvas
   // so that it will fill it entirely
   gl.viewport(0, 0, dimensions.width, dimensions.height);
-  // select the texture we would like to draw to the screen.
-  // note that webgl does not allow you to write to / read from the
-  // same texture in a single render pass. Because of the swap, we're
-  // displaying the state of our simulation ****before**** this render pass (frame)
+  // select the texture we would like to draw to the screen. note that webgl
+  // does not allow you to write to read from the same texture in a single
+  // render pass. Because of the swap, we're displaying the state of our
+  // simulation ****before**** this render pass (frame)
   gl.bindTexture(gl.TEXTURE_2D, textureFront);
   // use our drawing (copy) shader
   gl.useProgram(drawProgram);
