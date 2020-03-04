@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <style>
+      body {
+        margin: 0;
+        background: black;
+      }
+
+      .message {
+        margin: 8px;
+        color: white;
+        font-family: sans-serif;
+        width: 120px;
+        user-select: none;
+        background: black;
+        border: 2px solid white;
+        padding: 6px;
+      }
+
+      .rules {
+        text-align: center;
+      }
+
+      .canvasholder {
+        overflow: scroll;
+        width: 100%;
+        height: 100vh;
+      }
+
+      .space {
+        margin-top: 8px;
+        margin-bottom: 8px;
+      }
+
+      .control {
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .bar {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      .overlay {
+        top: 0px;
+        z-index: 2;
+        position: absolute;
+      }
+
+      .button {
+        background-color: #00000000;
+        color: white;
+        font-family: sans-serif;
+        font-size: 12pt;
+        font-weight: bold;
+        padding: 4px 8px;
+        border: 2px solid white;
+      }
+
+      .button:hover {
+        background-color: #ffffff55;
+      }
+
+      .textarea {
+        font-size: 8pt;
+        resize: none;
+        word-break: break-all;
+      }
+
+      .control:first-child {
+        margin-top: 0px;
+      }
+
+      .control:last-child {
+        margin-bottom: 0px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="canvasholder">
+      <canvas id="gl"></canvas>
+    </div>
+    <div id="guiholder">
+      <div class="bar overlay">
+        <div class="message">
+          <table id="rulestable" class="rules" style="width:100%">
+            <tr>
+              <th>#</th>
+              <th>dead</th>
+              <th>alive</th>
+            </tr>
+          </table>
+        </div>
+        <div class="message">
+          <div class="control space">
+            <b>scale: </b>
+            <input id="scale" type="number" />
+          </div>
+          <div class="control space">
+            <b>delay: </b>
+            <input id="delay" type="number" />
+          </div>
+        </div>
+        <div class="message">
+          <div class="control space">
+            <b>young: </b>
+            <input id="youngcolor" type="color" />
+          </div>
+          <div class="control space">
+            <b>old: </b>
+            <input id="oldcolor" type="color" />
+          </div>
+          <div class="control space">
+            <b>trail: </b>
+            <input id="trailcolor" type="color" />
+          </div>
+          <div class="control space">
+            <b>dead: </b>
+            <input id="deadcolor" type="color" />
+          </div>
+        </div>
+      </div>
+      <div class="message control overlay" style="left: 152px; width: 340px">
+        <button class="button" id="copybutton">copy</button>
+        <textarea
+          readonly
+          class="textarea"
+          id="sharetext"
+          rows="2"
+          cols="50"
+        ></textarea>
+      </div>
+      <div class="message overlay" style="right: 0px; width: auto">
+        <h2 style="margin: 4px">games of lives maker</h2>
+        <p style="margin: 4px; text-align: right;">v0.1.1</p>
+      </div>
+    </div>
+  </body>
+  <!-- running this script here ensures DOM is loaded by now -->
+  <script src="bundle.js" type="module"></script>
+</html>
