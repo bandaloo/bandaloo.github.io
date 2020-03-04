@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.clamp = clamp;
 exports.hexColorToVector = hexColorToVector;
+exports.getVariable = getVariable;
 
 /**
  * helper function for clamping a number
@@ -32,6 +33,26 @@ function hexColorToVector(str) {
     return parseInt(n, 16) / 255;
   });
   return vec;
+}
+/**
+ * gets the string value of variable from query string
+ * @param {string} variable
+ */
+
+
+function getVariable(variable) {
+  var query = window.location.search.substring(1);
+  var vars = query.split("&");
+
+  for (var i = 0; i < vars.length; i++) {
+    var pair = vars[i].split("=");
+
+    if (pair[0] == variable) {
+      return pair[1];
+    }
+  }
+
+  return undefined;
 }
 
 },{}],2:[function(require,module,exports){
@@ -126,6 +147,7 @@ window.onload = function () {
   // stuff for color controls
 
   (0, _rulescontrols.addColorChangeListeners)(gl, uYoungColor, uOldColor, uTrailColor, uDeadColor);
+  (0, _rulescontrols.generateShareUrl)();
   window.addEventListener("keypress", function (e) {
     console.log(e.key);
 
@@ -348,7 +370,10 @@ exports.addChecks = addChecks;
 exports.getRulesUpToDate = getRulesUpToDate;
 exports.setRulesUpToDate = setRulesUpToDate;
 exports.addColorChangeListeners = addColorChangeListeners;
+exports.makeRuleString = makeRuleString;
+exports.parseRuleString = parseRuleString;
 exports.addNumberChangeListeners = addNumberChangeListeners;
+exports.generateShareUrl = generateShareUrl;
 exports.getScale = getScale;
 exports.getDelay = getDelay;
 exports.currentRules = exports.rules = void 0;
@@ -357,12 +382,39 @@ var _helpers = require("./helpers.js");
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
 // constants for game of life
 var die = 0;
 var stay = 1;
 var birth = 2;
 var both = 3;
-var rulesUpToDate = false; // constants for controls
+var rulesUpToDate = false; // we know DOM is already loaded since script tag is after body
+
+var youngInput =
+/** @type {HTMLInputElement} */
+document.getElementById("youngcolor");
+var oldInput =
+/** @type {HTMLInputElement} */
+document.getElementById("oldcolor");
+var trailInput =
+/** @type {HTMLInputElement} */
+document.getElementById("trailcolor");
+var deadInput =
+/** @type {HTMLInputElement} */
+document.getElementById("deadcolor");
+var shareText =
+/** @type {HTMLTextAreaElement} */
+document.getElementById("sharetext");
+var copyButton =
+/** @type {HTMLButtonElement} */
+document.getElementById("copybutton");
+copyButton.addEventListener("click", function () {
+  shareText.select();
+  document.execCommand("copy");
+}); // constants for controls
 
 var MIN_SCALE = 1;
 var MAX_SCALE = 128;
@@ -389,44 +441,53 @@ var currentRules;
 exports.currentRules = currentRules;
 var checkList = [];
 
-var CheckPair =
-/**
- * adds a pair of checks to the rules table
- * @param {number} num
- */
-function CheckPair(num) {
-  var _this = this;
+var CheckPair = /*#__PURE__*/function () {
+  /**
+   * adds a pair of checks to the rules table
+   * @param {number} num
+   */
+  function CheckPair(num) {
+    var _this = this;
 
-  _classCallCheck(this, CheckPair);
+    _classCallCheck(this, CheckPair);
 
-  this.num = num;
-  var table =
-  /** @type {HTMLTableElement} */
-  document.getElementById("rulestable");
-  var row = table.insertRow(num + 1);
-  var numberCell = row.insertCell(0);
-  var deadCell = row.insertCell(1);
-  var aliveCell = row.insertCell(2);
+    this.num = num;
+    var table =
+    /** @type {HTMLTableElement} */
+    document.getElementById("rulestable");
+    var row = table.insertRow(num + 1);
+    var numberCell = row.insertCell(0);
+    var deadCell = row.insertCell(1);
+    var aliveCell = row.insertCell(2);
 
-  var makeCheckbox = function makeCheckbox() {
-    var checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.addEventListener("click", function () {
-      // hack to convert pairs of booleans to int from 0 to 3
-      currentRules[_this.num] = 2 * ~~_this.deadCheckbox.checked + ~~_this.aliveCheckbox.checked;
-      rulesUpToDate = false;
-      console.log(currentRules);
-    });
-    console.log(currentRules);
-    return checkbox;
-  };
+    var makeCheckbox = function makeCheckbox() {
+      var checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.addEventListener("click", function () {
+        currentRules[_this.num] = _this.getRuleNum();
+        rulesUpToDate = false;
+        generateShareUrl();
+      });
+      return checkbox;
+    };
 
-  this.deadCheckbox = makeCheckbox();
-  this.aliveCheckbox = makeCheckbox();
-  numberCell.innerHTML = "" + num;
-  deadCell.appendChild(this.deadCheckbox);
-  aliveCell.appendChild(this.aliveCheckbox);
-};
+    this.deadCheckbox = makeCheckbox();
+    this.aliveCheckbox = makeCheckbox();
+    numberCell.innerHTML = "" + num;
+    deadCell.appendChild(this.deadCheckbox);
+    aliveCell.appendChild(this.aliveCheckbox);
+  } // hack to convert pairs of booleans to int from 0 to 3
+
+
+  _createClass(CheckPair, [{
+    key: "getRuleNum",
+    value: function getRuleNum() {
+      return 2 * ~~this.deadCheckbox.checked + ~~this.aliveCheckbox.checked;
+    }
+  }]);
+
+  return CheckPair;
+}();
 /**
  * add all nine check rows to the table
  * @param {number[]} startRules
@@ -434,13 +495,19 @@ function CheckPair(num) {
 
 
 function addChecks(startRules) {
-  exports.currentRules = currentRules = startRules;
+  var queryRules = (0, _helpers.getVariable)("r");
+
+  if (queryRules !== undefined) {
+    exports.currentRules = currentRules = parseRuleString(queryRules);
+  } else {
+    exports.currentRules = currentRules = startRules;
+  }
 
   for (var i = 0; i < 9; i++) {
     var checkPair = new CheckPair(i); // TODO be able to set rules even outside construction
 
     checkList.push(checkPair);
-    var booleanRules = startRules[i].toString(2).padStart(2, "0").split("").map(function (n) {
+    var booleanRules = currentRules[i].toString(2).padStart(2, "0").split("").map(function (n) {
       return !!parseInt(n);
     });
     checkPair.deadCheckbox.checked = booleanRules[0];
@@ -457,7 +524,7 @@ function setRulesUpToDate() {
   rulesUpToDate = val;
 }
 /**
- *
+ * adds event listeners to the color input
  * @param {WebGLRenderingContext} gl
  * @param {WebGLUniformLocation} uYoungColor
  * @param {WebGLUniformLocation} uOldColor
@@ -467,23 +534,20 @@ function setRulesUpToDate() {
 
 
 function addColorChangeListeners(gl, uYoungColor, uOldColor, uTrailColor, uDeadColor) {
-  // TODO move all of this
-  var youngInput =
-  /** @type {HTMLInputElement} */
-  document.getElementById("youngcolor");
-  youngInput.addEventListener("change", makeInputFunc(gl, uYoungColor, youngInput, "#ffffff"));
-  var oldInput =
-  /** @type {HTMLInputElement} */
-  document.getElementById("oldcolor");
-  oldInput.addEventListener("change", makeInputFunc(gl, uOldColor, oldInput, "#ffffff"));
-  var trailInput =
-  /** @type {HTMLInputElement} */
-  document.getElementById("trailcolor");
-  trailInput.addEventListener("change", makeInputFunc(gl, uTrailColor, trailInput, "#777777"));
-  var deadInput =
-  /** @type {HTMLInputElement} */
-  document.getElementById("deadcolor");
-  deadInput.addEventListener("change", makeInputFunc(gl, uDeadColor, deadInput, "#000000"));
+  // get data from query string if any
+  // example query string: `?y=ff0000&o=00ff00&t=0000ff&d=ffff00`
+  var youngVar = (0, _helpers.getVariable)("y");
+  var youngColor = youngVar !== undefined ? "#" + youngVar : "#ffffff";
+  var oldVar = (0, _helpers.getVariable)("o");
+  var oldColor = oldVar !== undefined ? "#" + oldVar : "#ffffff";
+  var trailVar = (0, _helpers.getVariable)("t");
+  var trailColor = trailVar !== undefined ? "#" + trailVar : "#777777";
+  var deadVar = (0, _helpers.getVariable)("d");
+  var deadColor = deadVar !== undefined ? "#" + deadVar : "#000000";
+  youngInput.addEventListener("change", makeInputFunc(gl, uYoungColor, youngInput, youngColor));
+  oldInput.addEventListener("change", makeInputFunc(gl, uOldColor, oldInput, oldColor));
+  trailInput.addEventListener("change", makeInputFunc(gl, uTrailColor, trailInput, trailColor));
+  deadInput.addEventListener("change", makeInputFunc(gl, uDeadColor, deadInput, deadColor));
 }
 /**
  * makes the on change function for a color input
@@ -503,7 +567,50 @@ function makeInputFunc(gl, loc, input, color) {
 
   func(); // fire the function to set the colors
 
-  return func;
+  return function () {
+    func();
+    generateShareUrl();
+  };
+}
+
+function makeRuleString() {
+  var str = "";
+  var _iteratorNormalCompletion = true;
+  var _didIteratorError = false;
+  var _iteratorError = undefined;
+
+  try {
+    for (var _iterator = currentRules[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+      var rule = _step.value;
+      str += rule;
+    }
+  } catch (err) {
+    _didIteratorError = true;
+    _iteratorError = err;
+  } finally {
+    try {
+      if (!_iteratorNormalCompletion && _iterator["return"] != null) {
+        _iterator["return"]();
+      }
+    } finally {
+      if (_didIteratorError) {
+        throw _iteratorError;
+      }
+    }
+  }
+
+  return str;
+}
+/**
+ * parse the base 4 rule string into an array
+ * @param {string} str
+ */
+
+
+function parseRuleString(str) {
+  return str.split("").map(function (s) {
+    return parseInt(s);
+  });
 }
 /**
  * add event listeners on the number fields
@@ -534,6 +641,21 @@ function addNumberChangeListeners(canvas) {
     delayInput.value = "" + delay;
   });
   resizeCanvas(canvas);
+}
+/**
+ * gets the url color string from a color input
+ * @param {HTMLInputElement} input
+ */
+
+
+function getColorString(input) {
+  return input.value.slice(1);
+}
+
+function generateShareUrl() {
+  var url = window.location.href.split("?")[0];
+  var query = "?y=" + getColorString(youngInput) + "&o=" + getColorString(oldInput) + "&t=" + getColorString(trailInput) + "&d=" + getColorString(deadInput) + "&r=" + makeRuleString();
+  shareText.innerHTML = url + query; // TODO should it be innerText?
 }
 /**
  * change the canvas size
