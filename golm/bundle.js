@@ -90,7 +90,10 @@ var uRules;
 var uSeed;
 /** @type {WebGLUniformLocation} */
 
-var uPaused; // the uniforms in the render shader
+var uPaused;
+/** @type {WebGLUniformLocation} */
+
+var uProb; // the uniforms in the render shader
 
 /** @type {WebGLUniformLocation} */
 
@@ -206,9 +209,10 @@ function makeShaders() {
   var fragmentSource = glslify(["// transforms the colors in the simulation into better ones\n\n#ifdef GL_ES\nprecision mediump float;\n#define GLSLIFY 1\n#endif\n\nuniform sampler2D uSampler;\nuniform vec2 resolution;\n\nuniform vec4 youngColor;\nuniform vec4 oldColor;\nuniform vec4 trailColor;\nuniform vec4 deadColor;\n\nvoid main() {\n  vec4 originalColor = vec4(texture2D(uSampler, gl_FragCoord.xy / resolution).rgb, 1.0);\n  vec4 newColor = mix(youngColor, oldColor, originalColor.b) * originalColor.r\n                  + mix(deadColor, trailColor, originalColor.g) * (1.0 - originalColor.r);\n  gl_FragColor = newColor;\n}\n"]);
   drawProgram = createAndCompileFrag(fragmentSource, vertexShader);
   setPositionAndRes(drawProgram);
-  var simulationSource = glslify(["#ifdef GL_ES\nprecision mediump float;\n#define GLSLIFY 1\n#endif\n\nuniform float time;\nuniform vec2 resolution;\n\n// simulation texture state, swapped each frame\nuniform sampler2D state;\n\n// defines the rules of the board\nuniform int rules[9];\n\n// to seed the psuedorandom number generator\nuniform float seed;\n\n// whether to step the simulation\nuniform int paused;\n\n// constants for rules\nconst int die = 0;\nconst int stay = 1;\nconst int birth = 2;\nconst int both = 3;\n\n// random function from book of shaders\nfloat random(vec2 st) {\n  return fract(sin(dot(st.xy / 123.45, vec2(12.9898, 78.233))) * 43758.5453123 * (9.0 + seed));\n}\n\n// returns 1.0 or 0.0 based on chance\nfloat randomChance(vec2 st, float chance) {\n  return step(chance, random(st));\n}\n\n// get a pixel value\nvec4 getPixel(int x, int y) {\n  return texture2D(state, (mod(gl_FragCoord.xy + vec2(x, y), resolution)) / resolution);\n}\n\n// look up individual cell values\nint get(int x, int y) {\n  return int(getPixel(x, y).r);\n}\n\n// get stepped color of alive cell\nvec4 getAliveColor(vec4 color) {\n  return vec4(1.0, 0.0, 0.01 + color.b, 1.0);\n}\n\n// get stepped color of dead cell\nvec4 getDeadColor(vec4 color) {\n  return vec4( 0.0, color.r * 1.0 + color.g * 0.95, 0.0, 1.0 );\n}\n\nvoid main() {\n  // randomize on the GPU at the beginning\n  if (time == 0.0) {\n    gl_FragColor = vec4(vec3(randomChance(gl_FragCoord.xy, 0.5)), 1.0);\n    return;\n  }\n\n  // get sum of all surrounding nine neighbors\n  int sum = get(-1, -1) + get(-1, 0) + get(-1, 1) + get(0, -1) + get(0, 1) + get(1, -1) + get(1, 0) + get(1, 1);\n\n  // index rules array based on neighbor #\n  int result;\n\n  // can't index by a non-constant, so we have to loop through\n  for (int i = 0; i < 9; i++) {\n    if (i == sum) {\n      result = rules[i];\n      break;\n    }\n  }\n\n  vec4 color = getPixel(0, 0);\n\n  if (paused == 1) {\n    gl_FragColor = color;\n    return;\n  }\n\n  // TODO don't call get here (used color)\n  float current = float(get(0, 0));\n\n  if (result == stay) {\n    // maintain current state\n    gl_FragColor = vec4(color.r, color.g * 0.95, color.r * (0.01 + color.b), 1.0);\n  } else if (result == both) {\n    // ideal # of neighbors... if cell is living, stay alive, if it is dead, come to life!\n    gl_FragColor = getAliveColor(color);\n  } else if (result == birth) {\n    // semi-ideal # of neighbors... if cell is living, die, but if dead, come to life\n    if (current == 0.0) {\n      gl_FragColor = getAliveColor(color);\n    } else {\n      gl_FragColor = getDeadColor(color);\n    }\n  } else if (result == die) {\n    // over-population or loneliness... cell dies\n    gl_FragColor = getDeadColor(color);\n  }\n}\n"]);
+  var simulationSource = glslify(["#ifdef GL_ES\nprecision mediump float;\n#define GLSLIFY 1\n#endif\n\nuniform float time;\nuniform vec2 resolution;\n\n// simulation texture state, swapped each frame\nuniform sampler2D state;\n\n// defines the rules of the board\nuniform int rules[9];\n\n// to seed the psuedorandom number generator\nuniform float seed;\n\n// whether to step the simulation\nuniform int paused;\n\n// chance for initial starting condition\nuniform float prob;\n\n// constants for rules\nconst int die = 0;\nconst int stay = 1;\nconst int birth = 2;\nconst int both = 3;\n\n// random function from book of shaders\nfloat random(vec2 st) {\n  return fract(sin(dot(st.xy / 123.45, vec2(12.9898, 78.233))) * 43758.5453123 * (9.0 + seed));\n}\n\n// returns 1.0 or 0.0 based on chance\nfloat randomChance(vec2 st, float chance) {\n  return step(chance, random(st));\n}\n\n// get a pixel value\nvec4 getPixel(int x, int y) {\n  return texture2D(state, (mod(gl_FragCoord.xy + vec2(x, y), resolution)) / resolution);\n}\n\n// look up individual cell values\nint get(int x, int y) {\n  return int(getPixel(x, y).r);\n}\n\n// get stepped color of alive cell\nvec4 getAliveColor(vec4 color) {\n  return vec4(1.0, 0.0, 0.01 + color.b, 1.0);\n}\n\n// get stepped color of dead cell\nvec4 getDeadColor(vec4 color) {\n  return vec4( 0.0, color.r * 1.0 + color.g * 0.95, 0.0, 1.0 );\n}\n\nvoid main() {\n  // randomize on the GPU at the beginning\n  if (time == 0.0) {\n    gl_FragColor = vec4(vec3(randomChance(gl_FragCoord.xy, prob)), 1.0);\n    return;\n  }\n\n  // get sum of all surrounding nine neighbors\n  int sum = get(-1, -1) + get(-1, 0) + get(-1, 1) + get(0, -1) + get(0, 1) + get(1, -1) + get(1, 0) + get(1, 1);\n\n  // index rules array based on neighbor #\n  int result;\n\n  // can't index by a non-constant, so we have to loop through\n  for (int i = 0; i < 9; i++) {\n    if (i == sum) {\n      result = rules[i];\n      break;\n    }\n  }\n\n  vec4 color = getPixel(0, 0);\n\n  if (paused == 1) {\n    gl_FragColor = color;\n    return;\n  }\n\n  // TODO don't call get here (used color)\n  float current = float(get(0, 0));\n\n  if (result == stay) {\n    // maintain current state\n    gl_FragColor = vec4(color.r, color.g * 0.95, color.r * (0.01 + color.b), 1.0);\n  } else if (result == both) {\n    // ideal # of neighbors... if cell is living, stay alive, if it is dead, come to life!\n    gl_FragColor = getAliveColor(color);\n  } else if (result == birth) {\n    // semi-ideal # of neighbors... if cell is living, die, but if dead, come to life\n    if (current == 0.0) {\n      gl_FragColor = getAliveColor(color);\n    } else {\n      gl_FragColor = getDeadColor(color);\n    }\n  } else if (result == die) {\n    // over-population or loneliness... cell dies\n    gl_FragColor = getDeadColor(color);\n  }\n}\n"]);
   simulationProgram = createAndCompileFrag(simulationSource, vertexShader);
-  setPositionAndRes(simulationProgram); // find a pointer to the uniform "time" in our fragment shader
+  setPositionAndRes(simulationProgram); // TODO move the getting of uniforms to its own function
+  // find a pointer to the uniform "time" in our fragment shader
 
   uTime = gl.getUniformLocation(simulationProgram, "time");
   uSimulationState = gl.getUniformLocation(simulationProgram, "state");
@@ -221,7 +225,9 @@ function makeShaders() {
 
   uSeed = gl.getUniformLocation(simulationProgram, "seed"); // get the pause uniform location
 
-  uPaused = gl.getUniformLocation(simulationProgram, "paused");
+  uPaused = gl.getUniformLocation(simulationProgram, "paused"); // initial starting condition chance
+
+  uProb = gl.getUniformLocation(simulationProgram, "prob");
 }
 /**
  * set uniforms for resolution and set vertices to render to
@@ -306,7 +312,11 @@ function render() {
 
   gl.uniform1f(uTime, time); // randomize the seed if simulation has just been reset
 
-  if (time === 0) gl.uniform1f(uSeed, Math.random()); // update the pause uniform if it has just changed
+  if (time === 0) {
+    gl.uniform1f(uProb, (0, _rulescontrols.getFillProb)());
+    gl.uniform1f(uSeed, Math.random());
+  } // update the pause uniform if it has just changed
+
 
   if ((0, _rulescontrols.getJustPaused)()) {
     gl.uniform1i(uPaused, ~~(0, _rulescontrols.getPaused)());
@@ -380,6 +390,7 @@ exports.setPaused = setPaused;
 exports.getJustPaused = getJustPaused;
 exports.pausedUpdated = pausedUpdated;
 exports.playOrPause = playOrPause;
+exports.getFillProb = getFillProb;
 exports.currentRules = exports.rules = void 0;
 
 var _helpers = require("./helpers.js");
@@ -434,10 +445,11 @@ var MAX_SCALE = 128;
 var MIN_DELAY = 1;
 var MAX_DELAY = 240;
 var DEFAULT_SCALE = 4;
-var DEFAULT_DELAY = 1; // state kept for controls
-
+var DEFAULT_DELAY = 1;
+var DEFAULT_FILL_PERCENT = 20;
 var scale = DEFAULT_SCALE;
 var delay = 1;
+var fillPercent = (0, _helpers.getVariable)("f") ? parseInt((0, _helpers.getVariable)("f")) : DEFAULT_FILL_PERCENT;
 /** @type {Object<string, number[]>} */
 
 var rules = {
@@ -653,6 +665,15 @@ function addNumberChangeListeners(canvas) {
     delay = (0, _helpers.clamp)(parseInt(delayInput.value), MIN_DELAY, MAX_DELAY);
     delayInput.value = "" + delay;
   });
+  var fillInput =
+  /** @type {HTMLInputElement} */
+  document.getElementById("fillpercent");
+  fillInput.value = "" + fillPercent;
+  fillInput.addEventListener("change", function () {
+    fillPercent = (0, _helpers.clamp)(parseInt(fillInput.value), 0, 100);
+    fillInput.value = "" + fillPercent;
+    generateShareUrl();
+  });
   resizeCanvas(canvas);
 }
 /**
@@ -667,7 +688,7 @@ function getColorString(input) {
 
 function generateShareUrl() {
   var url = window.location.href.split("?")[0];
-  var query = "?y=" + getColorString(youngInput) + "&o=" + getColorString(oldInput) + "&t=" + getColorString(trailInput) + "&d=" + getColorString(deadInput) + "&r=" + makeRuleString();
+  var query = "?y=" + getColorString(youngInput) + "&o=" + getColorString(oldInput) + "&t=" + getColorString(trailInput) + "&d=" + getColorString(deadInput) + "&r=" + makeRuleString() + "&f=" + fillPercent;
   shareText.innerHTML = url + query; // TODO should it be innerText?
 }
 /**
@@ -717,6 +738,10 @@ function playOrPause() {
   paused = !paused;
   justPaused = true;
   updatePausedText();
+}
+
+function getFillProb() {
+  return fillPercent / 100;
 }
 
 function updatePausedText() {
