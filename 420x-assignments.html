@@ -1,6 +1,7 @@
 <html>
   <head>
     <link rel="stylesheet" href="stylesheet.css" />
+    <meta charset="utf-8" />
   </head>
   <body>
     <header>
@@ -23,8 +24,8 @@
       <h1>Assignment 5 - Final Project</h1>
       <p>
         You can go play it <a href="../golm/">here</a>. The code is available
+        <a href="https://github.com/bandaloo/gpu-games-of-lives">here</a>.
       </p>
-      <a href="https://github.com/bandaloo/gpu-games-of-lives">here</a>.
 
       <h2>Aesthetic and Technical Intent</h2>
       <p>
@@ -43,15 +44,16 @@
         it dies. The
         <a href="https://www.conwaylife.com/wiki/Rulestring">rulestring</a> for
         this is <code>B3/S23</code> As you might imagine, there are many
-        rulestrings you could come up with (4 <sup>9</sup> or 262144 to be
-        exact.) So, Conway's Game of Life is really a small part of the other
-        cellular automata (or
-        <a href="https://www.conwaylife.com/wiki/OCA">OCA</a>) that can exist. I
-        have created a tool that allows you to explore this possibility space
-        before. However, this old web toy runs on the CPU, so I was not able to
-        animate a massive grid in real time. The UI I originally came up with
-        was somewhat unintuitive as well, so this is something I wanted to
-        improve on.
+        rulestrings you could come up with: 4 <sup>9</sup> or 262144 to be
+        exact. In my version, rule <code>B3/S23</code> looks like row 3 checked
+        in the dead column, and 2 and 3 checked in the alive column. So,
+        Conway's Game of Life is really a small part of the other cellular
+        automata (or <a href="https://www.conwaylife.com/wiki/OCA">OCA</a>) that
+        can exist. I have created a tool that allows you to explore this
+        possibility space in the past. However, this old web toy runs on the
+        CPU, so I was not able to animate a massive grid in real time. The UI I
+        originally came up with was somewhat unintuitive as well, so this is
+        something I wanted to improve on.
       </p>
       <p>
         I called my new web toy "Games of Lives Maker" but even this is somewhat
@@ -99,6 +101,74 @@
         aesthetic intent. I have saved and cropped dozens of pictures to post to
         social media. I hope people have close to as much fun as I did creating
         interesting imagery with this tool.
+      </p>
+      <h2>Reaction to Feedback</h2>
+      <p>
+        I shared "Games of Lives Maker" with friends and family. My brother was
+        surprised with the variety of creations you could attain by tweaking the
+        rules and colors. He mentioned that this web toy did a good job of
+        giving a sense of scale, since you could scroll around or zoom out to
+        see all the cells being simulated at once (of which there are over two
+        million.) My friend also had a chance to play with the web toy. He had
+        the idea of including a button that completely randomizes the rules and
+        colors. That way, it would automate the process of randomly changing the
+        parameters in hopes of stumbling across an interesting ruleset. I will
+        probably continue to add features in the future. I also dropped the link
+        on Twitter and got a couple of these: ️&#10084;&#65039; but I didn't get
+        too many comments.
+      </p>
+      <h2>Implementation</h2>
+      <p>
+        One of the challenges was passing the "rules" of the cellular automata
+        down to the GPU. I encoded the rules as a list of nine integers, and
+        created a uniform for this. The rule array for Conway's Game of Life
+        looks like this: <code>[0, 0, 1, 3, 0, 0, 0, 0, 0]</code>. For example,
+        a cell that has three neighbors would index the third (or fourth, if
+        counting from one) item in this array, and find rule 3, which indicates
+        that alive cells should stay alive and dead cells should come to life. I
+        only pass the rules down to the GPU once they have changed to avoid any
+        uneccessary communication between the CPU and the GPU. This kind of
+        works out elegantly, because the pair of checkboxes in the GUI
+        represents the "rule" number in binary. Unfortunately, you cannot index
+        an array by a non-constant in WebGL. To get around this, I have to
+        iterate up to the desired index. I'm sure Khronos had good reason for
+        this, and I'm sure it's optimization, but annoyingly, this means the
+        "worst case" scenario is when each cell has eight neighbors. This is
+        only really annoying from a theoretical perspective, since the
+        simulation runs smoothly, and this worst case doesn't typically
+        manifest. (In retrospect, instead of using an array, I could have stored
+        all of the rules in a single integer uniform, since you only need 18
+        bits to store the rules. However, this would have made the simulation
+        shader more complicated, as I would somehow need to extract the rules
+        from this integer. I wonder if you could "index" a pair of bits in an
+        integer by dividing and rounding somehow? This would probaby be pretty
+        fast.)
+      </p>
+      <p>
+        I avoided dat.gui because I wanted slightly greater control over the UI,
+        both aesthetically and mechanically. This took some time to get right.
+        The main reason for this is that I'm not sure how you might accomplish
+        the "rules table" part of the GUI with dat.gui alone. To keep things
+        simple, I kept all of the GUI stuff in a separate module that gets
+        bundled in the build process.
+      </p>
+      <p>
+        I originally worked off of the in-class Game of Life tutorial. However,
+        almost all of it had to be rewritten to accomodate for generalized
+        rulesets.
+      </p>
+      <p>
+        The data for the state of the simulation is stored in a single pixel.
+        The red channel is either 1.0 or 0.0 representing whether the cell is
+        alive or dead. The blue channel is used to store the age of an alive
+        cell, while the green channel is used to store the age of a dead cell.
+        (This is actually somewhat redundant; I could have simply stored the age
+        in one channel, since red already denotes whether the cell is alive or
+        dead. This info could even be reduced to a single channel.) The
+        simulation is not rendered based on these colors, however. The
+        `render.glsl` shader takes these values and uses them to mix between the
+        user defined colors for alive cells and dead cells. I was able to avoid
+        branching in the render shader.
       </p>
       <h1>Assignment 4 - Simulation Programming</h1>
       <p>
