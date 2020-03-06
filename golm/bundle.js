@@ -117,8 +117,6 @@ var dimensions = {
   height: null
 }; // state kept for controls
 
-var paused = false;
-var justPaused = false;
 var delayCount = 0;
 
 window.onload = function () {
@@ -153,19 +151,20 @@ window.onload = function () {
 
     switch (e.key) {
       case "r":
-        time = 0; // TODO make puase and play functions
-
-        paused = false;
-        justPaused = true;
+        time = 0;
+        (0, _rulescontrols.setPaused)(false);
         break;
 
       case "p":
-        paused = !paused;
-        justPaused = true;
+        (0, _rulescontrols.playOrPause)();
 
       default:
         break;
     }
+  });
+  document.getElementById("randombutton").addEventListener("click", function () {
+    time = 0;
+    (0, _rulescontrols.setPaused)(false);
   });
 };
 /**
@@ -309,9 +308,9 @@ function render() {
 
   if (time === 0) gl.uniform1f(uSeed, Math.random()); // update the pause uniform if it has just changed
 
-  if (justPaused) {
-    justPaused = false;
-    gl.uniform1i(uPaused, ~~paused);
+  if ((0, _rulescontrols.getJustPaused)()) {
+    gl.uniform1i(uPaused, ~~(0, _rulescontrols.getPaused)());
+    (0, _rulescontrols.pausedUpdated)();
   }
 
   gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer); // use the framebuffer to write to our texFront texture
@@ -376,6 +375,11 @@ exports.addNumberChangeListeners = addNumberChangeListeners;
 exports.generateShareUrl = generateShareUrl;
 exports.getScale = getScale;
 exports.getDelay = getDelay;
+exports.getPaused = getPaused;
+exports.setPaused = setPaused;
+exports.getJustPaused = getJustPaused;
+exports.pausedUpdated = pausedUpdated;
+exports.playOrPause = playOrPause;
 exports.currentRules = exports.rules = void 0;
 
 var _helpers = require("./helpers.js");
@@ -391,7 +395,10 @@ var die = 0;
 var stay = 1;
 var birth = 2;
 var both = 3;
-var rulesUpToDate = false; // we know DOM is already loaded since script tag is after body
+var rulesUpToDate = false; // state kept for controls
+
+var paused = false;
+var justPaused = false; // we know DOM is already loaded since script tag is after body
 
 var youngInput =
 /** @type {HTMLInputElement} */
@@ -414,6 +421,12 @@ document.getElementById("copybutton");
 copyButton.addEventListener("click", function () {
   shareText.select();
   document.execCommand("copy");
+});
+var pauseButton =
+/** @type {HTMLButtonElement} */
+document.getElementById("pausebutton");
+pauseButton.addEventListener("click", function () {
+  playOrPause();
 }); // constants for controls
 
 var MIN_SCALE = 1;
@@ -674,6 +687,40 @@ function getScale() {
 
 function getDelay() {
   return delay;
+}
+
+function getPaused() {
+  return paused;
+}
+/**
+ * @param {boolean} pauseState
+ */
+
+
+function setPaused(pauseState) {
+  if (justPaused !== paused) {
+    justPaused = pauseState;
+    paused = pauseState;
+    updatePausedText();
+  }
+}
+
+function getJustPaused() {
+  return justPaused;
+}
+
+function pausedUpdated() {
+  justPaused = false;
+}
+
+function playOrPause() {
+  paused = !paused;
+  justPaused = true;
+  updatePausedText();
+}
+
+function updatePausedText() {
+  pauseButton.innerText = paused ? "play" : "pause";
 }
 
 },{"./helpers.js":1}]},{},[2]);

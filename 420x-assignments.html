@@ -20,6 +20,86 @@
 
     <main>
       <title>420X Assignments</title>
+      <h1>Assignment 5 - Final Project</h1>
+      <p>
+        You can go play it <a href="../golm/">here</a>. The code is available
+      </p>
+      <a href="https://github.com/bandaloo/gpu-games-of-lives">here</a>.
+
+      <h2>Aesthetic and Technical Intent</h2>
+      <p>
+        I really like the Conway's Game of Life. It is still astounding to me
+        that a simple, completely deterministic system can produce so much
+        complexity. If you are ever bored and suspect you have similar
+        inclinations to me, I recommend checking out
+        <a href="LifeWiki">LifeWiki</a>. People are still studying this
+        zero-player game and learning more about it. I suppose any system that
+        is Turing-complete could be studied forever, so perhaps it's no
+        surprise!
+      </p>
+      <p>
+        You might already be familiar with the rules: a cell is born if it has
+        two neighbors, and stays alive if it has two three neighbors. Otherwise,
+        it dies. The
+        <a href="https://www.conwaylife.com/wiki/Rulestring">rulestring</a> for
+        this is <code>B3/S23</code> As you might imagine, there are many
+        rulestrings you could come up with (4 <sup>9</sup> or 262144 to be
+        exact.) So, Conway's Game of Life is really a small part of the other
+        cellular automata (or
+        <a href="https://www.conwaylife.com/wiki/OCA">OCA</a>) that can exist. I
+        have created a tool that allows you to explore this possibility space
+        before. However, this old web toy runs on the CPU, so I was not able to
+        animate a massive grid in real time. The UI I originally came up with
+        was somewhat unintuitive as well, so this is something I wanted to
+        improve on.
+      </p>
+      <p>
+        I called my new web toy "Games of Lives Maker" but even this is somewhat
+        of a misnomer. It is a tool to create and share any cellular automata
+        where cells are born and die based on the number of alive neighbors in
+        the
+        <a href="https://www.conwaylife.com/wiki/Moore_neighbourhood"
+          >Moore neighborhood</a
+        >. It covers any OCA that can be defined by the typical B/S rulestring
+        notation.
+      </p>
+      <p>
+        There are plenty of tools that allow you to run cellular automata. These
+        are parallelized and optimized to a ridiculous degree, no doubt also
+        taking advantage of the GPU. Since tools to study Conway's Game of Life
+        and other cellular automata is well-covered, it doesn't make sense to
+        compete with this by trying to develop a fully-featured suite for
+        studying cellular automata. Therefore, the aesthetic intent of my
+        project is more important. I allow the user to color the simulation in
+        interesting ways. I didn't want to simply wash over the white cells with
+        a crazy pattern arbitrarily; it was important to me that the coloring
+        reflected some aspect of the simulation. Alive cells blend between the
+        "young color" and "old color" as they age. This means that
+        <a href="https://www.conwaylife.com/wiki/Still_life">still lifes</a>
+        will fade to one color as they age, which separates them visually from
+        the cells that are constantly in flux. Similarly, dead cells will leave
+        behind a "trail color" which will slowly fade into the "dead color."
+        This post-processing reveals additional patterns that are not apparent
+        with simple 1-bit color. Take this simple black-and-white example with
+        no-gradient for
+        <a
+          href="https://www.bandaloo.fun/golm/?y=ffffff&o=ffffff&t=000000&d=000000&r=333201113"
+          >this ruleset</a
+        >. While this looks chaotic and is difficult to watch, add the right
+        colors and
+        <a
+          href="https://www.bandaloo.fun/golm/?y=0152f3&o=00fdfe&t=0000ff&d=0f1bff&r=333201113"
+          >moving blobs are revealed</a
+        >. Because I see this toy as more of a creative tool, I wanted people to
+        be able to easily share rulesets and color schemes, so I included the
+        shareable link that puts the colors and rules into a query string at the
+        end of the url. I have probably spent just as much time coding this tool
+        as I have playing with the rules and colors to create some generated
+        art; because of this, I feel as though I have succeeded with my
+        aesthetic intent. I have saved and cropped dozens of pictures to post to
+        social media. I hope people have close to as much fun as I did creating
+        interesting imagery with this tool.
+      </p>
       <h1>Assignment 4 - Simulation Programming</h1>
       <p>
         I chose to implement a rock paper scissors cellular automata that runs
@@ -73,7 +153,7 @@
       </p>
       <h2>Implementation</h2>
       <p>
-        In order to get acquainted with <tt>glslify</tt>, I took Charlie
+        In order to get acquainted with <code>glslify</code>, I took Charlie
         Robert's game of life tutorial and pulled out the three shaders we used
         to run the simulation. I also added type information in jsdoc comments
         in order to help myself understand how the front buffer and back buffer
@@ -85,13 +165,13 @@
         much like game of life. In order to avoid any floating point errors, I
         reduced the fuel of each cell by increments of 1/64, or 0.015625 each
         time. One major difference between this simulation and Game of Life is
-        that psuedo-randomness is used. I modified the <tt>rand</tt> function
-        from The Book of Shaders in order to get an integer from 0 to 7. This
-        choice determines from what direction each cell will be attacked by. I
-        used branching but I'm sure it's possible to eliminate this. Even still,
-        I was impressed with how fast the simulation was able to run. At 1920 by
-        1080 (the resolution of my second monitor) 2,073,600 cells are being
-        simulated every step!
+        that psuedo-randomness is used. I modified the
+        <code>rand</code> function from The Book of Shaders in order to get an
+        integer from 0 to 7. This choice determines from what direction each
+        cell will be attacked by. I used branching but I'm sure it's possible to
+        eliminate this. Even still, I was impressed with how fast the simulation
+        was able to run. At 1920 by 1080 (the resolution of my second monitor)
+        2,073,600 cells are being simulated every step!
       </p>
       <h1>Mini Project 3 - Reaction Diffusion with GUI</h1>
       <p>
