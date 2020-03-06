@@ -698,8 +698,8 @@ function getPaused() {
 
 
 function setPaused(pauseState) {
-  if (justPaused !== paused) {
-    justPaused = pauseState;
+  if (pauseState !== paused) {
+    justPaused = true;
     paused = pauseState;
     updatePausedText();
   }
