@@ -107,6 +107,12 @@ var uTrailColor;
 /** @type {WebGLUniformLocation} */
 
 var uDeadColor;
+/** @type {WebGLUniformLocation} */
+
+var uAliveMix;
+/** @type {WebGLUniformLocation} */
+
+var uDeadMix;
 /** @type {WebGLTexture} */
 
 var textureBack;
@@ -134,8 +140,7 @@ window.onload = function () {
   canvas.width = dimensions.width = 1920;
   canvas.height = dimensions.height = 1080; // game of life gui stuff
 
-  (0, _rulescontrols.addChecks)(_rulescontrols.rules.conway);
-  (0, _rulescontrols.addNumberChangeListeners)(canvas); // define drawing area of webgl canvas. bottom corner, width / height
+  (0, _rulescontrols.addChecks)(_rulescontrols.rules.conway); // define drawing area of webgl canvas. bottom corner, width / height
 
   gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
   makeBuffer();
@@ -147,6 +152,7 @@ window.onload = function () {
   makeTextures(); // TODO move render out of makeTextures
   // stuff for color controls
 
+  (0, _rulescontrols.addNumberChangeListeners)(canvas);
   (0, _rulescontrols.addColorChangeListeners)(gl, uYoungColor, uOldColor, uTrailColor, uDeadColor);
   (0, _rulescontrols.generateShareUrl)();
   window.addEventListener("keypress", function (e) {
@@ -160,6 +166,10 @@ window.onload = function () {
 
       case "p":
         (0, _rulescontrols.playOrPause)();
+
+      case "h":
+        var holder = document.getElementById("guiholder");
+        holder.style.display = holder.style.display === "none" ? "block" : "none";
 
       default:
         break;
@@ -206,10 +216,10 @@ function makeShaders() {
   gl.shaderSource(vertexShader, vertexSource);
   gl.compileShader(vertexShader); // create fragment shader
 
-  var fragmentSource = glslify(["// transforms the colors in the simulation into better ones\n\n#ifdef GL_ES\nprecision mediump float;\n#define GLSLIFY 1\n#endif\n\nuniform sampler2D uSampler;\nuniform vec2 resolution;\n\nuniform vec4 youngColor;\nuniform vec4 oldColor;\nuniform vec4 trailColor;\nuniform vec4 deadColor;\n\nvoid main() {\n  vec4 originalColor = vec4(texture2D(uSampler, gl_FragCoord.xy / resolution).rgb, 1.0);\n  vec4 newColor = mix(youngColor, oldColor, originalColor.b) * originalColor.r\n                  + mix(deadColor, trailColor, originalColor.g) * (1.0 - originalColor.r);\n  gl_FragColor = newColor;\n}\n"]);
+  var fragmentSource = glslify(["// transforms the colors in the simulation into better ones\n\n#ifdef GL_ES\nprecision mediump float;\n#define GLSLIFY 1\n#endif\n\nuniform sampler2D uSampler;\nuniform vec2 resolution;\n\nuniform vec4 youngColor;\nuniform vec4 oldColor;\nuniform vec4 trailColor;\nuniform vec4 deadColor;\n\nvoid main() {\n  vec4 originalColor = vec4(texture2D(uSampler, gl_FragCoord.xy / resolution).rgb, 1.0);\n  vec4 newColor = mix(oldColor, youngColor, originalColor.b) * originalColor.r\n                  + mix(deadColor, trailColor, originalColor.g) * (1.0 - originalColor.r);\n  gl_FragColor = newColor;\n}\n"]);
   drawProgram = createAndCompileFrag(fragmentSource, vertexShader);
   setPositionAndRes(drawProgram);
-  var simulationSource = glslify(["#ifdef GL_ES\nprecision mediump float;\n#define GLSLIFY 1\n#endif\n\nuniform float time;\nuniform vec2 resolution;\n\n// simulation texture state, swapped each frame\nuniform sampler2D state;\n\n// defines the rules of the board\nuniform int rules[9];\n\n// to seed the psuedorandom number generator\nuniform float seed;\n\n// whether to step the simulation\nuniform int paused;\n\n// chance for initial starting condition\nuniform float prob;\n\n// constants for rules\nconst int die = 0;\nconst int stay = 1;\nconst int birth = 2;\nconst int both = 3;\n\n// random function from book of shaders\nfloat random(vec2 st) {\n  return fract(sin(dot(st.xy / 123.45, vec2(12.9898, 78.233))) * 43758.5453123 * (9.0 + seed));\n}\n\n// returns 1.0 or 0.0 based on chance\nfloat randomChance(vec2 st, float chance) {\n  return step(chance, random(st));\n}\n\n// get a pixel value\nvec4 getPixel(int x, int y) {\n  return texture2D(state, (mod(gl_FragCoord.xy + vec2(x, y), resolution)) / resolution);\n}\n\n// look up individual cell values\nint get(int x, int y) {\n  return int(getPixel(x, y).r);\n}\n\n// get stepped color of alive cell\nvec4 getAliveColor(vec4 color) {\n  return vec4(1.0, 0.0, 0.01 + color.b, 1.0);\n}\n\n// get stepped color of dead cell\nvec4 getDeadColor(vec4 color) {\n  return vec4( 0.0, color.r * 1.0 + color.g * 0.95, 0.0, 1.0 );\n}\n\nvoid main() {\n  // randomize on the GPU at the beginning\n  if (time == 0.0) {\n    gl_FragColor = vec4(vec3(randomChance(gl_FragCoord.xy, prob)), 1.0);\n    return;\n  }\n\n  // get sum of all surrounding nine neighbors\n  int sum = get(-1, -1) + get(-1, 0) + get(-1, 1) + get(0, -1) + get(0, 1) + get(1, -1) + get(1, 0) + get(1, 1);\n\n  // index rules array based on neighbor #\n  int result;\n\n  // can't index by a non-constant, so we have to loop through\n  for (int i = 0; i < 9; i++) {\n    if (i == sum) {\n      result = rules[i];\n      break;\n    }\n  }\n\n  vec4 color = getPixel(0, 0);\n\n  if (paused == 1) {\n    gl_FragColor = color;\n    return;\n  }\n\n  // TODO don't call get here (used color)\n  float current = float(get(0, 0));\n\n  if (result == stay) {\n    // maintain current state\n    gl_FragColor = vec4(color.r, color.g * 0.95, color.r * (0.01 + color.b), 1.0);\n  } else if (result == both) {\n    // ideal # of neighbors... if cell is living, stay alive, if it is dead, come to life!\n    gl_FragColor = getAliveColor(color);\n  } else if (result == birth) {\n    // semi-ideal # of neighbors... if cell is living, die, but if dead, come to life\n    if (current == 0.0) {\n      gl_FragColor = getAliveColor(color);\n    } else {\n      gl_FragColor = getDeadColor(color);\n    }\n  } else if (result == die) {\n    // over-population or loneliness... cell dies\n    gl_FragColor = getDeadColor(color);\n  }\n}\n"]);
+  var simulationSource = glslify(["#ifdef GL_ES\nprecision mediump float;\n#define GLSLIFY 1\n#endif\n\nuniform float time;\nuniform vec2 resolution;\n\n// simulation texture state, swapped each frame\nuniform sampler2D state;\n\n// defines the rules of the board\nuniform int rules[9];\n\n// to seed the psuedorandom number generator\nuniform float seed;\n\n// whether to step the simulation\nuniform int paused;\n\n// chance for initial starting condition\nuniform float prob;\n\n// uniforms for color drop rate\nuniform float aliveMix;\nuniform float deadMix;\n\n// constants for rules\nconst int die = 0;\nconst int stay = 1;\nconst int birth = 2;\nconst int both = 3;\n\n// random function from book of shaders\nfloat random(vec2 st) {\n  return fract(sin(dot(st.xy / 123.45, vec2(12.9898, 78.233))) * 43758.5453123 * (9.0 + seed));\n}\n\n// returns 1.0 or 0.0 based on chance\nfloat randomChance(vec2 st, float chance) {\n  return step(chance, random(st));\n}\n\n// get a pixel value\nvec4 getPixel(int x, int y) {\n  return texture2D(state, (mod(gl_FragCoord.xy + vec2(x, y), resolution)) / resolution);\n}\n\n// look up individual cell values\nint get(int x, int y) {\n  return int(getPixel(x, y).r);\n}\n\n// get stepped color of alive cell\nvec4 getAliveColor(vec4 color) {\n  return vec4(1.0, 0.0, (1.0 - color.r) * 1.0 + aliveMix * color.b, 1.0);\n}\n\n// get stepped color of dead cell\nvec4 getDeadColor(vec4 color) {\n  return vec4( 0.0, color.r * 1.0 + color.g * deadMix, 0.0, 1.0 );\n}\n\nvoid main() {\n  // randomize on the GPU at the beginning\n  if (time == 0.0) {\n    gl_FragColor = vec4(vec3(randomChance(gl_FragCoord.xy, prob)), 1.0);\n    return;\n  }\n\n  // get sum of all surrounding nine neighbors\n  int sum = get(-1, -1) + get(-1, 0) + get(-1, 1) + get(0, -1) + get(0, 1) + get(1, -1) + get(1, 0) + get(1, 1);\n\n  // index rules array based on neighbor #\n  int result;\n\n  // can't index by a non-constant, so we have to loop through\n  for (int i = 0; i < 9; i++) {\n    if (i == sum) {\n      result = rules[i];\n      break;\n    }\n  }\n\n  vec4 color = getPixel(0, 0);\n\n  if (paused == 1) {\n    gl_FragColor = color;\n    return;\n  }\n\n  // TODO don't call get here (used color)\n  float current = float(get(0, 0));\n\n  if (result == stay) {\n    // maintain current state\n    gl_FragColor = vec4(color.r, color.g * deadMix, color.r * (aliveMix * color.b), 1.0);\n  } else if (result == both) {\n    // ideal # of neighbors... if cell is living, stay alive, if it is dead, come to life!\n    gl_FragColor = getAliveColor(color);\n  } else if (result == birth) {\n    // semi-ideal # of neighbors... if cell is living, die, but if dead, come to life\n    if (current == 0.0) {\n      gl_FragColor = getAliveColor(color);\n    } else {\n      gl_FragColor = getDeadColor(color);\n    }\n  } else if (result == die) {\n    // over-population or loneliness... cell dies\n    gl_FragColor = getDeadColor(color);\n  }\n}\n"]);
   simulationProgram = createAndCompileFrag(simulationSource, vertexShader);
   setPositionAndRes(simulationProgram); // TODO move the getting of uniforms to its own function
   // find a pointer to the uniform "time" in our fragment shader
@@ -227,7 +237,10 @@ function makeShaders() {
 
   uPaused = gl.getUniformLocation(simulationProgram, "paused"); // initial starting condition chance
 
-  uProb = gl.getUniformLocation(simulationProgram, "prob");
+  uProb = gl.getUniformLocation(simulationProgram, "prob"); // get uniforms for mixing
+
+  uAliveMix = gl.getUniformLocation(simulationProgram, "aliveMix");
+  uDeadMix = gl.getUniformLocation(simulationProgram, "deadMix");
 }
 /**
  * set uniforms for resolution and set vertices to render to
@@ -323,6 +336,12 @@ function render() {
     (0, _rulescontrols.pausedUpdated)();
   }
 
+  if ((0, _rulescontrols.getMixesChanged)()) {
+    gl.uniform1f(uAliveMix, (0, _rulescontrols.getMixes)().alive);
+    gl.uniform1f(uDeadMix, (0, _rulescontrols.getMixes)().dead);
+    (0, _rulescontrols.setMixesChanged)(true);
+  }
+
   gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer); // use the framebuffer to write to our texFront texture
 
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, textureFront, 0); // set viewport to be the size of our state (game of life simulation)
@@ -387,6 +406,9 @@ exports.getScale = getScale;
 exports.getDelay = getDelay;
 exports.getPaused = getPaused;
 exports.setPaused = setPaused;
+exports.getMixesChanged = getMixesChanged;
+exports.setMixesChanged = setMixesChanged;
+exports.getMixes = getMixes;
 exports.getJustPaused = getJustPaused;
 exports.pausedUpdated = pausedUpdated;
 exports.playOrPause = playOrPause;
@@ -401,7 +423,17 @@ function _defineProperties(target, props) { for (var i = 0; i < props.length; i+
 
 function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
 
-// constants for game of life
+// constants for controls
+var MIN_SCALE = 1;
+var MAX_SCALE = 128;
+var MIN_DELAY = 1;
+var MAX_DELAY = 240;
+var DEFAULT_SCALE = 4;
+var DEFAULT_DELAY = 1;
+var DEFAULT_FILL_PERCENT = 50;
+var DEFAULT_ALIVE_MIX = 95;
+var DEFAULT_DEAD_MIX = 95; // constants for game of life
+
 var die = 0;
 var stay = 1;
 var birth = 2;
@@ -409,7 +441,10 @@ var both = 3;
 var rulesUpToDate = false; // state kept for controls
 
 var paused = false;
-var justPaused = false; // we know DOM is already loaded since script tag is after body
+var justPaused = false;
+var aliveMix;
+var deadMix;
+var mixesChanged = false; // we know DOM is already loaded since script tag is after body
 
 var youngInput =
 /** @type {HTMLInputElement} */
@@ -438,15 +473,7 @@ var pauseButton =
 document.getElementById("pausebutton");
 pauseButton.addEventListener("click", function () {
   playOrPause();
-}); // constants for controls
-
-var MIN_SCALE = 1;
-var MAX_SCALE = 128;
-var MIN_DELAY = 1;
-var MAX_DELAY = 240;
-var DEFAULT_SCALE = 4;
-var DEFAULT_DELAY = 1;
-var DEFAULT_FILL_PERCENT = 50;
+});
 var scale = DEFAULT_SCALE;
 var delay = 1;
 var fillPercent = (0, _helpers.getVariable)("f") ? parseInt((0, _helpers.getVariable)("f")) : DEFAULT_FILL_PERCENT;
@@ -569,10 +596,10 @@ function addColorChangeListeners(gl, uYoungColor, uOldColor, uTrailColor, uDeadC
   var trailColor = trailVar !== undefined ? "#" + trailVar : "#777777";
   var deadVar = (0, _helpers.getVariable)("d");
   var deadColor = deadVar !== undefined ? "#" + deadVar : "#000000";
-  youngInput.addEventListener("change", makeInputFunc(gl, uYoungColor, youngInput, youngColor));
-  oldInput.addEventListener("change", makeInputFunc(gl, uOldColor, oldInput, oldColor));
-  trailInput.addEventListener("change", makeInputFunc(gl, uTrailColor, trailInput, trailColor));
-  deadInput.addEventListener("change", makeInputFunc(gl, uDeadColor, deadInput, deadColor));
+  youngInput.addEventListener("change", makeColorInputFunc(gl, uYoungColor, youngInput, youngColor));
+  oldInput.addEventListener("change", makeColorInputFunc(gl, uOldColor, oldInput, oldColor));
+  trailInput.addEventListener("change", makeColorInputFunc(gl, uTrailColor, trailInput, trailColor));
+  deadInput.addEventListener("change", makeColorInputFunc(gl, uDeadColor, deadInput, deadColor));
 }
 /**
  * makes the on change function for a color input
@@ -583,7 +610,7 @@ function addColorChangeListeners(gl, uYoungColor, uOldColor, uTrailColor, uDeadC
  */
 
 
-function makeInputFunc(gl, loc, input, color) {
+function makeColorInputFunc(gl, loc, input, color) {
   input.value = color; // set initial color
 
   var func = function func() {
@@ -674,6 +701,39 @@ function addNumberChangeListeners(canvas) {
     fillInput.value = "" + fillPercent;
     generateShareUrl();
   });
+  /**
+   * @param {HTMLInputElement} input
+   * @param {number} val
+   * @param {boolean} val
+   */
+
+  var setupMix = function setupMix(input, val, alive) {
+    input.value = "" + val; // set initial value
+
+    var func = function func() {
+      if (input.value === "") input.value = "0";
+      var mix = Math.round(10 * (0, _helpers.clamp)(parseFloat(input.value), 0, 100)) / 10;
+      input.value = "" + mix;
+      var normalMix = mix / 100;
+      alive ? aliveMix = normalMix : deadMix = normalMix;
+      mixesChanged = true;
+    };
+
+    func();
+    input.addEventListener("change", function () {
+      func();
+      generateShareUrl();
+    });
+  };
+
+  var aliveMixInput =
+  /** @type {HTMLInputElement} */
+  document.getElementById("alivemix");
+  setupMix(aliveMixInput, (0, _helpers.getVariable)("a") ? parseFloat((0, _helpers.getVariable)("a")) : DEFAULT_ALIVE_MIX, true);
+  var deadMixInput =
+  /** @type {HTMLInputElement} */
+  document.getElementById("deadmix");
+  setupMix(deadMixInput, (0, _helpers.getVariable)("g") ? parseFloat((0, _helpers.getVariable)("g")) : DEFAULT_DEAD_MIX, false);
   resizeCanvas(canvas);
 }
 /**
@@ -688,7 +748,7 @@ function getColorString(input) {
 
 function generateShareUrl() {
   var url = window.location.href.split("?")[0];
-  var query = "?y=" + getColorString(youngInput) + "&o=" + getColorString(oldInput) + "&t=" + getColorString(trailInput) + "&d=" + getColorString(deadInput) + "&r=" + makeRuleString() + "&f=" + fillPercent;
+  var query = "?y=" + getColorString(youngInput) + "&o=" + getColorString(oldInput) + "&t=" + getColorString(trailInput) + "&d=" + getColorString(deadInput) + (aliveMix !== DEFAULT_ALIVE_MIX / 100 ? "&a=" + (aliveMix * 100).toFixed(2) : "") + (deadMix !== DEFAULT_DEAD_MIX / 100 ? "&g=" + (deadMix * 100).toFixed(2) : "") + "&r=" + makeRuleString() + "&f=" + fillPercent;
   shareText.innerHTML = url + query; // TODO should it be innerText?
 }
 /**
@@ -724,6 +784,22 @@ function setPaused(pauseState) {
     paused = pauseState;
     updatePausedText();
   }
+}
+
+function getMixesChanged() {
+  return mixesChanged;
+}
+
+function setMixesChanged() {
+  var changed = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
+  mixesChanged = changed;
+}
+
+function getMixes() {
+  return {
+    alive: aliveMix,
+    dead: deadMix
+  };
 }
 
 function getJustPaused() {
