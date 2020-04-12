@@ -166,10 +166,12 @@ window.onload = function () {
 
       case "p":
         (0, _rulescontrols.playOrPause)();
+        break;
 
       case "h":
         var holder = document.getElementById("guiholder");
         holder.style.display = holder.style.display === "none" ? "block" : "none";
+        break;
 
       default:
         break;
