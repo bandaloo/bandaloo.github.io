@@ -695,7 +695,7 @@ function addNumberChangeListeners(canvas) {
   });
   scaleInput.min = "" + MIN_SCALE;
   scaleInput.max = "" + MAX_SCALE;
-  scaleInput.value = "" + DEFAULT_SCALE;
+  scaleInput.value = "" + scale;
   var delayInput =
   /** @type {HTMLInputElement} */
   document.getElementById("delay");
