@@ -156,8 +156,6 @@ window.onload = function () {
   (0, _rulescontrols.addColorChangeListeners)(gl, uYoungColor, uOldColor, uTrailColor, uDeadColor);
   (0, _rulescontrols.generateShareUrl)();
   window.addEventListener("keypress", function (e) {
-    console.log(e.key);
-
     switch (e.key) {
       case "r":
         time = 0;
@@ -169,8 +167,7 @@ window.onload = function () {
         break;
 
       case "h":
-        var holder = document.getElementById("guiholder");
-        holder.style.display = holder.style.display === "none" ? "block" : "none";
+        toggleDiv("guiholder");
         break;
 
       default:
@@ -180,6 +177,12 @@ window.onload = function () {
   document.getElementById("randombutton").addEventListener("click", function () {
     time = 0;
     (0, _rulescontrols.setPaused)(false);
+  }); // help toggle
+
+  var helpButton = document.getElementById("helpbutton");
+  helpButton.addEventListener("click", function () {
+    var result = toggleDiv("instructions");
+    helpButton.innerText = result ? "show help" : "hide help";
   });
 };
 /**
@@ -377,6 +380,17 @@ function render() {
 
   time++;
 }
+/**
+ * show or hide a div
+ * @param {string} id
+ */
+
+
+function toggleDiv(id) {
+  var holder = document.getElementById(id);
+  holder.style.display = holder.style.display === "none" ? "block" : "none";
+  return holder.style.display === "none";
+}
 
 },{"./rulescontrols.js":4,"glslify":3}],3:[function(require,module,exports){
 module.exports = function(strings) {
@@ -418,6 +432,12 @@ exports.getFillProb = getFillProb;
 exports.currentRules = exports.rules = void 0;
 
 var _helpers = require("./helpers.js");
+
+function _createForOfIteratorHelper(o) { if (typeof Symbol === "undefined" || o[Symbol.iterator] == null) { if (Array.isArray(o) || (o = _unsupportedIterableToArray(o))) { var i = 0; var F = function F() {}; return { s: F, n: function n() { if (i >= o.length) return { done: true }; return { done: false, value: o[i++] }; }, e: function e(_e) { throw _e; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var it, normalCompletion = true, didErr = false, err; return { s: function s() { it = o[Symbol.iterator](); }, n: function n() { var step = it.next(); normalCompletion = step.done; return step; }, e: function e(_e2) { didErr = true; err = _e2; }, f: function f() { try { if (!normalCompletion && it["return"] != null) it["return"](); } finally { if (didErr) throw err; } } }; }
+
+function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
+
+function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -476,9 +496,9 @@ document.getElementById("pausebutton");
 pauseButton.addEventListener("click", function () {
   playOrPause();
 });
-var scale = DEFAULT_SCALE;
+var scale = (0, _helpers.getVariable)("s") ? parseFloat((0, _helpers.getVariable)("s")) : DEFAULT_SCALE;
 var delay = 1;
-var fillPercent = (0, _helpers.getVariable)("f") ? parseInt((0, _helpers.getVariable)("f")) : DEFAULT_FILL_PERCENT;
+var fillPercent = (0, _helpers.getVariable)("f") ? parseFloat((0, _helpers.getVariable)("f")) : DEFAULT_FILL_PERCENT;
 /** @type {Object<string, number[]>} */
 
 var rules = {
@@ -629,28 +649,19 @@ function makeColorInputFunc(gl, loc, input, color) {
 
 function makeRuleString() {
   var str = "";
-  var _iteratorNormalCompletion = true;
-  var _didIteratorError = false;
-  var _iteratorError = undefined;
+
+  var _iterator = _createForOfIteratorHelper(currentRules),
+      _step;
 
   try {
-    for (var _iterator = currentRules[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+    for (_iterator.s(); !(_step = _iterator.n()).done;) {
       var rule = _step.value;
       str += rule;
     }
   } catch (err) {
-    _didIteratorError = true;
-    _iteratorError = err;
+    _iterator.e(err);
   } finally {
-    try {
-      if (!_iteratorNormalCompletion && _iterator["return"] != null) {
-        _iterator["return"]();
-      }
-    } finally {
-      if (_didIteratorError) {
-        throw _iteratorError;
-      }
-    }
+    _iterator.f();
   }
 
   return str;
@@ -680,6 +691,7 @@ function addNumberChangeListeners(canvas) {
     scale = (0, _helpers.clamp)(parseInt(scaleInput.value), MIN_SCALE, MAX_SCALE);
     scaleInput.value = "" + scale;
     resizeCanvas(canvas);
+    generateShareUrl();
   });
   scaleInput.min = "" + MIN_SCALE;
   scaleInput.max = "" + MAX_SCALE;
@@ -699,7 +711,7 @@ function addNumberChangeListeners(canvas) {
   document.getElementById("fillpercent");
   fillInput.value = "" + fillPercent;
   fillInput.addEventListener("change", function () {
-    fillPercent = (0, _helpers.clamp)(parseInt(fillInput.value), 0, 100);
+    fillPercent = (0, _helpers.clamp)(Math.floor(parseFloat(fillInput.value) * 10) / 10, 0, 100);
     fillInput.value = "" + fillPercent;
     generateShareUrl();
   });
@@ -750,7 +762,7 @@ function getColorString(input) {
 
 function generateShareUrl() {
   var url = window.location.href.split("?")[0];
-  var query = "?y=" + getColorString(youngInput) + "&o=" + getColorString(oldInput) + "&t=" + getColorString(trailInput) + "&d=" + getColorString(deadInput) + (aliveMix !== DEFAULT_ALIVE_MIX / 100 ? "&a=" + (aliveMix * 100).toFixed(2) : "") + (deadMix !== DEFAULT_DEAD_MIX / 100 ? "&g=" + (deadMix * 100).toFixed(2) : "") + "&r=" + makeRuleString() + "&f=" + fillPercent;
+  var query = "?y=" + getColorString(youngInput) + "&o=" + getColorString(oldInput) + "&t=" + getColorString(trailInput) + "&d=" + getColorString(deadInput) + (aliveMix !== DEFAULT_ALIVE_MIX / 100 ? "&a=" + (aliveMix * 100).toFixed(2) : "") + (deadMix !== DEFAULT_DEAD_MIX / 100 ? "&g=" + (deadMix * 100).toFixed(2) : "") + "&r=" + makeRuleString() + "&f=" + fillPercent + (scale !== DEFAULT_SCALE ? "&s=" + scale : "");
   shareText.innerHTML = url + query; // TODO should it be innerText?
 }
 /**
