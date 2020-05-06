@@ -7,3 +7,6 @@
 [submodule "feedback-mini-proj"]
 	path = feedback-mini-proj
 	url = https://github.com/bandaloo/feedback-mini-proj
+[submodule "iqp-site"]
+	path = iqp-site
+	url = https://github.com/bandaloo/iqp-site.git
