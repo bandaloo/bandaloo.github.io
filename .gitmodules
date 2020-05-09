@@ -10,3 +10,6 @@
 [submodule "iqp-site"]
 	path = iqp-site
 	url = https://github.com/bandaloo/iqp-site.git
+[submodule "dweetdiv"]
+	path = dweetdiv
+	url = https://github.com/bandaloo/dweetdiv.git
