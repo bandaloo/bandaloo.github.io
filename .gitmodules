@@ -13,3 +13,6 @@
 [submodule "dweetdiv"]
 	path = dweetdiv
 	url = https://github.com/bandaloo/dweetdiv.git
+[submodule "10print"]
+	path = 10print
+	url = https://github.com/bandaloo/10print.git
