@@ -13,6 +13,10 @@ function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return 
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || _typeof(obj) !== "object" && typeof obj !== "function") { return { "default": obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj["default"] = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
+// for simplicity, we imported everything as `MP` but you can also easily import
+// only what you need
+// if you're using node, you'll need to use a bundler in order to get it to work
+// on the web
 // get your source and draw canvas/context from the document
 var glCanvas =
 /** @type {HTMLCanvasElement} */
@@ -33,13 +37,44 @@ if (source === null) {
 } // let's create our first effect
 
 
-var brightness = new MP.Brightness(["uBrightness", 0.0]); // we could have done `new MP.Brightness(0.0)` but by wrapping
+var grain = new MP.Grain(0.1); // by default, we will not be able to change the grain level in the above
+// effect; if we want the value to be a uniform so we can change it, we could
+// wrap it in a list and include a name like this:
 
-var blur = new MP.Blur(["uBlur", [1, 1]]).repeat(3);
-var grain = new MP.Grain(0.1);
-var hueAdd = new MP.HueAdd(["uHue", 0]); // create the merger with your source canvas
+var hueAdd = new MP.HueAdd(["uHue", 0]); // we can leave off the name and still make the value mutable. in the line
+// below, we could have done `MP.Blur(["uBlur", [1, 0]])` but we did it this
+// way instead:
 
-var merger = new MP.Merger([blur, hueAdd, grain, brightness], sourceCanvas, gl); // instead of a canvas for the source, you can pass anything of type
+var horizontalBlur = new MP.Blur([[1, 0]]); // `repeat` returns an `EffectLoop` that repeats the effect the given amount of times
+
+var horizontalBlurLoop = horizontalBlur.repeat(2); // let's also create a vertical blur and a loop that repeats it twice
+
+var verticalBlur = new MP.Blur([[0, 1]]);
+var verticalBlurLoop = verticalBlur.repeat(2); // let's put both of these blurs into a loop that repeats twice
+
+var totalBlurLoop = new MP.EffectLoop([horizontalBlurLoop, verticalBlurLoop], {
+  num: 2,
+  func: function func(pass) {// `func` is optional, but it lets you pass in a callback that does
+    // something (like change a uniform) on each loop. this particular function
+    // doesn't do anything. `pass` increments from zero on every loop. this is
+    // useful internally; it's okay if you never find a use for this as a user
+  }
+}); // create the merger with your source canvas and target rendering context
+
+var merger = new MP.Merger([totalBlurLoop, hueAdd, grain], sourceCanvas, gl, {
+  minFilterMode: "linear",
+  // could also be "nearest"
+  maxFilterMode: "linear",
+  // could also be "nearest"
+  edgeMode: "clamp" // cloud also be "wrap"
+
+}); // in this example, the merger will compile the `hueAdd` effect and the `grain`
+// effect into a single program, since they can be done in one pass by a single
+// shader
+// you can leave off the options object at the end. in this example, the options
+// object being passed in is actually just the default values, so it would be
+// the same if you simply got rid of the last argument
+// instead of a canvas for the source, you can pass anything of type
 // `TexImageSource`, which includes: `ImageBitmap | ImageData | HTMLImageElement
 // | HTMLCanvasElement | HTMLVideoElement | OffscreenCanvas` so it is actually
 // pretty flexible
@@ -50,10 +85,22 @@ var steps = 0;
 var draw = function draw(time) {
   var t = steps / 60;
   steps++;
-  merger.draw();
-  brightness.setUniform("uBrightness", 0.3 * Math.cos(time / 2000));
-  blur.setUniform("uBlur", [Math.pow(Math.cos(time / 1000), 8), 0]);
-  hueAdd.setUniform("uHue", t / 9); // draw crazy stripes (adapted from my dweet https://www.dwitter.net/d/18968)
+  merger.draw(); // set the uniforms in the effects we created. the merger will make sure that
+  // these are only sent down when the program is in use and when the values
+  // have changed
+
+  var blurSize = Math.pow(Math.cos(time / 1000), 8);
+  hueAdd.setUniform("uHue", t / 9); // we can set a uniform by name
+  // we can also set uniforms with member functions on the effect, which allows
+  // you to set mutable values we didn't give a specfic name
+
+  horizontalBlur.setDirection([blurSize, 0]);
+  verticalBlur.setDirection([0, blurSize]); // reminder that we can't do `grain.setGrain(0.2)` because we made the grain
+  // amount immutable when we created it; our merger compiled the shader with
+  // the grain level as a hard-coded as 0.1, and not as a uniform. if we want to
+  // change the grain level dynamically, we could have done `new Grain[[0.1]]`
+  // or `new Grain["uGrain", [0.1]]`
+  // draw crazy stripes (adapted from my dweet https://www.dwitter.net/d/18968)
 
   var i = Math.floor(t * 9);
   var j = Math.floor(i / 44);
@@ -62,11 +109,14 @@ var draw = function draw(time) {
   source.fillRect(k * 24, 0, 24, k + 2);
   source.drawImage(sourceCanvas, 0, k + 2);
   requestAnimationFrame(draw);
+}; // run the draw function when everything is loaded
+
+
+window.onload = function () {
+  draw(0);
 };
 
-draw(0);
-
-},{"@bandaloo/merge-pass":68,"core-js/modules/es.array.concat":56,"core-js/modules/es.string.repeat":57}],2:[function(require,module,exports){
+},{"@bandaloo/merge-pass":69,"core-js/modules/es.array.concat":56,"core-js/modules/es.string.repeat":57}],2:[function(require,module,exports){
 var isObject = require('../internals/is-object');
 
 module.exports = function (it) {
@@ -928,69 +978,269 @@ $({ target: 'String', proto: true }, {
 },{"../internals/export":16,"../internals/string-repeat":46}],58:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.uniformGLSLTypeStr = exports.tag = exports.uniformGLSLTypeNum = exports.Effect = void 0;
-class Effect {
-    constructor(source) {
-        this.needsDepthBuffer = false;
-        this.needsNeighborSample = false;
-        this.needsCenterSample = true;
-        this.repeatNum = 1;
-        this.uniforms = {};
+exports.CodeBuilder = exports.BOILERPLATE = void 0;
+const effect_1 = require("./effect");
+const webglprogramloop_1 = require("./webglprogramloop");
+// the line below, which gets placed as the first line of `main`, enables allows
+// multiple shaders to be chained together, which works for shaders that don't
+// need to use `uSampler` for anything other than the current pixel
+const FRAG_SET = `  gl_FragColor = texture2D(uSampler, gl_FragCoord.xy / uResolution);\n`;
+exports.BOILERPLATE = `#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform sampler2D uSampler;
+uniform mediump float uTime;
+uniform mediump vec2 uResolution;\n`;
+class CodeBuilder {
+    // TODO indentation level?
+    constructor(effectLoop) {
+        this.funcs = [];
+        this.calls = [];
         this.externalFuncs = [];
-        let sourceString = "";
-        if (source.sections.length - source.values.length !== 1) {
-            throw new Error("wrong lengths for source and values");
-        }
-        // put all of the values between all of the source sections
-        for (let i = 0; i < source.values.length; i++) {
-            sourceString +=
-                source.sections[i] + this.processGLSLVal(source.values[i]);
-        }
-        sourceString += source.sections[source.sections.length - 1];
-        this.fShaderSource = sourceString;
+        this.uniformDeclarations = [];
+        this.counter = 0;
+        /** flat array of effects within loop for attaching uniforms */
+        this.effects = [];
+        this.baseLoop = effectLoop;
+        this.addEffectLoop(effectLoop, 1);
     }
-    setUniform(name, newVal) {
-        var _a;
-        const oldVal = (_a = this.uniforms[name]) === null || _a === void 0 ? void 0 : _a.val;
-        if (oldVal === undefined) {
-            console.warn("tried to set uniform " + name + " which doesn't exist");
-            return;
+    addEffectLoop(effectLoop, indentLevel, topLevel = true) {
+        const needsLoop = !topLevel && effectLoop.repeat.num > 1;
+        if (needsLoop) {
+            const iName = "i" + this.counter;
+            indentLevel++;
+            const forStart = "  ".repeat(indentLevel - 1) +
+                `for (int ${iName} = 0; ${iName} < ${effectLoop.repeat.num}; ${iName}++) {`;
+            this.calls.push(forStart);
         }
-        const oldType = uniformGLSLTypeNum(oldVal);
-        const newType = uniformGLSLTypeNum(newVal);
-        if (oldType !== newType) {
-            console.warn("tried to set uniform " + name + " to a new type");
-            return;
+        for (const e of effectLoop.effects) {
+            if (e instanceof effect_1.Effect) {
+                this.effects.push(e);
+                const name = `effect${this.counter}()`;
+                const func = e.fShaderSource.replace(/main\s*\(\)/, name);
+                this.calls.push("  ".repeat(indentLevel) + name + ";");
+                this.counter++;
+                this.funcs.push(func);
+                for (const func of e.externalFuncs) {
+                    if (!this.externalFuncs.includes("\n" + func))
+                        this.externalFuncs.push("\n" + func);
+                }
+                for (const name in e.uniforms) {
+                    const uniformVal = e.uniforms[name];
+                    const typeName = effect_1.uniformGLSLTypeStr(uniformVal.val);
+                    this.uniformDeclarations.push(`uniform mediump ${typeName} ${name};`);
+                }
+            }
+            else {
+                this.addEffectLoop(e, indentLevel, false);
+            }
         }
-        this.uniforms[name].val = newVal;
-        this.uniforms[name].changed = true;
+        if (needsLoop) {
+            this.calls.push("  ".repeat(indentLevel - 1) + "}");
+        }
     }
-    processGLSLVal(val) {
-        if (typeof val === "number") {
-            // this is a float
-            val;
-            return toGLSLFloatString(val);
+    compileProgram(gl, vShader, uniformLocs) {
+        // set up the fragment shader
+        const fShader = gl.createShader(gl.FRAGMENT_SHADER);
+        if (fShader === null) {
+            throw new Error("problem creating fragment shader");
         }
-        // TODO rewrite this with the helper functions at bottom of file
-        if (typeof val[0] === "string") {
-            // this is a named value, so it should be inserted as a uniform
-            const namedVal = val;
-            const name = namedVal[0];
-            const uniformVal = namedVal[1];
-            this.uniforms[name] = { val: uniformVal, changed: true };
-            return name;
+        const fullCode = exports.BOILERPLATE +
+            this.uniformDeclarations.join("\n") +
+            this.externalFuncs.join("") +
+            "\n" +
+            this.funcs.join("\n") +
+            "\nvoid main () {\n" +
+            (this.baseLoop.getNeeds("centerSample") ? FRAG_SET : "") +
+            this.calls.join("\n") +
+            "\n}";
+        gl.shaderSource(fShader, fullCode);
+        gl.compileShader(fShader);
+        // set up the program
+        const program = gl.createProgram();
+        if (program === null) {
+            throw new Error("problem creating program");
         }
-        // not a named value, so it can be inserted into code directly like a macro
-        const uniformVal = val;
-        return `vec${uniformVal.length}(${uniformVal
-            .map((n) => toGLSLFloatString(n))
-            .join(", ")})`;
-    }
-    repeat(num) {
-        this.repeatNum = num;
-        return this;
+        gl.attachShader(program, vShader);
+        gl.attachShader(program, fShader);
+        const shaderLog = (name, shader) => {
+            const output = gl.getShaderInfoLog(shader);
+            if (output)
+                console.log(`${name} shader info log\n${output}`);
+        };
+        shaderLog("vertex", vShader);
+        shaderLog("fragment", fShader);
+        gl.linkProgram(program);
+        // we need to use the program here so we can get uniform locations
+        gl.useProgram(program);
+        console.log(fullCode);
+        // find all uniform locations and add them to the dictionary
+        for (const effect of this.effects) {
+            for (const name in effect.uniforms) {
+                const location = gl.getUniformLocation(program, name);
+                if (location === null) {
+                    throw new Error("couldn't find uniform " + name);
+                }
+                if (uniformLocs[name] !== undefined) {
+                    throw new Error("uniforms have to all have unique names");
+                }
+                uniformLocs[name] = location;
+            }
+        }
+        // set the uniform resolution (every program has this uniform)
+        const uResolution = gl.getUniformLocation(program, "uResolution");
+        gl.uniform2f(uResolution, gl.drawingBufferWidth, gl.drawingBufferHeight);
+        // get attribute
+        const position = gl.getAttribLocation(program, "aPosition");
+        // enable the attribute
+        gl.enableVertexAttribArray(position);
+        // this will point to the vertices in the last bound array buffer.
+        // In this example, we only use one array buffer, where we're storing
+        // our vertices
+        gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+        return new webglprogramloop_1.WebGLProgramLoop(program, this.baseLoop.repeat, this.effects);
     }
 }
+exports.CodeBuilder = CodeBuilder;
+
+},{"./effect":59,"./webglprogramloop":71}],59:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.uniformGLSLTypeStr = exports.tag = exports.uniformGLSLTypeNum = exports.Effect = void 0;
+const mergepass_1 = require("./mergepass");
+let Effect = /** @class */ (() => {
+    class Effect {
+        constructor(source, defaultNames) {
+            this.needs = {
+                depthBuffer: false,
+                neighborSample: false,
+                centerSample: true,
+            };
+            this.uniforms = {};
+            this.externalFuncs = [];
+            this.defaultNameMap = {};
+            this.id = Effect.count;
+            this.idStr = "_id_" + this.id;
+            // TODO check to see if user-defined name includes this
+            Effect.count++;
+            let sourceString = "";
+            if (source.sections.length - source.values.length !== 1) {
+                throw new Error("wrong lengths for source and values");
+            }
+            if (source.values.length !== defaultNames.length) {
+                throw new Error("default names list length doesn't match values list length");
+            }
+            // put all of the values between all of the source sections
+            for (let i = 0; i < source.values.length; i++) {
+                sourceString +=
+                    source.sections[i] +
+                        this.processGLSLVal(source.values[i], defaultNames[i] + this.idStr);
+            }
+            sourceString += source.sections[source.sections.length - 1];
+            this.fShaderSource = sourceString;
+        }
+        setUniform(name, newVal) {
+            var _a, _b;
+            // if name does not exist, try mapping default name to new name
+            if (((_a = this.uniforms[name]) === null || _a === void 0 ? void 0 : _a.val) === undefined) {
+                name = this.defaultNameMap[name];
+            }
+            const oldVal = (_b = this.uniforms[name]) === null || _b === void 0 ? void 0 : _b.val;
+            // TODO should these really be warnings?
+            if (oldVal === undefined) {
+                throw new Error("tried to set uniform " + name + " which doesn't exist");
+            }
+            const oldType = uniformGLSLTypeNum(oldVal);
+            const newType = uniformGLSLTypeNum(newVal);
+            if (oldType !== newType) {
+                throw new Error("tried to set uniform " + name + " to a new type");
+            }
+            // TODO check for trying to name variable of already existing default name
+            this.uniforms[name].val = newVal;
+            this.uniforms[name].changed = true;
+        }
+        processGLSLVal(val, defaultName) {
+            // transform `DefaultUniformVal` to `NamedUniformVal`
+            let defaulted = false;
+            if (typeof val !== "number" && val.length === 1) {
+                const namedVal = [defaultName, val[0]];
+                val = namedVal;
+                defaulted = true;
+            }
+            if (typeof val === "number") {
+                // this is a float
+                val;
+                return toGLSLFloatString(val);
+            }
+            if (typeof val[0] === "string") {
+                // this is a named value, so it should be inserted as a uniform
+                const namedVal = val;
+                const name = namedVal[0];
+                if (!defaulted && name.includes("_id_")) {
+                    throw new Error("cannot set a named uniform that has _id_ in it");
+                }
+                if (/^i[0-9]+$/g.test(name)) {
+                    throw new Error("cannot name a uniform that matches regex ^i[0-9]+$" +
+                        "since that's reserved for name of index" +
+                        "in for loops of generated code");
+                }
+                const uniformVal = namedVal[1];
+                this.uniforms[name] = { val: uniformVal, changed: true };
+                // add the name mapping
+                this.defaultNameMap[defaultName] = name;
+                return name;
+            }
+            // not a named value, so it can be inserted into code directly like a macro
+            const uniformVal = val;
+            return `vec${uniformVal.length}(${uniformVal
+                .map((n) => toGLSLFloatString(n))
+                .join(", ")})`;
+        }
+        getNeeds(name) {
+            return this.needs[name];
+        }
+        repeat(num) {
+            return new mergepass_1.EffectLoop([this], { num: num });
+        }
+        getSampleNum(mult = 1) {
+            return this.needs.neighborSample ? mult : 0;
+        }
+        genPrograms(gl, vShader, uniformLocs) {
+            console.log("gen programs in effect");
+            return new mergepass_1.EffectLoop([this], { num: 1 }).genPrograms(gl, vShader, uniformLocs);
+        }
+        applyUniforms(gl, uniformLocs) {
+            for (const name in this.uniforms) {
+                const loc = uniformLocs[name];
+                const val = this.uniforms[name].val;
+                if (this.uniforms[name].changed) {
+                    this.uniforms[name].changed = false;
+                    switch (uniformGLSLTypeNum(val)) {
+                        case 1:
+                            const float = val;
+                            gl.uniform1f(loc, float);
+                            break;
+                        case 2:
+                            const vec2 = val;
+                            gl.uniform2f(loc, vec2[0], vec2[1]);
+                            break;
+                        case 3:
+                            const vec3 = val;
+                            gl.uniform3f(loc, vec3[0], vec3[1], vec3[2]);
+                            break;
+                        case 4:
+                            const vec4 = val;
+                            gl.uniform4f(loc, vec4[0], vec4[1], vec4[2], vec4[3]);
+                    }
+                }
+            }
+        }
+    }
+    /** used to give each effect a unique id */
+    Effect.count = 0;
+    return Effect;
+})();
 exports.Effect = Effect;
 // some helpers
 function toGLSLFloatString(num) {
@@ -1020,7 +1270,7 @@ function uniformGLSLTypeStr(val) {
 }
 exports.uniformGLSLTypeStr = uniformGLSLTypeStr;
 
-},{}],59:[function(require,module,exports){
+},{"./mergepass":70}],60:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Blur = void 0;
@@ -1036,14 +1286,17 @@ class Blur extends effect_1.Effect {
   gl_FragColor += texture2D(uSampler, uv) * 0.29411764705882354;
   gl_FragColor += texture2D(uSampler, uv + (off1 / uResolution)) * 0.35294117647058826;
   gl_FragColor += texture2D(uSampler, uv - (off1 / uResolution)) * 0.35294117647058826;
-}`);
-        this.needsNeighborSample = true;
-        this.needsCenterSample = false;
+}`, ["uDirection"]);
+        this.needs.neighborSample = true;
+        this.needs.centerSample = false;
+    }
+    setDirection(direction) {
+        this.setUniform("uDirection" + this.idStr, direction);
     }
 }
 exports.Blur = Blur;
 
-},{"../effect":58}],60:[function(require,module,exports){
+},{"../effect":59}],61:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Brightness = void 0;
@@ -1054,12 +1307,15 @@ class Brightness extends effect_1.Effect {
   gl_FragColor.rgb /= gl_FragColor.a;
   gl_FragColor.rgb += ${val};
   gl_FragColor.rgb *= gl_FragColor.a;
-}`);
+}`, ["uBrightness"]);
+    }
+    setDirection(brightness) {
+        this.setUniform("uBrightness" + this.idStr, brightness);
     }
 }
 exports.Brightness = Brightness;
 
-},{"../effect":58}],61:[function(require,module,exports){
+},{"../effect":59}],62:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Contrast = void 0;
@@ -1073,12 +1329,15 @@ class Contrast extends effect_1.Effect {
   gl_FragColor.rgb /= gl_FragColor.a;
   gl_FragColor.rgb = ((gl_FragColor.rgb - 0.5) * ${val}) + 0.5;
   gl_FragColor.rgb *= gl_FragColor.a;
-}`);
+}`, ["uContrast"]);
+    }
+    setContrast(contrast) {
+        this.setUniform("uContrast" + this.idStr, contrast);
     }
 }
 exports.Contrast = Contrast;
 
-},{"../effect":58}],62:[function(require,module,exports){
+},{"../effect":59}],63:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Grain = void 0;
@@ -1088,13 +1347,16 @@ class Grain extends effect_1.Effect {
     constructor(val) {
         super(effect_1.tag `void main() {
   gl_FragColor = vec4((1.0 - ${val} * random(gl_FragCoord.xy)) * gl_FragColor.rgb, gl_FragColor.a);
-}`);
+}`, ["uGrain"]);
         this.externalFuncs = [__1.glslFuncs.random];
+    }
+    setGrain(grain) {
+        this.setUniform("uGrain" + this.idStr, grain);
     }
 }
 exports.Grain = Grain;
 
-},{"..":68,"../effect":58}],63:[function(require,module,exports){
+},{"..":69,"../effect":59}],64:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.HSV = void 0;
@@ -1102,24 +1364,30 @@ const effect_1 = require("../effect");
 const glslfunctions_1 = require("../glslfunctions");
 class HSV extends effect_1.Effect {
     /**
-     * @param vec hue, sat and brightness components
+     * @param components hue, sat and brightness components
      * @param mask which original color components to zero out and which to keep
      * (defaults to only zeroing out all of original color)
      */
-    constructor(vec, mask = [0, 0, 0]) {
+    constructor(components, mask = [0, 0, 0]) {
         super(effect_1.tag `void main () {
   vec3 hsv = rgb2hsv(gl_FragColor.rgb);
   vec3 m = ${mask};
-  hsv.xyz = (vec3(1., 1., 1.) - m) * ${vec} + m * hsv.xyz;
+  hsv.xyz = (vec3(1., 1., 1.) - m) * ${components} + m * hsv.xyz;
   vec3 rgb = hsv2rgb(hsv);
   gl_FragColor = vec4(rgb.r, rgb.g, rgb.b, gl_FragColor.a);
-}`);
+}`, ["uComponent", "uMask"]);
         this.externalFuncs = [glslfunctions_1.glslFuncs.hsv2rgb, glslfunctions_1.glslFuncs.rgb2hsv];
+    }
+    setComponents(components) {
+        this.setUniform("uComponent", components);
+    }
+    setMask(mask) {
+        this.setUniform("uMask", mask);
     }
 }
 exports.HSV = HSV;
 
-},{"../effect":58,"../glslfunctions":67}],64:[function(require,module,exports){
+},{"../effect":59,"../glslfunctions":68}],65:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.HSVAdd = void 0;
@@ -1131,7 +1399,7 @@ class HSVAdd extends hsv_1.HSV {
 }
 exports.HSVAdd = HSVAdd;
 
-},{"./hsv":63}],65:[function(require,module,exports){
+},{"./hsv":64}],66:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Value = exports.Saturation = exports.Hue = exports.ValueAdd = exports.SaturationAdd = exports.HueAdd = void 0;
@@ -1153,59 +1421,77 @@ function genHSVSource(component, operation, val) {
 }
 class HueAdd extends effect_1.Effect {
     constructor(num) {
-        super(genHSVSource("x", "+", num));
+        super(genHSVSource("x", "+", num), ["uHueAdd"]);
         this.externalFuncs = [glslfunctions_1.glslFuncs.hsv2rgb, glslfunctions_1.glslFuncs.rgb2hsv];
+    }
+    setHue(hue) {
+        this.setUniform("uHueAdd" + this.idStr, hue);
     }
 }
 exports.HueAdd = HueAdd;
 class SaturationAdd extends effect_1.Effect {
     constructor(num) {
-        super(genHSVSource("y", "+", num));
+        super(genHSVSource("y", "+", num), ["uSatAdd"]);
         this.externalFuncs = [glslfunctions_1.glslFuncs.hsv2rgb, glslfunctions_1.glslFuncs.rgb2hsv];
+    }
+    setSaturation(sat) {
+        this.setUniform("uSatAdd" + this.idStr, sat);
     }
 }
 exports.SaturationAdd = SaturationAdd;
 class ValueAdd extends effect_1.Effect {
     constructor(num) {
-        super(genHSVSource("z", "+", num));
+        super(genHSVSource("z", "+", num), ["uValAdd"]);
         this.externalFuncs = [glslfunctions_1.glslFuncs.hsv2rgb, glslfunctions_1.glslFuncs.rgb2hsv];
+    }
+    setValue(val) {
+        this.setUniform("uValAdd", val);
     }
 }
 exports.ValueAdd = ValueAdd;
 class Hue extends effect_1.Effect {
     constructor(num) {
-        super(genHSVSource("x", "", num));
+        super(genHSVSource("x", "", num), ["uHue"]);
         this.externalFuncs = [glslfunctions_1.glslFuncs.hsv2rgb, glslfunctions_1.glslFuncs.rgb2hsv];
+    }
+    setHue(hue) {
+        this.setUniform("uHueAdd" + this.idStr, hue);
     }
 }
 exports.Hue = Hue;
 class Saturation extends effect_1.Effect {
     constructor(num) {
-        super(genHSVSource("y", "", num));
+        super(genHSVSource("y", "", num), ["uSat"]);
         this.externalFuncs = [glslfunctions_1.glslFuncs.hsv2rgb, glslfunctions_1.glslFuncs.rgb2hsv];
+    }
+    setSaturation(sat) {
+        this.setUniform("uSatAdd" + this.idStr, sat);
     }
 }
 exports.Saturation = Saturation;
 class Value extends effect_1.Effect {
     constructor(num) {
-        super(genHSVSource("z", "", num));
+        super(genHSVSource("z", "", num), ["uVal"]);
         this.externalFuncs = [glslfunctions_1.glslFuncs.hsv2rgb, glslfunctions_1.glslFuncs.rgb2hsv];
+    }
+    setValue(val) {
+        this.setUniform("uValAdd", val);
     }
 }
 exports.Value = Value;
 
-},{"../effect":58,"../glslfunctions":67}],66:[function(require,module,exports){
+},{"../effect":59,"../glslfunctions":68}],67:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const __1 = require("..");
 class Passthrough extends __1.Effect {
     constructor() {
         super(__1.tag `void main () {
-}`);
+}`, []);
     }
 }
 
-},{"..":68}],67:[function(require,module,exports){
+},{"..":69}],68:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.glslFuncs = void 0;
@@ -1243,7 +1529,7 @@ exports.glslFuncs = {
 }`,
 };
 
-},{}],68:[function(require,module,exports){
+},{}],69:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -1268,35 +1554,91 @@ __exportStar(require("./effects/hsv"), exports);
 __exportStar(require("./effects/hsvadd"), exports);
 __exportStar(require("./effects/hsvhelpers"), exports);
 
-},{"./effect":58,"./effects/blur":59,"./effects/brightness":60,"./effects/contrast":61,"./effects/grain":62,"./effects/hsv":63,"./effects/hsvadd":64,"./effects/hsvhelpers":65,"./effects/passthrough":66,"./glslfunctions":67,"./mergepass":69}],69:[function(require,module,exports){
+},{"./effect":59,"./effects/blur":60,"./effects/brightness":61,"./effects/contrast":62,"./effects/grain":63,"./effects/hsv":64,"./effects/hsvadd":65,"./effects/hsvhelpers":66,"./effects/passthrough":67,"./glslfunctions":68,"./mergepass":70}],70:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Merger = void 0;
-const effect_1 = require("./effect");
-const BOILERPLATE = `#ifdef GL_ES
-precision mediump float;
-#endif
-
-uniform sampler2D uSampler;
-uniform mediump float uTime;
-uniform mediump vec2 uResolution;\n`;
-// the line below, which gets placed as the first line of `main`, enables allows
-// multiple shaders to be chained together, which works for shaders that don't
-// need to use `uSampler` for anything other than the current pixel
-const FRAG_SET = `\n  gl_FragColor = texture2D(uSampler, gl_FragCoord.xy / uResolution);`;
+exports.Merger = exports.EffectLoop = void 0;
+const codebuilder_1 = require("./codebuilder");
+const webglprogramloop_1 = require("./webglprogramloop");
+class EffectLoop {
+    constructor(effects, repeat) {
+        this.effects = effects;
+        this.repeat = repeat;
+    }
+    /** returns true if any sub-effects need neighbor sample down the tree */
+    getNeeds(name) {
+        const bools = this.effects.map((e) => e.getNeeds(name));
+        return bools.reduce((acc, curr) => acc || curr);
+    }
+    getSampleNum(mult = 1) {
+        mult *= this.repeat.num;
+        let acc = 0;
+        for (const e of this.effects) {
+            acc += e.getSampleNum(mult);
+        }
+        return acc;
+    }
+    /** places effects into loops broken up by sampling effects */
+    regroup() {
+        let sampleCount = 0;
+        /** number of samples in all previous */
+        let prevSampleCount = 0;
+        let prevEffects = [];
+        const regroupedEffects = [];
+        const breakOff = () => {
+            if (prevEffects.length > 0) {
+                // break off all previous effects into their own loop
+                if (prevEffects.length === 1) {
+                    // this is to prevent wrapping in another effect loop
+                    regroupedEffects.push(prevEffects[0]);
+                }
+                else {
+                    regroupedEffects.push(new EffectLoop(prevEffects, { num: 1 }));
+                }
+                sampleCount -= prevSampleCount;
+                prevEffects = [];
+            }
+        };
+        for (const e of this.effects) {
+            const sampleNum = e.getSampleNum();
+            prevSampleCount = sampleCount;
+            sampleCount += sampleNum;
+            if (sampleCount > 1)
+                breakOff();
+            prevEffects.push(e);
+        }
+        // push on all the straggling effects after the grouping is done
+        breakOff();
+        return regroupedEffects;
+    }
+    /** recursive descent parser for turning effects into programs */
+    genPrograms(gl, vShader, uniformLocs) {
+        if (this.getSampleNum() / this.repeat.num <= 1) {
+            // if this group only samples neighbors at most once, create program
+            const codeBuilder = new codebuilder_1.CodeBuilder(this);
+            return codeBuilder.compileProgram(gl, vShader, uniformLocs);
+        }
+        // otherwise, regroup and try again on regrouped loops
+        // TODO should it be getSampleNum(1)?
+        this.effects = this.regroup();
+        return new webglprogramloop_1.WebGLProgramLoop(this.effects.map((e) => e.genPrograms(gl, vShader, uniformLocs)), this.repeat);
+    }
+}
+exports.EffectLoop = EffectLoop;
 const V_SOURCE = `attribute vec2 aPosition;
 void main() {
   gl_Position = vec4(aPosition, 0.0, 1.0);
 }\n`;
 class Merger {
     constructor(effects, source, gl, options) {
-        this.fShaders = [];
-        this.programs = [];
-        this.repeatNums = [];
         this.uniformLocs = {};
-        /** effects grouped by program */
-        this.lumpedEffects = [];
-        this.effects = effects;
+        // wrap the given list of effects as a loop if need be
+        if (!(effects instanceof EffectLoop)) {
+            this.effectLoop = new EffectLoop(effects, { num: 1 });
+        }
+        else {
+            this.effectLoop = effects;
+        }
         this.source = source;
         this.gl = gl;
         this.options = options;
@@ -1313,12 +1655,11 @@ class Merger {
         if (vShader === null) {
             throw new Error("problem creating the vertex shader");
         }
-        this.vShader = vShader;
+        //this.vShader = vShader;
         this.gl.shaderSource(vShader, V_SOURCE);
         this.gl.compileShader(vShader);
         // make textures
-        this.texBack = this.makeTexture();
-        this.texFront = this.makeTexture();
+        this.tex = { front: this.makeTexture(), back: this.makeTexture() };
         // create the framebuffer
         const framebuffer = gl.createFramebuffer();
         if (framebuffer === null) {
@@ -1326,10 +1667,27 @@ class Merger {
         }
         this.framebuffer = framebuffer;
         // generate the fragment shaders and programs
-        this.generateCode();
+        this.programLoop = this.effectLoop.genPrograms(this.gl, vShader, this.uniformLocs);
+        // find the final program
+        let atBottom = false;
+        let currProgramLoop = this.programLoop;
+        while (!atBottom) {
+            if (currProgramLoop.program instanceof WebGLProgram) {
+                // we traveled right and hit a program, so it must be the last
+                currProgramLoop.last = true;
+                atBottom = true;
+            }
+            else {
+                // set the current program loop to the last in the list
+                currProgramLoop =
+                    currProgramLoop.program[currProgramLoop.program.length - 1];
+            }
+        }
+        // TODO get rid of this (or make it only log when verbose)
+        console.log(this.programLoop);
     }
     makeTexture() {
-        var _a, _b;
+        var _a, _b, _c;
         const texture = this.gl.createTexture();
         if (texture === null) {
             throw new Error("problem creating texture");
@@ -1343,188 +1701,87 @@ class Merger {
         // how to map texture element
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, filterMode((_a = this.options) === null || _a === void 0 ? void 0 : _a.minFilterMode));
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, filterMode((_b = this.options) === null || _b === void 0 ? void 0 : _b.maxFilterMode));
+        if (((_c = this.options) === null || _c === void 0 ? void 0 : _c.edgeMode) !== "wrap") {
+            const gl = this.gl; // for succinctness
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        }
         return texture;
     }
     sendTexture(src) {
         this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, src);
     }
-    generateCode() {
-        let code = "";
-        let calls = "\n";
-        let needsCenterSample = false;
-        let externalFuncs = [];
-        let uniformDeclarations = [];
-        let effectLump = [];
-        // using this style of loop since we need to do something different on the
-        // last element and also know the next element
-        for (let i = 0; i < this.effects.length; i++) {
-            /** code for each function call to each shader pass */
-            const e = this.effects[i];
-            effectLump.push(e);
-            const next = this.effects[i + 1];
-            needsCenterSample = needsCenterSample || e.needsCenterSample;
-            // replace the main function
-            const replacedFunc = "pass" + i + "()";
-            const replacedCode = e.fShaderSource.replace(/main\s*\(\)/, replacedFunc);
-            code += "\n" + replacedCode + "\n";
-            // an effect that samples neighbors cannot just be run in a for loop
-            const forStr = !e.needsNeighborSample && e.repeatNum > 1
-                ? `for (int i = 0; i < ${e.repeatNum}; i++) `
-                : "";
-            calls += "  " + forStr + replacedFunc + ";\n";
-            for (const func of e.externalFuncs) {
-                if (!externalFuncs.includes("\n" + func))
-                    externalFuncs.push("\n" + func);
-            }
-            for (const name in e.uniforms) {
-                const uniformVal = e.uniforms[name];
-                const typeName = effect_1.uniformGLSLTypeStr(uniformVal.val);
-                uniformDeclarations.push(`uniform mediump ${typeName} ${name};`);
-            }
-            if (next === undefined ||
-                (e.needsNeighborSample && e.repeatNum > 1) ||
-                next.needsNeighborSample) {
-                // set up the fragment shader
-                const fShader = this.gl.createShader(this.gl.FRAGMENT_SHADER);
-                if (fShader === null) {
-                    throw new Error("problem creating fragment shader");
-                }
-                const fullCode = BOILERPLATE +
-                    "\n" +
-                    uniformDeclarations.join("\n") +
-                    "\n" +
-                    externalFuncs.join("\n\n") +
-                    "\n" +
-                    code +
-                    "\nvoid main () {" +
-                    (needsCenterSample ? FRAG_SET : "") +
-                    calls +
-                    "}";
-                this.gl.shaderSource(fShader, fullCode);
-                this.gl.compileShader(fShader);
-                // set up the program
-                const program = this.gl.createProgram();
-                if (program === null) {
-                    throw new Error("problem creating program");
-                }
-                this.gl.attachShader(program, this.vShader);
-                this.gl.attachShader(program, fShader);
-                console.log("vertex shader info log");
-                console.log(this.gl.getShaderInfoLog(this.vShader));
-                console.log("fragment shader info log");
-                console.log(this.gl.getShaderInfoLog(fShader));
-                this.gl.linkProgram(program);
-                // we need to use the program here so we can get uniform locations
-                this.gl.useProgram(program);
-                for (const effect of effectLump) {
-                    for (const name in effect.uniforms) {
-                        const location = this.gl.getUniformLocation(program, name);
-                        if (location === null) {
-                            throw new Error("couldn't find uniform " + name);
-                        }
-                        if (this.uniformLocs[name] !== undefined) {
-                            throw new Error("uniforms have to all have unique names");
-                        }
-                        this.uniformLocs[name] = location;
-                    }
-                }
-                // add the shader, the program and the repetitions to the lists
-                this.fShaders.push(fShader);
-                this.programs.push(program);
-                // if the effect doesn't need to sample neighbors, then the repetition
-                // of the effect is handled as a for loop in the code generation step,
-                // the repeat number can just be 1
-                this.repeatNums.push(e.needsNeighborSample ? e.repeatNum : 1);
-                // set the uniform resolution (every program has this uniform)
-                const uResolution = this.gl.getUniformLocation(program, "uResolution");
-                this.gl.uniform2f(uResolution, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
-                const position = this.gl.getAttribLocation(program, "aPosition");
-                // enable the attribute
-                this.gl.enableVertexAttribArray(position);
-                // this will point to the vertices in the last bound array buffer.
-                // In this example, we only use one array buffer, where we're storing
-                // our vertices
-                this.gl.vertexAttribPointer(position, 2, this.gl.FLOAT, false, 0, 0);
-                this.lumpedEffects.push(effectLump);
-                console.log(fullCode);
-                // clear the source code to start merging new shader source
-                code = "";
-                calls = "\n";
-                needsCenterSample = false;
-                externalFuncs = [];
-                uniformDeclarations = [];
-                effectLump = [];
-            }
-        }
-        console.log(this.lumpedEffects);
-    }
-    applyUniforms(e) {
-        for (const name in e.uniforms) {
-            const loc = this.uniformLocs[name];
-            const val = e.uniforms[name].val;
-            if (e.uniforms[name].changed) {
-                e.uniforms[name].changed = false;
-                switch (effect_1.uniformGLSLTypeNum(val)) {
-                    case 1:
-                        const float = val;
-                        this.gl.uniform1f(loc, float);
-                        break;
-                    case 2:
-                        const vec2 = val;
-                        this.gl.uniform2f(loc, vec2[0], vec2[1]);
-                        break;
-                    case 3:
-                        const vec3 = val;
-                        this.gl.uniform3f(loc, vec3[0], vec3[1], vec3[2]);
-                        break;
-                    case 4:
-                        const vec4 = val;
-                        this.gl.uniform4f(loc, vec4[0], vec4[1], vec4[2], vec4[3]);
-                }
-            }
-        }
-    }
     draw() {
-        let programIndex = 0;
+        //this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.framebuffer);
+        this.gl.activeTexture(this.gl.TEXTURE0);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.tex.back);
         this.sendTexture(this.source);
-        [this.texBack, this.texFront] = [this.texFront, this.texBack];
-        for (const program of this.programs) {
-            this.gl.useProgram(program);
-            const effectLump = this.lumpedEffects[programIndex];
-            for (const e of effectLump) {
-                this.applyUniforms(e);
-            }
-            for (let i = 0; i < this.repeatNums[programIndex]; i++) {
-                if (programIndex === this.programs.length - 1 &&
-                    i === this.repeatNums[programIndex] - 1) {
-                    // we are on the final pass of the final program, so draw to screen
-                    // set to the default framebuffer
-                    this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
-                }
-                else {
-                    // we have to bounce between two textures
-                    this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.framebuffer);
-                    // use the framebuffer to write to front texture
-                    this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_2D, this.texFront, 0);
-                }
-                // allows us to read from `texBack`
-                // default sampler is 0, so `uSampler` uniform will always sample from texture 0
-                this.gl.activeTexture(this.gl.TEXTURE0);
-                this.gl.bindTexture(this.gl.TEXTURE_2D, this.texBack);
-                [this.texBack, this.texFront] = [this.texFront, this.texBack];
-                this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
-            }
-            programIndex++;
-        }
-        // swap the textures
-        //[this.texBack, this.texFront] = [this.texFront, this.texBack];
-        // go back to the default framebuffer object
-        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
-        // use our last program as the draw program
-        // draw to the screen
-        this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
+        // swap textures before beginning draw
+        this.programLoop.draw(this.gl, this.tex, this.framebuffer, this.uniformLocs, this.programLoop.last);
     }
 }
 exports.Merger = Merger;
 
-},{"./effect":58}]},{},[1]);
+},{"./codebuilder":58,"./webglprogramloop":71}],71:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.WebGLProgramLoop = void 0;
+class WebGLProgramLoop {
+    constructor(program, repeat, effects = []) {
+        this.last = false;
+        this.program = program;
+        this.repeat = repeat;
+        this.effects = effects;
+    }
+    draw(gl, tex, framebuffer, uniformLocs, last) {
+        for (let i = 0; i < this.repeat.num; i++) {
+            const newLast = i === this.repeat.num - 1;
+            if (this.program instanceof WebGLProgram) {
+                // TODO figure out way to move this from loop
+                gl.useProgram(this.program);
+                // effects list is populated
+                if (i === 0) {
+                    for (const effect of this.effects) {
+                        effect.applyUniforms(gl, uniformLocs);
+                    }
+                }
+                if (newLast && last && this.last) {
+                    // TODO need to send `this.last` all the way down
+                    // we are on the final pass of the final loop, so draw screen by
+                    // setting to the default framebuffer
+                    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+                }
+                else {
+                    // we have to bounce between two textures
+                    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+                    // use the framebuffer to write to front texture
+                    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex.front, 0);
+                    // swap the textures
+                    //console.log("swapping textures");
+                    //gl.drawArrays(gl.TRIANGLES, 0, 6);
+                }
+                // allows us to read from `texBack`
+                // default sampler is 0, so `uSampler` uniform will always sample from texture 0
+                gl.activeTexture(gl.TEXTURE0);
+                gl.bindTexture(gl.TEXTURE_2D, tex.back);
+                [tex.back, tex.front] = [tex.front, tex.back];
+                // go back to the default framebuffer object
+                // TODO can we remove this?
+                //gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+                // use our last program as the draw program
+                gl.drawArrays(gl.TRIANGLES, 0, 6);
+            }
+            else {
+                if (this.repeat.func !== undefined) {
+                    this.repeat.func(i);
+                }
+                for (const p of this.program) {
+                    p.draw(gl, tex, framebuffer, uniformLocs, newLast);
+                }
+            }
+        }
+    }
+}
+exports.WebGLProgramLoop = WebGLProgramLoop;
+
+},{}]},{},[1]);
