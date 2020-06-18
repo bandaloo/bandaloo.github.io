@@ -229,14 +229,11 @@ const demos = {
     singlepassgrain: () => {
         let vec;
         let m;
-        //const test = MP.op(MP.ncfcoord(), "*", MP.vec2(1, 2))
-        //const test2 = MP.op(MP.fcolor(), "*", MP.input());
         const merger = new MP.Merger([
             MP.gauss5(MP.vec2(0, 1)),
             MP.grain((m = MP.op(MP.len(MP.op(MP.ncfcoord(), "+", (vec = MP.vec2(MP.mut(0), 0)))), "*", MP.mut(0.3)))),
         ], sourceCanvas, gl);
         class GrainControls {
-            // TODO get rid of constructor
             constructor() {
                 this.location = 0;
                 this.strength = 0.3;
