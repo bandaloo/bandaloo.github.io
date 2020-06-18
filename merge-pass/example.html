@@ -6,6 +6,7 @@
         max-width: 960px;
         margin: auto;
       }
+
       h1,
       h2,
       h3,
@@ -19,6 +20,12 @@
 
       code {
         font-weight: bolder;
+        white-space: pre-line;
+      }
+
+      em {
+        color: #ff0000;
+        font-style: normal;
       }
     </style>
     <meta charset="UTF-8" />
@@ -26,6 +33,7 @@
   <body>
     <div class="content">
       <h1 id="title"></h1>
+      <p><a id="link" href="">random demo</a></p>
       <h2>processed output</h2>
       <canvas id="gl" width="960" height="540"></canvas>
       <h2>unprocessed input</h2>
@@ -33,9 +41,12 @@
       <h2>code</h2>
       <p>
         this function returns an object containing the merger and a function
-        that changes uniforms on every step
+        that changes uniforms on every step. the important code that defines the
+        actual effect is in <em>red</em>
       </p>
       <code id="mergercode"></code>
+      <h2>other demos</h2>
+      <p id="demos"></p>
     </div>
   </body>
   <script src="dist/bundle.js"></script>
