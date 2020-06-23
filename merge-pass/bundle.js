@@ -1,7 +1,7 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CodeBuilder = void 0;
+exports.CodeBuilder = exports.bufferSamplerName = void 0;
 const expr_1 = require("./expressions/expr");
 const webglprogramloop_1 = require("./webglprogramloop");
 const FRAG_SET = `  gl_FragColor = texture2D(uSampler, gl_FragCoord.xy / uResolution);\n`;
@@ -13,6 +13,14 @@ precision mediump float;
 
 uniform sampler2D uSampler;
 uniform mediump vec2 uResolution;\n`;
+function bufferSamplerName(buf) {
+    // texture 2 sampler has number 0 (0 and 1 are used for back buffer and scene)
+    return `uBufferSampler${buf}`;
+}
+exports.bufferSamplerName = bufferSamplerName;
+function bufferSamplerDeclaration(buf) {
+    return `uniform sampler2D ${bufferSamplerName(buf)};`;
+}
 class CodeBuilder {
     constructor(effectLoop) {
         this.calls = [];
@@ -27,9 +35,9 @@ class CodeBuilder {
             needs: {
                 centerSample: false,
                 neighborSample: false,
-                depthBuffer: false,
                 sceneBuffer: false,
                 timeUniform: false,
+                extraBuffers: new Set(),
             },
         };
         this.addEffectLoop(effectLoop, 1, buildInfo);
@@ -76,6 +84,9 @@ class CodeBuilder {
         const fullCode = BOILERPLATE +
             (this.totalNeeds.sceneBuffer ? SCENE_SET : "") +
             (this.totalNeeds.timeUniform ? TIME_SET : "") +
+            Array.from(this.totalNeeds.extraBuffers)
+                .map((n) => bufferSamplerDeclaration(n))
+                .join("\n") +
             [...this.uniformDeclarations].join("\n") +
             [...this.externalFuncs].join("\n") +
             "\n" +
@@ -122,37 +133,30 @@ class CodeBuilder {
         // set the uniform resolution (every program has this uniform)
         const uResolution = gl.getUniformLocation(program, "uResolution");
         gl.uniform2f(uResolution, gl.drawingBufferWidth, gl.drawingBufferHeight);
-        /*
-        if (this.baseLoop.getNeeds("sceneBuffer")) {
-          // TODO allow for texture options for scene texture
-          const sceneSamplerLocation = gl.getUniformLocation(
-            program,
-            "uSceneSampler"
-          );
-          // put the scene buffer in texture 1 (0 is used for the backbuffer)
-          gl.uniform1i(sceneSamplerLocation, 1);
-        }
-        */
         if (this.totalNeeds.sceneBuffer) {
             // TODO allow for texture options for scene texture
-            const sceneSamplerLocation = gl.getUniformLocation(program, "uSceneSampler");
+            const location = gl.getUniformLocation(program, "uSceneSampler");
             // put the scene buffer in texture 1 (0 is used for the backbuffer)
-            gl.uniform1i(sceneSamplerLocation, 1);
+            gl.uniform1i(location, 1);
+        }
+        // set all sampler uniforms
+        for (const b of this.totalNeeds.extraBuffers) {
+            const location = gl.getUniformLocation(program, bufferSamplerName(b));
+            // offset the texture location by 2 (0 and 1 are used for scene and original)
+            gl.uniform1i(location, b + 2);
         }
         // get attribute
         const position = gl.getAttribLocation(program, "aPosition");
         // enable the attribute
         gl.enableVertexAttribArray(position);
-        // this will point to the vertices in the last bound array buffer.
-        // In this example, we only use one array buffer, where we're storing
-        // our vertices
+        // points to the vertices in the last bound array buffer
         gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
         return new webglprogramloop_1.WebGLProgramLoop(program, this.baseLoop.repeat, gl, this.totalNeeds, this.exprs);
     }
 }
 exports.CodeBuilder = CodeBuilder;
 
-},{"./expressions/expr":8,"./webglprogramloop":28}],2:[function(require,module,exports){
+},{"./expressions/expr":9,"./webglprogramloop":32}],2:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -199,8 +203,8 @@ function getVariable(variable) {
 const C = Math.cos;
 const S = Math.sin;
 const T = Math.tan;
-const x = source;
-const c = sourceCanvas;
+let x;
+let c;
 let R = (r, g, b, a = 1) => `rgba(${r | 0},${g | 0},${b | 0},${a})`;
 const demos = {
     edgeblur: () => {
@@ -303,6 +307,45 @@ const demos = {
             change: () => { },
         };
     },
+    scanlines: () => {
+        const merger = new MP.Merger([
+            MP.brightness(MP.op(MP.op(-1, "*", MP.pow(MP.cos(MP.op(MP.getcomp(MP.nfcoord(), "y"), "*", (260 / 2) * Math.PI)), 6)), "-", MP.op(1, "*", MP.op(MP.pow(MP.getcomp(MP.op(MP.ncfcoord(), "*", 2), "x"), 4), "+", MP.pow(MP.getcomp(MP.op(MP.ncfcoord(), "*", 2), "y"), 4))))),
+        ], sourceCanvas, gl);
+        return {
+            merger: merger,
+            change: () => { },
+        };
+    },
+    fxaa: () => {
+        const merger = new MP.Merger([MP.fxaa()], sourceCanvas, gl);
+        return {
+            merger: merger,
+            change: () => { },
+        };
+    },
+    bufferblur: (buffers = []) => {
+        const merger = new MP.Merger([
+            MP.blur2d(MP.getcomp(MP.buffer(0), "r"), MP.getcomp(MP.buffer(0), "r"), 5),
+        ], sourceCanvas, gl, {
+            buffers: buffers,
+        });
+        return {
+            merger: merger,
+            change: () => { },
+        };
+    },
+    buffereyesore: (buffers = []) => {
+        const merger = new MP.Merger([
+            MP.hsv2rgb(MP.changecomp(MP.rgb2hsv(MP.fcolor()), MP.vec2(MP.getcomp(MP.buffer(0), "x"), MP.getcomp(MP.buffer(1), "x")), "xy", "+")),
+            MP.fxaa(),
+        ], sourceCanvas, gl, {
+            buffers: buffers,
+        });
+        return {
+            merger: merger,
+            change: () => { },
+        };
+    },
 };
 // canvas drawing loops
 const stripes = (t, frames) => {
@@ -343,6 +386,34 @@ const fabric = (t, frames) => {
     }
     x.drawImage(c, 1, b);
 };
+const shaderLike = (fillFunc) => {
+    return (t, frames) => {
+        for (let i = 960; i--;) {
+            x.fillStyle = fillFunc(i, frames);
+            x.fillRect(i, 0, 1, 1);
+        }
+        x.drawImage(c, 0, 1);
+    };
+};
+const higherOrderWaves = (color) => shaderLike(color
+    ? (x, y) => `hsl(${~~((x + y) / 20) * 100},20%,50%)`
+    : (x, y) => R((256 / 4) * Math.round(2 + S(x / 20) + C(y / 30))));
+const bitwiseGrid = () => shaderLike((x, y) => R((x & y) * 20));
+const higherOrderGoo = (color) => {
+    const colFunc = (i, ti) => 20 * ~~(1 + S(i / 20) + T(ti + S(ti + i / 99)));
+    const fillFunc = color
+        ? (i, ti) => `hsl(${i / 9 + 99 * C(ti)},90%,${colFunc(i, ti)}%`
+        : (i, ti) => R(colFunc(i, ti));
+    const goo = (t, frames) => {
+        let ti = frames / 60;
+        for (let i = 960; i--;) {
+            x.fillStyle = fillFunc(i, ti);
+            x.fillRect(i, 0, 1, 1);
+        }
+        x.drawImage(c, 0, 1);
+    };
+    return goo;
+};
 const vectorSpiral = (t, frames) => {
     x.fillStyle = "black";
     x.fillRect(0, 0, 960, 540);
@@ -359,8 +430,7 @@ const vectorSpiral = (t, frames) => {
 const pinkishHelix = (t, frames) => {
     x.fillStyle = "white";
     x.fillRect(0, 0, 960, 540);
-    let i;
-    let j;
+    let i, j;
     for (i = 0; i < 960; i += 32) {
         x.fillStyle = R(((1 + C(i)) / 2) * 255, 0, 155);
         for (j = 0; j < 3; j++)
@@ -379,28 +449,55 @@ const movingGrid = (t, frames) => {
                 x.fillRect(i, j, s, s);
 };
 const draws = {
-    edgeblur: redSpiral,
-    vectordisplay: vectorSpiral,
-    singlepassgrain: pinkishHelix,
-    redonly: stripes,
-    redzero: stripes,
-    redgreenswap: movingGrid,
-    huerotate: fabric,
-    timehuerotate: fabric,
+    edgeblur: [redSpiral],
+    vectordisplay: [vectorSpiral],
+    singlepassgrain: [pinkishHelix],
+    redonly: [stripes],
+    redzero: [stripes],
+    redgreenswap: [movingGrid],
+    huerotate: [fabric],
+    timehuerotate: [fabric],
+    scanlines: [pinkishHelix],
+    fxaa: [higherOrderGoo(true)],
+    bufferblur: [higherOrderGoo(true), higherOrderGoo(false)],
+    buffereyesore: [
+        higherOrderWaves(true),
+        higherOrderWaves(false),
+        bitwiseGrid(),
+    ],
 };
+const canvases = [sourceCanvas];
+const contexts = [source];
 window.addEventListener("load", () => {
+    var _a, _b;
     let mstr = getVariable("m");
     let dstr = getVariable("d");
     if (mstr === undefined || demos[mstr] === undefined)
         mstr = "edgeblur"; // default demo
     if (dstr === undefined || draws[dstr] === undefined)
         dstr = mstr; // pair with merger
-    const demo = demos[mstr]();
-    if (demo === undefined)
-        throw new Error("merger not found");
     const draw = draws[dstr];
     if (draw === undefined)
         throw new Error("draw not found");
+    // minus 1 because we already included the source canvas and context
+    for (let i = 0; i < draw.length - 1; i++) {
+        const canvas = document.createElement("canvas");
+        canvas.width = 960;
+        canvas.height = 540;
+        const context = canvas.getContext("2d");
+        if (context === null) {
+            throw new Error("couldn't get the context of the canvas");
+        }
+        canvases.push(canvas);
+        contexts.push(context);
+        const header = document.createElement("h3");
+        header.innerText = "buffer " + i;
+        (_a = document.getElementById("buffers")) === null || _a === void 0 ? void 0 : _a.appendChild(header);
+        (_b = document.getElementById("buffers")) === null || _b === void 0 ? void 0 : _b.appendChild(canvas);
+    }
+    const demo = demos[mstr](canvases.slice(1));
+    if (demo === undefined)
+        throw new Error("merger not found");
     document.getElementById("title").innerText =
         "merge-pass demo: " + mstr;
     // unindent code string
@@ -432,7 +529,13 @@ window.addEventListener("load", () => {
     }
     let frame = 0;
     const step = (t = 0) => {
-        draw(t / 1000, frame);
+        let counter = 0;
+        for (const d of draw) {
+            c = canvases[counter];
+            x = contexts[counter];
+            d(t / 1000, frame);
+            counter++;
+        }
         demo.change(demo.merger, t, frame);
         demo.merger.draw(t / 1000);
         requestAnimationFrame(step);
@@ -443,7 +546,7 @@ window.addEventListener("load", () => {
 glCanvas.addEventListener("click", () => glCanvas.requestFullscreen());
 sourceCanvas.addEventListener("click", () => sourceCanvas.requestFullscreen());
 
-},{"./index":26,"dat.gui":29}],3:[function(require,module,exports){
+},{"./index":30,"dat.gui":33}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.blur2d = exports.Blur2dLoop = void 0;
@@ -464,7 +567,7 @@ function blur2d(horizontalExpr, verticalExpr, reps) {
 }
 exports.blur2d = blur2d;
 
-},{"../mergepass":27,"./blurexpr":4,"./expr":8,"./vecexprs":23}],4:[function(require,module,exports){
+},{"../mergepass":31,"./blurexpr":4,"./expr":9,"./vecexprs":27}],4:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.gauss5 = exports.BlurExpr = void 0;
@@ -486,7 +589,7 @@ function gauss5(direction) {
 }
 exports.gauss5 = gauss5;
 
-},{"../glslfunctions":25,"./expr":8}],5:[function(require,module,exports){
+},{"../glslfunctions":29,"./expr":9}],5:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.brightness = exports.Brightness = void 0;
@@ -508,7 +611,32 @@ function brightness(val, col) {
 }
 exports.brightness = brightness;
 
-},{"../glslfunctions":25,"./expr":8,"./fragcolorexpr":9}],6:[function(require,module,exports){
+},{"../glslfunctions":29,"./expr":9,"./fragcolorexpr":10}],6:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.buffer = exports.BufferSampleExpr = void 0;
+const codebuilder_1 = require("../codebuilder");
+const expr_1 = require("./expr");
+const normfragcoordexpr_1 = require("./normfragcoordexpr");
+function genBufferSamplerSource(buf, coord) {
+    return {
+        sections: [`texture2D(${codebuilder_1.bufferSamplerName(buf)}, `, `)`],
+        values: [coord],
+    };
+}
+class BufferSampleExpr extends expr_1.ExprVec4 {
+    constructor(buf, coord = normfragcoordexpr_1.nfcoord()) {
+        super(genBufferSamplerSource(buf, coord), ["uVec"]);
+        this.needs.extraBuffers = new Set([buf]);
+    }
+}
+exports.BufferSampleExpr = BufferSampleExpr;
+function buffer(buf, vec) {
+    return new BufferSampleExpr(buf, vec);
+}
+exports.buffer = buffer;
+
+},{"../codebuilder":1,"./expr":9,"./normfragcoordexpr":17}],7:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.changecomp = exports.ChangeCompExpr = void 0;
@@ -539,13 +667,11 @@ function duplicateComponents(comps) {
 class ChangeCompExpr extends expr_1.Operator {
     constructor(vec, setter, comps, op) {
         checkGetComponents(comps, setter, vec);
-        // TODO replace this random hash with string composed of operation properties
-        /** random hash to name a custom function */
-        const hash = Math.random().toString(36).substring(5);
-        console.log(hash);
-        super(vec, { sections: [`changecomp_${hash}(`, ", ", ")"], values: [vec, setter] }, ["uOriginal", "uNew"]);
+        // part of name of custom function
+        const suffix = `${vec.typeString()}_${setter.typeString()}_${comps}`;
+        super(vec, { sections: [`changecomp_${suffix}(`, ", ", ")"], values: [vec, setter] }, ["uOriginal", "uNew"]);
         this.externalFuncs = [
-            getChangeFunc(vec.typeString(), hash, setter, comps, op),
+            getChangeFunc(vec.typeString(), suffix, setter, comps, op),
         ];
     }
     setOriginal(vec) {
@@ -561,7 +687,7 @@ function changecomp(vec, setter, comps, op) {
 }
 exports.changecomp = changecomp;
 
-},{"./expr":8,"./getcompexpr":10}],7:[function(require,module,exports){
+},{"./expr":9,"./getcompexpr":12}],8:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.contrast = exports.Contrast = void 0;
@@ -583,11 +709,12 @@ function contrast(val, col) {
 }
 exports.contrast = contrast;
 
-},{"../glslfunctions":25,"./expr":8,"./fragcolorexpr":9}],8:[function(require,module,exports){
+},{"../glslfunctions":29,"./expr":9,"./fragcolorexpr":10}],9:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.tag = exports.wrapInValue = exports.pfloat = exports.n2p = exports.n2e = exports.Operator = exports.ExprVec4 = exports.ExprVec3 = exports.ExprVec2 = exports.float = exports.ExprFloat = exports.BasicFloat = exports.ExprVec = exports.BasicVec4 = exports.BasicVec3 = exports.BasicVec2 = exports.BasicVec = exports.PrimitiveVec4 = exports.PrimitiveVec3 = exports.PrimitiveVec2 = exports.PrimitiveVec = exports.PrimitiveFloat = exports.Primitive = exports.mut = exports.Mutable = exports.Expr = void 0;
 const mergepass_1 = require("../mergepass");
+const webglprogramloop_1 = require("../webglprogramloop");
 function toGLSLFloatString(num) {
     let str = "" + num;
     if (!str.includes("."))
@@ -598,11 +725,11 @@ class Expr {
     constructor(sourceLists, defaultNames) {
         this.added = false;
         this.needs = {
-            depthBuffer: false,
             neighborSample: false,
             centerSample: false,
             sceneBuffer: false,
             timeUniform: false,
+            extraBuffers: new Set(),
         };
         this.uniformValChangeMap = {};
         this.defaultNameMap = {};
@@ -628,9 +755,6 @@ class Expr {
                 this.uniformValChangeMap[name].val.applyUniform(gl, loc);
             }
         }
-    }
-    getNeeds(name) {
-        return this.needs[name];
     }
     getSampleNum(mult = 1) {
         return this.needs.neighborSample ? mult : 0;
@@ -669,13 +793,7 @@ class Expr {
         }
         this.sourceCode = "";
         buildInfo.exprs.push(this);
-        const updateNeed = (name) => (buildInfo.needs[name] = buildInfo.needs[name] || this.needs[name]);
-        // update me on change to needs: no good way to iterate through an interface
-        updateNeed("centerSample");
-        updateNeed("neighborSample");
-        updateNeed("depthBuffer");
-        updateNeed("sceneBuffer");
-        updateNeed("timeUniform");
+        buildInfo.needs = webglprogramloop_1.updateNeeds(buildInfo.needs, this.needs);
         // add each of the external funcs to the builder
         this.externalFuncs.forEach((func) => buildInfo.externalFuncs.add(func));
         // put all of the values between all of the source sections
@@ -749,7 +867,8 @@ class Primitive {
 exports.Primitive = Primitive;
 class PrimitiveFloat extends Primitive {
     constructor(num) {
-        // TODO throw error when NaN, Infinity or -Infinity
+        if (!isFinite(num))
+            throw new Error("number not finite");
         super();
         this.value = num;
     }
@@ -962,7 +1081,7 @@ function tag(strings, ...values) {
 }
 exports.tag = tag;
 
-},{"../mergepass":27}],9:[function(require,module,exports){
+},{"../mergepass":31,"../webglprogramloop":32}],10:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fcolor = exports.FragColorExpr = void 0;
@@ -979,7 +1098,25 @@ function fcolor() {
 }
 exports.fcolor = fcolor;
 
-},{"./expr":8}],10:[function(require,module,exports){
+},{"./expr":9}],11:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.fxaa = void 0;
+const expr_1 = require("./expr");
+const glslfunctions_1 = require("../glslfunctions");
+class FXAAExpr extends expr_1.ExprVec4 {
+    constructor() {
+        super(expr_1.tag `fxaa()`, []);
+        this.externalFuncs = [glslfunctions_1.glslFuncs.fxaa];
+        this.needs.neighborSample = true;
+    }
+}
+function fxaa() {
+    return new FXAAExpr();
+}
+exports.fxaa = fxaa;
+
+},{"../glslfunctions":29,"./expr":9}],12:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.get4comp = exports.get3comp = exports.get2comp = exports.getcomp = exports.Get4CompExpr = exports.Get3CompExpr = exports.Get2CompExpr = exports.GetCompExpr = exports.checkLegalComponents = exports.typeStringToLength = void 0;
@@ -1071,7 +1208,7 @@ function get4comp(vec, comps) {
 }
 exports.get4comp = get4comp;
 
-},{"./expr":8}],11:[function(require,module,exports){
+},{"./expr":9}],13:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.grain = exports.GrainExpr = void 0;
@@ -1095,7 +1232,7 @@ function grain(val) {
 }
 exports.grain = grain;
 
-},{"../glslfunctions":25,"./expr":8}],12:[function(require,module,exports){
+},{"../glslfunctions":29,"./expr":9}],14:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.hsv2rgb = exports.HSVToRGBExpr = void 0;
@@ -1113,7 +1250,7 @@ function hsv2rgb(col) {
 }
 exports.hsv2rgb = hsv2rgb;
 
-},{"../glslfunctions":25,"./expr":8}],13:[function(require,module,exports){
+},{"../glslfunctions":29,"./expr":9}],15:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.len = exports.LenExpr = void 0;
@@ -1133,7 +1270,7 @@ function len(vec) {
 }
 exports.len = len;
 
-},{"./expr":8}],14:[function(require,module,exports){
+},{"./expr":9}],16:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ncfcoord = exports.NormCenterFragCoordExpr = void 0;
@@ -1149,7 +1286,7 @@ function ncfcoord() {
 }
 exports.ncfcoord = ncfcoord;
 
-},{"./expr":8}],15:[function(require,module,exports){
+},{"./expr":9}],17:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.nfcoord = exports.NormFragCoordExpr = void 0;
@@ -1165,7 +1302,7 @@ function nfcoord() {
 }
 exports.nfcoord = nfcoord;
 
-},{"./expr":8}],16:[function(require,module,exports){
+},{"./expr":9}],18:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.op = exports.OpExpr = void 0;
@@ -1196,7 +1333,7 @@ function op(left, op, right) {
 }
 exports.op = op;
 
-},{"./expr":8}],17:[function(require,module,exports){
+},{"./expr":9}],19:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pblur = exports.PowerBlurLoop = void 0;
@@ -1234,7 +1371,30 @@ function pblur(size) {
 }
 exports.pblur = pblur;
 
-},{"../mergepass":27,"./blurexpr":4,"./expr":8,"./vecexprs":23}],18:[function(require,module,exports){
+},{"../mergepass":31,"./blurexpr":4,"./expr":9,"./vecexprs":27}],20:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.pow = exports.PowExpr = void 0;
+const expr_1 = require("./expr");
+class PowExpr extends expr_1.Operator {
+    constructor(base, exponent) {
+        super(base, expr_1.tag `pow(${base}, ${exponent})`, ["uBase", "uExponent"]);
+    }
+    setBase(left) {
+        this.setUniform("uBase" + this.id, expr_1.wrapInValue(left));
+    }
+    setExponent(right) {
+        this.setUniform("uExponent" + this.id, expr_1.wrapInValue(right));
+    }
+}
+exports.PowExpr = PowExpr;
+// implementation
+function pow(base, exponent) {
+    return new PowExpr(expr_1.wrapInValue(base), expr_1.wrapInValue(exponent));
+}
+exports.pow = pow;
+
+},{"./expr":9}],21:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RandomExpr = void 0;
@@ -1248,7 +1408,7 @@ class RandomExpr extends expr_1.ExprVec4 {
 }
 exports.RandomExpr = RandomExpr;
 
-},{"../glslfunctions":25,"./expr":8}],19:[function(require,module,exports){
+},{"../glslfunctions":29,"./expr":9}],22:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.rgb2hsv = exports.RGBToHSVExpr = void 0;
@@ -1266,7 +1426,7 @@ function rgb2hsv(col) {
 }
 exports.rgb2hsv = rgb2hsv;
 
-},{"../glslfunctions":25,"./expr":8}],20:[function(require,module,exports){
+},{"../glslfunctions":29,"./expr":9}],23:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.input = exports.SceneSampleExpr = void 0;
@@ -1274,7 +1434,7 @@ const expr_1 = require("./expr");
 const normfragcoordexpr_1 = require("./normfragcoordexpr");
 class SceneSampleExpr extends expr_1.ExprVec4 {
     constructor(coord = normfragcoordexpr_1.nfcoord()) {
-        super(expr_1.tag `(texture2D(uSceneSampler, ${coord}))`, ["uVec"]);
+        super(expr_1.tag `texture2D(uSceneSampler, ${coord})`, ["uVec"]);
         this.needs.sceneBuffer = true;
     }
 }
@@ -1284,7 +1444,7 @@ function input(vec) {
 }
 exports.input = input;
 
-},{"./expr":8,"./normfragcoordexpr":15}],21:[function(require,module,exports){
+},{"./expr":9,"./normfragcoordexpr":17}],24:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setcolor = exports.SetColorExpr = void 0;
@@ -1300,7 +1460,7 @@ function setcolor(val) {
 }
 exports.setcolor = setcolor;
 
-},{"./expr":8}],22:[function(require,module,exports){
+},{"./expr":9}],25:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.time = exports.TimeExpr = void 0;
@@ -1317,7 +1477,41 @@ function time() {
 }
 exports.time = time;
 
-},{"./expr":8}],23:[function(require,module,exports){
+},{"./expr":9}],26:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.tan = exports.cos = exports.sin = exports.TrigExpr = void 0;
+const expr_1 = require("./expr");
+function genTrigSourceList(operation, val) {
+    return {
+        sections: [operation + "(", ")"],
+        values: [val],
+    };
+}
+class TrigExpr extends expr_1.Operator {
+    constructor(val, operation) {
+        super(val, genTrigSourceList(operation, val), ["uVal"]);
+        this.val = val;
+    }
+    setExponent(right) {
+        this.setUniform("uVal" + this.id, expr_1.wrapInValue(right));
+    }
+}
+exports.TrigExpr = TrigExpr;
+function sin(val) {
+    return new TrigExpr(val, "sin");
+}
+exports.sin = sin;
+function cos(val) {
+    return new TrigExpr(val, "cos");
+}
+exports.cos = cos;
+function tan(val) {
+    return new TrigExpr(val, "tan");
+}
+exports.tan = tan;
+
+},{"./expr":9}],27:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pvec4 = exports.pvec3 = exports.pvec2 = exports.vec4 = exports.vec3 = exports.vec2 = void 0;
@@ -1361,11 +1555,11 @@ function pvec4(comp1, comp2, comp3, comp4) {
 }
 exports.pvec4 = pvec4;
 
-},{"./expr":8}],24:[function(require,module,exports){
+},{"./expr":9}],28:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 
-},{}],25:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.glslFuncs = void 0;
@@ -1427,6 +1621,7 @@ exports.glslFuncs = {
   col.rgb *= col.a;
   return col;
 }`,
+    // TODO get rid of this!
     hsvmask: `void main(vec4 mask, vec4 components, vec4 col) {
   vec3 hsv = rgb2hsv(col.rgb);
   vec3 m = mask;
@@ -1438,9 +1633,67 @@ exports.glslFuncs = {
     setxyz: `vec4 setxyz (vec3 comp, vec3 mask, vec4 col) {
   col.xyz = (vec3(1., 1., 1.) - mask) * comp + m * hsv.xyz;
 }`,
+    // adapted from https://www.shadertoy.com/view/ls3GWS which was adapted from
+    // http://www.geeks3d.com/20110405/fxaa-fast-approximate-anti-aliasing-demo-glsl-opengl-test-radeon-geforce/3/
+    // pass in normalized coordinates to rcpFrame
+    fxaa: `vec4 fxaa() {
+  float FXAA_SPAN_MAX = 8.0;
+  float FXAA_REDUCE_MUL = 1.0 / FXAA_SPAN_MAX;
+  float FXAA_REDUCE_MIN = 1.0 / 128.0;
+  float FXAA_SUBPIX_SHIFT = 1.0 / 4.0;
+
+  vec2 rcpFrame = 1. / uResolution.xy;
+  vec2 t_uv = gl_FragCoord.xy / uResolution.xy; 
+  vec4 uv = vec4(t_uv, t_uv - (rcpFrame * (0.5 + FXAA_SUBPIX_SHIFT)));
+
+  vec3 rgbNW = texture2D(uSampler, uv.zw).xyz;
+  vec3 rgbNE = texture2D(uSampler, uv.zw + vec2(1,0) * rcpFrame.xy).xyz;
+  vec3 rgbSW = texture2D(uSampler, uv.zw + vec2(0,1) * rcpFrame.xy).xyz;
+  vec3 rgbSE = texture2D(uSampler, uv.zw + vec2(1,1) * rcpFrame.xy).xyz;
+  vec4 rgbMfull = texture2D(uSampler, uv.xy);
+  vec3 rgbM = rgbMfull.xyz;
+  float alpha = rgbMfull.a;
+
+  vec3 luma = vec3(0.299, 0.587, 0.114);
+  float lumaNW = dot(rgbNW, luma);
+  float lumaNE = dot(rgbNE, luma);
+  float lumaSW = dot(rgbSW, luma);
+  float lumaSE = dot(rgbSE, luma);
+  float lumaM = dot(rgbM,  luma);
+
+  float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));
+  float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));
+
+  vec2 dir;
+  dir.x = -((lumaNW + lumaNE) - (lumaSW + lumaSE));
+  dir.y = ((lumaNW + lumaSW) - (lumaNE + lumaSE));
+
+  float dirReduce = max(
+    (lumaNW + lumaNE + lumaSW + lumaSE) * (0.25 * FXAA_REDUCE_MUL), FXAA_REDUCE_MIN);
+  float rcpDirMin = 1.0/(min(abs(dir.x), abs(dir.y)) + dirReduce);
+
+  dir = min(vec2(FXAA_SPAN_MAX,  FXAA_SPAN_MAX),
+    max(vec2(-FXAA_SPAN_MAX, -FXAA_SPAN_MAX),
+    dir * rcpDirMin)) * rcpFrame.xy;
+
+  vec3 rgbA = (1.0 / 2.0) * (
+    texture2D(uSampler, uv.xy + dir * (1.0 / 3.0 - 0.5)).xyz +
+    texture2D(uSampler, uv.xy + dir * (2.0 / 3.0 - 0.5)).xyz);
+  vec3 rgbB = rgbA * (1.0 / 2.0) + (1.0 / 4.0) * (
+    texture2D(uSampler, uv.xy + dir * (0.0 / 3.0 - 0.5)).xyz +
+    texture2D(uSampler, uv.xy + dir * (3.0 / 3.0 - 0.5)).xyz);
+
+  float lumaB = dot(rgbB, luma);
+
+  if(lumaB < lumaMin || lumaB > lumaMax) {
+    return vec4(rgbA.r, rgbA.g, rgbA.b, alpha);
+  }
+
+  return vec4(rgbB.r, rgbB.g, rgbB.b, alpha);
+}`,
 };
 
-},{}],26:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -1477,37 +1730,28 @@ __exportStar(require("./expressions/changecompexpr"), exports);
 __exportStar(require("./expressions/rgbtohsvexpr"), exports);
 __exportStar(require("./expressions/hsvtorgbexpr"), exports);
 __exportStar(require("./expressions/timeexpr"), exports);
+__exportStar(require("./expressions/trigexpr"), exports);
+__exportStar(require("./expressions/powexpr"), exports);
+__exportStar(require("./expressions/fxaaexpr"), exports);
+__exportStar(require("./expressions/buffersampleexpr"), exports);
 __exportStar(require("./expressions/expr"), exports);
 
-},{"./expressions/blur2dloop":3,"./expressions/blurexpr":4,"./expressions/brightnessexpr":5,"./expressions/changecompexpr":6,"./expressions/contrastexpr":7,"./expressions/expr":8,"./expressions/fragcolorexpr":9,"./expressions/getcompexpr":10,"./expressions/grainexpr":11,"./expressions/hsvtorgbexpr":12,"./expressions/lenexpr":13,"./expressions/normcenterfragcoordexpr":14,"./expressions/normfragcoordexpr":15,"./expressions/opexpr":16,"./expressions/powerblur":17,"./expressions/randomexpr":18,"./expressions/rgbtohsvexpr":19,"./expressions/scenesampleexpr":20,"./expressions/setcolorexpr":21,"./expressions/timeexpr":22,"./expressions/vecexprs":23,"./exprtypes":24,"./glslfunctions":25,"./mergepass":27}],27:[function(require,module,exports){
+},{"./expressions/blur2dloop":3,"./expressions/blurexpr":4,"./expressions/brightnessexpr":5,"./expressions/buffersampleexpr":6,"./expressions/changecompexpr":7,"./expressions/contrastexpr":8,"./expressions/expr":9,"./expressions/fragcolorexpr":10,"./expressions/fxaaexpr":11,"./expressions/getcompexpr":12,"./expressions/grainexpr":13,"./expressions/hsvtorgbexpr":14,"./expressions/lenexpr":15,"./expressions/normcenterfragcoordexpr":16,"./expressions/normfragcoordexpr":17,"./expressions/opexpr":18,"./expressions/powerblur":19,"./expressions/powexpr":20,"./expressions/randomexpr":21,"./expressions/rgbtohsvexpr":22,"./expressions/scenesampleexpr":23,"./expressions/setcolorexpr":24,"./expressions/timeexpr":25,"./expressions/trigexpr":26,"./expressions/vecexprs":27,"./exprtypes":28,"./glslfunctions":29,"./mergepass":31}],31:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendTexture = exports.makeTexture = exports.Merger = exports.loop = exports.EffectLoop = exports.getNeedsOfList = void 0;
+exports.sendTexture = exports.makeTexture = exports.Merger = exports.loop = exports.EffectLoop = void 0;
 const codebuilder_1 = require("./codebuilder");
 const webglprogramloop_1 = require("./webglprogramloop");
-// TODO get rid of this
-function getNeedsOfList(name, list) {
-    if (list.length === 0) {
-        throw new Error("list was empty, so no needs could be found");
-    }
-    const bools = list.map((e) => e.getNeeds(name));
-    return bools.reduce((acc, curr) => acc || curr);
-}
-exports.getNeedsOfList = getNeedsOfList;
 class EffectLoop {
     constructor(effects, repeat) {
         this.effects = effects;
         this.repeat = repeat;
     }
-    getNeeds(name) {
-        return getNeedsOfList(name, this.effects);
-        //const bools: boolean[] = this.effects.map((e) => e.getNeeds(name));
-        //return bools.reduce((acc: boolean, curr: boolean) => acc || curr);
-    }
-    getSampleNum(mult = 1) {
+    getSampleNum(mult = 1, sliceStart = 0, sliceEnd = this.effects.length) {
         mult *= this.repeat.num;
         let acc = 0;
-        for (const e of this.effects) {
+        const sliced = this.effects.slice(sliceStart, sliceEnd);
+        for (const e of sliced) {
             acc += e.getSampleNum(mult);
         }
         return acc;
@@ -1547,8 +1791,11 @@ class EffectLoop {
     }
     /** recursive descent parser for turning effects into programs */
     genPrograms(gl, vShader, uniformLocs) {
-        // TODO we probably don't need scenesource anymore
-        if (this.getSampleNum() / this.repeat.num <= 1) {
+        // validate
+        const fullSampleNum = this.getSampleNum() / this.repeat.num;
+        const firstSampleNum = this.getSampleNum(undefined, 0, 1) / this.repeat.num;
+        const restSampleNum = this.getSampleNum(undefined, 1) / this.repeat.num;
+        if (fullSampleNum === 0 || (firstSampleNum === 1 && restSampleNum === 0)) {
             // if this group only samples neighbors at most once, create program
             const codeBuilder = new codebuilder_1.CodeBuilder(this);
             const program = codeBuilder.compileProgram(gl, vShader, uniformLocs);
@@ -1572,6 +1819,11 @@ void main() {
 class Merger {
     constructor(effects, source, gl, options) {
         this.uniformLocs = {};
+        /** additional buffers */
+        this.buffers = [];
+        // set buffers if provided with buffers
+        if ((options === null || options === void 0 ? void 0 : options.buffers) !== undefined)
+            this.buffers = options === null || options === void 0 ? void 0 : options.buffers;
         // wrap the given list of effects as a loop if need be
         if (!(effects instanceof EffectLoop)) {
             this.effectLoop = new EffectLoop(effects, { num: 1 });
@@ -1605,6 +1857,7 @@ class Merger {
             front: makeTexture(this.gl, this.options),
             back: makeTexture(this.gl, this.options),
             scene: undefined,
+            bufTextures: [],
         };
         // create the framebuffer
         const framebuffer = gl.createFramebuffer();
@@ -1632,19 +1885,32 @@ class Merger {
         if (this.programLoop.getTotalNeeds().sceneBuffer) {
             this.tex.scene = makeTexture(this.gl, this.options);
         }
-        // TODO get rid of this (or make it only log when verbose)
         console.log(this.programLoop);
+        // create x amount of empty textures based on buffers needed
+        for (let i = 0; i < this.buffers.length; i++) {
+            const texture = makeTexture(this.gl, this.options);
+            this.tex.bufTextures.push(texture);
+        }
     }
     draw(time = 0) {
-        //this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.framebuffer);
         this.gl.activeTexture(this.gl.TEXTURE0);
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.tex.back);
         sendTexture(this.gl, this.source);
+        // bind the scene buffer
         if (this.programLoop.getTotalNeeds().sceneBuffer &&
             this.tex.scene !== undefined) {
             this.gl.activeTexture(this.gl.TEXTURE1);
             this.gl.bindTexture(this.gl.TEXTURE_2D, this.tex.scene);
             sendTexture(this.gl, this.source);
+        }
+        // bind the additional buffers
+        let counter = 0;
+        for (const b of this.buffers) {
+            // TODO what's the limit on amount of textures?
+            this.gl.activeTexture(this.gl.TEXTURE2 + counter);
+            this.gl.bindTexture(this.gl.TEXTURE_2D, this.tex.bufTextures[counter]);
+            sendTexture(this.gl, b);
+            counter++;
         }
         // swap textures before beginning draw
         this.programLoop.draw(this.gl, this.tex, this.framebuffer, this.uniformLocs, this.programLoop.last, time);
@@ -1677,10 +1943,20 @@ function sendTexture(gl, src) {
 }
 exports.sendTexture = sendTexture;
 
-},{"./codebuilder":1,"./webglprogramloop":28}],28:[function(require,module,exports){
+},{"./codebuilder":1,"./webglprogramloop":32}],32:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.WebGLProgramLoop = void 0;
+exports.WebGLProgramLoop = exports.updateNeeds = void 0;
+// update me on change to needs
+exports.updateNeeds = (acc, curr) => {
+    return {
+        neighborSample: acc.neighborSample || curr.neighborSample,
+        centerSample: acc.centerSample || curr.centerSample,
+        sceneBuffer: acc.sceneBuffer || curr.sceneBuffer,
+        timeUniform: acc.timeUniform || curr.timeUniform,
+        extraBuffers: new Set([...acc.extraBuffers, ...curr.extraBuffers]),
+    };
+};
 class WebGLProgramLoop {
     constructor(programElement, repeat, gl, totalNeeds, // only defined when leaf
     effects = [] // only populated when leaf
@@ -1713,15 +1989,7 @@ class WebGLProgramLoop {
                 allNeeds.push(p.getTotalNeeds());
             }
             // update me on change to needs
-            return allNeeds.reduce((acc, curr) => {
-                return {
-                    neighborSample: acc.neighborSample || curr.neighborSample,
-                    centerSample: acc.centerSample || curr.centerSample,
-                    sceneBuffer: acc.sceneBuffer || curr.sceneBuffer,
-                    depthBuffer: acc.depthBuffer || curr.depthBuffer,
-                    timeUniform: acc.timeUniform || curr.timeUniform,
-                };
-            });
+            return allNeeds.reduce(exports.updateNeeds);
         }
         if (this.totalNeeds === undefined) {
             throw new Error("total needs of webgl program was somehow undefined");
@@ -1786,7 +2054,7 @@ class WebGLProgramLoop {
 }
 exports.WebGLProgramLoop = WebGLProgramLoop;
 
-},{}],29:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
