@@ -156,7 +156,7 @@ class CodeBuilder {
 }
 exports.CodeBuilder = CodeBuilder;
 
-},{"./expressions/expr":9,"./webglprogramloop":32}],2:[function(require,module,exports){
+},{"./expressions/expr":10,"./webglprogramloop":34}],2:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -219,8 +219,8 @@ const demos = {
     vectordisplay: () => {
         const merger = new MP.Merger([
             MP.loop([
-                MP.gauss5(MP.vec2(1, 0)),
-                MP.gauss5(MP.vec2(0, 1)),
+                MP.gauss(MP.vec2(1, 0)),
+                MP.gauss(MP.vec2(0, 1)),
                 MP.brightness(0.15),
                 MP.contrast(1.2),
             ], 5),
@@ -236,7 +236,7 @@ const demos = {
         let vec;
         let m;
         const merger = new MP.Merger([
-            MP.gauss5(MP.vec2(0, 1)),
+            MP.gauss(MP.vec2(0, 1)),
             MP.grain((m = MP.op(MP.len(MP.op(MP.ncfcoord(), "+", (vec = MP.vec2(MP.mut(0), 0)))), "*", MP.mut(0.3)))),
         ], sourceCanvas, gl);
         class GrainControls {
@@ -346,6 +346,29 @@ const demos = {
             change: () => { },
         };
     },
+    basicdof: (buffers = []) => {
+        const dof = MP.dof(0.5);
+        const merger = new MP.Merger([dof], sourceCanvas, gl, {
+            buffers: buffers,
+        });
+        class FocusControls {
+            constructor() {
+                this.focus = 0.5;
+                this.radius = 0.01;
+            }
+        }
+        const controls = new FocusControls();
+        const gui = new dat.GUI();
+        gui.add(controls, "focus", 0, 1.0, 0.01);
+        gui.add(controls, "radius", 0.01, 0.1, 0.01);
+        return {
+            merger: merger,
+            change: () => {
+                dof.moveFocus(controls.focus);
+                dof.changeRadius(controls.radius);
+            },
+        };
+    },
 };
 // canvas drawing loops
 const stripes = (t, frames) => {
@@ -448,6 +471,35 @@ const movingGrid = (t, frames) => {
                         (4 + C(t * 6) + C((C(t) * i) / 99 + t) + S((S(t) * j) / 99 + t))), 0, s + i / 9)),
                 x.fillRect(i, j, s, s);
 };
+const higherOrderPerspective = (color) => {
+    const fillFunc = color
+        ? (i) => `hsl(${i * 99},50%,50%)`
+        : (i) => R(255 * (1 / (1 + i)));
+    return (t, frames) => {
+        x.fillStyle = "black";
+        x.fillRect(0, 0, 960, 540);
+        const d = (xp, yp, zp, w, h) => {
+            x.fillRect(Math.round(480 + (xp - w / 2) / zp), Math.round(270 + (yp - h / 2) / zp), Math.round(w / zp), Math.round(h / zp));
+            x.fill();
+        };
+        const offset = 200;
+        const size = 64;
+        const amplitude = 32;
+        for (let i = 12; i > 0; i -= 0.5) {
+            x.fillStyle = fillFunc(i);
+            const span = 14;
+            const spacing = 64;
+            const f = (off) => {
+                for (let j = 0; j < span; j++) {
+                    d((j - span / 2) * spacing + spacing / 2, offset * off + amplitude * C(j + frames / 60), i, size * ((span - j) / span), size * ((j + 1) / span));
+                }
+            };
+            f(-1);
+            f(C(frames / 60));
+            f(1);
+        }
+    };
+};
 const draws = {
     edgeblur: [redSpiral],
     vectordisplay: [vectorSpiral],
@@ -465,6 +517,7 @@ const draws = {
         higherOrderWaves(false),
         bitwiseGrid(),
     ],
+    basicdof: [higherOrderPerspective(true), higherOrderPerspective(false)],
 };
 const canvases = [sourceCanvas];
 const contexts = [source];
@@ -546,7 +599,7 @@ window.addEventListener("load", () => {
 glCanvas.addEventListener("click", () => glCanvas.requestFullscreen());
 sourceCanvas.addEventListener("click", () => sourceCanvas.requestFullscreen());
 
-},{"./index":30,"dat.gui":33}],3:[function(require,module,exports){
+},{"./index":32,"dat.gui":35}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.blur2d = exports.Blur2dLoop = void 0;
@@ -555,28 +608,44 @@ const blurexpr_1 = require("./blurexpr");
 const expr_1 = require("./expr");
 const vecexprs_1 = require("./vecexprs");
 class Blur2dLoop extends mergepass_1.EffectLoop {
-    constructor(horizontalExpr, verticalExpr, reps = 2) {
-        const side = blurexpr_1.gauss5(vecexprs_1.vec2(horizontalExpr, 0));
-        const up = blurexpr_1.gauss5(vecexprs_1.vec2(0, verticalExpr));
+    constructor(horizontalExpr, verticalExpr, reps = 2, taps) {
+        const side = blurexpr_1.gauss(vecexprs_1.vec2(horizontalExpr, 0), taps);
+        const up = blurexpr_1.gauss(vecexprs_1.vec2(0, verticalExpr), taps);
         super([side, up], { num: reps });
     }
 }
 exports.Blur2dLoop = Blur2dLoop;
-function blur2d(horizontalExpr, verticalExpr, reps) {
-    return new Blur2dLoop(expr_1.n2e(horizontalExpr), expr_1.n2e(verticalExpr), reps);
+function blur2d(horizontalExpr, verticalExpr, reps, taps) {
+    return new Blur2dLoop(expr_1.n2e(horizontalExpr), expr_1.n2e(verticalExpr), reps, taps);
 }
 exports.blur2d = blur2d;
 
-},{"../mergepass":31,"./blurexpr":4,"./expr":9,"./vecexprs":27}],4:[function(require,module,exports){
+},{"../mergepass":33,"./blurexpr":4,"./expr":10,"./vecexprs":29}],4:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.gauss5 = exports.BlurExpr = void 0;
+exports.gauss = exports.BlurExpr = void 0;
 const glslfunctions_1 = require("../glslfunctions");
 const expr_1 = require("./expr");
+function genBlurSource(direction, taps) {
+    return {
+        sections: [`gauss${taps}(`, ")"],
+        values: [direction],
+    };
+}
+function tapsToKey(taps) {
+    switch (taps) {
+        case 5:
+            return glslfunctions_1.glslFuncs.gauss5;
+        case 9:
+            return glslfunctions_1.glslFuncs.gauss9;
+        case 13:
+            return glslfunctions_1.glslFuncs.gauss13;
+    }
+}
 class BlurExpr extends expr_1.ExprVec4 {
-    constructor(direction) {
-        super(expr_1.tag `(gauss5(${direction}))`, ["uDirection"]);
-        this.externalFuncs = [glslfunctions_1.glslFuncs.gauss5];
+    constructor(direction, taps = 5) {
+        super(genBlurSource(direction, taps), ["uDirection"]);
+        this.externalFuncs = [tapsToKey(taps)];
         this.needs.neighborSample = true;
     }
     setDirection(direction) {
@@ -584,12 +653,12 @@ class BlurExpr extends expr_1.ExprVec4 {
     }
 }
 exports.BlurExpr = BlurExpr;
-function gauss5(direction) {
-    return new BlurExpr(direction);
+function gauss(direction, taps = 5) {
+    return new BlurExpr(direction, taps);
 }
-exports.gauss5 = gauss5;
+exports.gauss = gauss;
 
-},{"../glslfunctions":29,"./expr":9}],5:[function(require,module,exports){
+},{"../glslfunctions":31,"./expr":10}],5:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.brightness = exports.Brightness = void 0;
@@ -611,7 +680,7 @@ function brightness(val, col) {
 }
 exports.brightness = brightness;
 
-},{"../glslfunctions":29,"./expr":9,"./fragcolorexpr":10}],6:[function(require,module,exports){
+},{"../glslfunctions":31,"./expr":10,"./fragcolorexpr":11}],6:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.buffer = exports.BufferSampleExpr = void 0;
@@ -636,7 +705,7 @@ function buffer(buf, vec) {
 }
 exports.buffer = buffer;
 
-},{"../codebuilder":1,"./expr":9,"./normfragcoordexpr":17}],7:[function(require,module,exports){
+},{"../codebuilder":1,"./expr":10,"./normfragcoordexpr":19}],7:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.changecomp = exports.ChangeCompExpr = void 0;
@@ -687,7 +756,7 @@ function changecomp(vec, setter, comps, op) {
 }
 exports.changecomp = changecomp;
 
-},{"./expr":9,"./getcompexpr":12}],8:[function(require,module,exports){
+},{"./expr":10,"./getcompexpr":14}],8:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.contrast = exports.Contrast = void 0;
@@ -709,7 +778,51 @@ function contrast(val, col) {
 }
 exports.contrast = contrast;
 
-},{"../glslfunctions":29,"./expr":9,"./fragcolorexpr":10}],9:[function(require,module,exports){
+},{"../glslfunctions":31,"./expr":10,"./fragcolorexpr":11}],9:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.dof = exports.DoFLoop = void 0;
+const mergepass_1 = require("../mergepass");
+const blurexpr_1 = require("./blurexpr");
+const expr_1 = require("./expr");
+const gaussianexpr_1 = require("./gaussianexpr");
+const opexpr_1 = require("./opexpr");
+const powexpr_1 = require("./powexpr");
+const vecexprs_1 = require("./vecexprs");
+const buffersampleexpr_1 = require("./buffersampleexpr");
+const getcompexpr_1 = require("./getcompexpr");
+class DoFLoop extends mergepass_1.EffectLoop {
+    constructor(depth, reps = 2, rad = 0.01, bufferNum = 0) {
+        const radSide = expr_1.mut(expr_1.pfloat(rad));
+        const radUp = expr_1.mut(expr_1.pfloat(rad));
+        const depthSide = expr_1.mut(expr_1.pfloat(depth));
+        const depthUp = expr_1.mut(expr_1.pfloat(depth));
+        let gSide = gaussianexpr_1.gaussian(getcompexpr_1.getcomp(buffersampleexpr_1.buffer(bufferNum), "r"), depthSide, radSide);
+        let gUp = gaussianexpr_1.gaussian(getcompexpr_1.getcomp(buffersampleexpr_1.buffer(bufferNum), "r"), depthUp, radUp);
+        const side = blurexpr_1.gauss(vecexprs_1.vec2(powexpr_1.pow(opexpr_1.op(1, "-", gSide), 4), 0), 13);
+        const up = blurexpr_1.gauss(vecexprs_1.vec2(0, powexpr_1.pow(opexpr_1.op(1, "-", gUp), 4)), 13);
+        super([side, up], { num: reps });
+        this.gaussianSide = gSide;
+        this.gaussianUp = gUp;
+    }
+    moveFocus(depth) {
+        // this translates the gaussian curve to the side
+        this.gaussianSide.setA(depth);
+        this.gaussianUp.setA(depth);
+    }
+    changeRadius(radius) {
+        // this makes the gaussian curve wider
+        this.gaussianSide.setB(radius);
+        this.gaussianUp.setB(radius);
+    }
+}
+exports.DoFLoop = DoFLoop;
+function dof(depth, reps) {
+    return new DoFLoop(depth, reps);
+}
+exports.dof = dof;
+
+},{"../mergepass":33,"./blurexpr":4,"./buffersampleexpr":6,"./expr":10,"./gaussianexpr":13,"./getcompexpr":14,"./opexpr":20,"./powexpr":22,"./vecexprs":29}],10:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.tag = exports.wrapInValue = exports.pfloat = exports.n2p = exports.n2e = exports.Operator = exports.ExprVec4 = exports.ExprVec3 = exports.ExprVec2 = exports.float = exports.ExprFloat = exports.BasicFloat = exports.ExprVec = exports.BasicVec4 = exports.BasicVec3 = exports.BasicVec2 = exports.BasicVec = exports.PrimitiveVec4 = exports.PrimitiveVec3 = exports.PrimitiveVec2 = exports.PrimitiveVec = exports.PrimitiveFloat = exports.Primitive = exports.mut = exports.Mutable = exports.Expr = void 0;
@@ -1081,7 +1194,7 @@ function tag(strings, ...values) {
 }
 exports.tag = tag;
 
-},{"../mergepass":31,"../webglprogramloop":32}],10:[function(require,module,exports){
+},{"../mergepass":33,"../webglprogramloop":34}],11:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fcolor = exports.FragColorExpr = void 0;
@@ -1098,7 +1211,7 @@ function fcolor() {
 }
 exports.fcolor = fcolor;
 
-},{"./expr":9}],11:[function(require,module,exports){
+},{"./expr":10}],12:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fxaa = void 0;
@@ -1116,7 +1229,34 @@ function fxaa() {
 }
 exports.fxaa = fxaa;
 
-},{"../glslfunctions":29,"./expr":9}],12:[function(require,module,exports){
+},{"../glslfunctions":31,"./expr":10}],13:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.gaussian = exports.GaussianExpr = void 0;
+const expr_1 = require("./expr");
+const glslfunctions_1 = require("../glslfunctions");
+class GaussianExpr extends expr_1.ExprFloat {
+    constructor(x, a, b) {
+        super(expr_1.tag `gaussian(${x}, ${a}, ${b})`, ["uFloatX", "uFloatA", "uFloatB"]);
+        this.externalFuncs = [glslfunctions_1.glslFuncs.gaussian];
+    }
+    setX(x) {
+        this.setUniform("uFloatX" + this.id, expr_1.n2e(x));
+    }
+    setA(a) {
+        this.setUniform("uFloatA" + this.id, expr_1.n2e(a));
+    }
+    setB(b) {
+        this.setUniform("uFloatB" + this.id, expr_1.n2e(b));
+    }
+}
+exports.GaussianExpr = GaussianExpr;
+function gaussian(x, a = 0, b = 1) {
+    return new GaussianExpr(expr_1.n2e(x), expr_1.n2e(a), expr_1.n2e(b));
+}
+exports.gaussian = gaussian;
+
+},{"../glslfunctions":31,"./expr":10}],14:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.get4comp = exports.get3comp = exports.get2comp = exports.getcomp = exports.Get4CompExpr = exports.Get3CompExpr = exports.Get2CompExpr = exports.GetCompExpr = exports.checkLegalComponents = exports.typeStringToLength = void 0;
@@ -1208,7 +1348,7 @@ function get4comp(vec, comps) {
 }
 exports.get4comp = get4comp;
 
-},{"./expr":9}],13:[function(require,module,exports){
+},{"./expr":10}],15:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.grain = exports.GrainExpr = void 0;
@@ -1232,7 +1372,7 @@ function grain(val) {
 }
 exports.grain = grain;
 
-},{"../glslfunctions":29,"./expr":9}],14:[function(require,module,exports){
+},{"../glslfunctions":31,"./expr":10}],16:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.hsv2rgb = exports.HSVToRGBExpr = void 0;
@@ -1250,7 +1390,7 @@ function hsv2rgb(col) {
 }
 exports.hsv2rgb = hsv2rgb;
 
-},{"../glslfunctions":29,"./expr":9}],15:[function(require,module,exports){
+},{"../glslfunctions":31,"./expr":10}],17:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.len = exports.LenExpr = void 0;
@@ -1270,7 +1410,7 @@ function len(vec) {
 }
 exports.len = len;
 
-},{"./expr":9}],16:[function(require,module,exports){
+},{"./expr":10}],18:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ncfcoord = exports.NormCenterFragCoordExpr = void 0;
@@ -1286,7 +1426,7 @@ function ncfcoord() {
 }
 exports.ncfcoord = ncfcoord;
 
-},{"./expr":9}],17:[function(require,module,exports){
+},{"./expr":10}],19:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.nfcoord = exports.NormFragCoordExpr = void 0;
@@ -1302,7 +1442,7 @@ function nfcoord() {
 }
 exports.nfcoord = nfcoord;
 
-},{"./expr":9}],18:[function(require,module,exports){
+},{"./expr":10}],20:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.op = exports.OpExpr = void 0;
@@ -1333,7 +1473,7 @@ function op(left, op, right) {
 }
 exports.op = op;
 
-},{"./expr":9}],19:[function(require,module,exports){
+},{"./expr":10}],21:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pblur = exports.PowerBlurLoop = void 0;
@@ -1344,8 +1484,8 @@ const expr_1 = require("./expr");
 const baseLog = (x, y) => Math.log(y) / Math.log(x);
 class PowerBlurLoop extends mergepass_1.EffectLoop {
     constructor(size) {
-        const side = blurexpr_1.gauss5(expr_1.mut(vecexprs_1.pvec2(size, 0)));
-        const up = blurexpr_1.gauss5(expr_1.mut(vecexprs_1.pvec2(0, size)));
+        const side = blurexpr_1.gauss(expr_1.mut(vecexprs_1.pvec2(size, 0)));
+        const up = blurexpr_1.gauss(expr_1.mut(vecexprs_1.pvec2(0, size)));
         const reps = Math.ceil(baseLog(2, size));
         super([side, up], {
             num: reps + 1,
@@ -1371,7 +1511,7 @@ function pblur(size) {
 }
 exports.pblur = pblur;
 
-},{"../mergepass":31,"./blurexpr":4,"./expr":9,"./vecexprs":27}],20:[function(require,module,exports){
+},{"../mergepass":33,"./blurexpr":4,"./expr":10,"./vecexprs":29}],22:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pow = exports.PowExpr = void 0;
@@ -1394,7 +1534,7 @@ function pow(base, exponent) {
 }
 exports.pow = pow;
 
-},{"./expr":9}],21:[function(require,module,exports){
+},{"./expr":10}],23:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RandomExpr = void 0;
@@ -1408,7 +1548,7 @@ class RandomExpr extends expr_1.ExprVec4 {
 }
 exports.RandomExpr = RandomExpr;
 
-},{"../glslfunctions":29,"./expr":9}],22:[function(require,module,exports){
+},{"../glslfunctions":31,"./expr":10}],24:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.rgb2hsv = exports.RGBToHSVExpr = void 0;
@@ -1426,7 +1566,7 @@ function rgb2hsv(col) {
 }
 exports.rgb2hsv = rgb2hsv;
 
-},{"../glslfunctions":29,"./expr":9}],23:[function(require,module,exports){
+},{"../glslfunctions":31,"./expr":10}],25:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.input = exports.SceneSampleExpr = void 0;
@@ -1444,7 +1584,7 @@ function input(vec) {
 }
 exports.input = input;
 
-},{"./expr":9,"./normfragcoordexpr":17}],24:[function(require,module,exports){
+},{"./expr":10,"./normfragcoordexpr":19}],26:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setcolor = exports.SetColorExpr = void 0;
@@ -1460,7 +1600,7 @@ function setcolor(val) {
 }
 exports.setcolor = setcolor;
 
-},{"./expr":9}],25:[function(require,module,exports){
+},{"./expr":10}],27:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.time = exports.TimeExpr = void 0;
@@ -1477,7 +1617,7 @@ function time() {
 }
 exports.time = time;
 
-},{"./expr":9}],26:[function(require,module,exports){
+},{"./expr":10}],28:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.tan = exports.cos = exports.sin = exports.TrigExpr = void 0;
@@ -1511,7 +1651,7 @@ function tan(val) {
 }
 exports.tan = tan;
 
-},{"./expr":9}],27:[function(require,module,exports){
+},{"./expr":10}],29:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pvec4 = exports.pvec3 = exports.pvec2 = exports.vec4 = exports.vec3 = exports.vec2 = void 0;
@@ -1555,11 +1695,11 @@ function pvec4(comp1, comp2, comp3, comp4) {
 }
 exports.pvec4 = pvec4;
 
-},{"./expr":9}],28:[function(require,module,exports){
+},{"./expr":10}],30:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 
-},{}],29:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.glslFuncs = void 0;
@@ -1598,15 +1738,43 @@ exports.glslFuncs = {
               d / (q.x + e),
               q.x, co.a);
 }`,
+    // TODO make these take in a sampler to blur other buffers
+    // TODO code-gen gaussian blur of arbitrary taps by calculating the curve?
     // adapted from https://github.com/Jam3/glsl-fast-gaussian-blur/blob/master/5.glsl
     gauss5: `vec4 gauss5(vec2 dir) {
   vec2 uv = gl_FragCoord.xy / uResolution;
-  vec2 direction = dir;
   vec4 col = vec4(0.0);
-  vec2 off1 = vec2(1.3333333333333333) * direction;
+  vec2 off1 = vec2(1.3333333333333333) * dir;
   col += texture2D(uSampler, uv) * 0.29411764705882354;
   col += texture2D(uSampler, uv + (off1 / uResolution)) * 0.35294117647058826;
   col += texture2D(uSampler, uv - (off1 / uResolution)) * 0.35294117647058826;
+  return col;
+}`,
+    gauss9: `vec4 gauss9(vec2 dir) {
+  vec2 uv = gl_FragCoord.xy / uResolution;
+  vec4 col = vec4(0.0);
+  vec2 off1 = vec2(1.3846153846) * dir;
+  vec2 off2 = vec2(3.2307692308) * dir;
+  col += texture2D(uSampler, uv) * 0.2270270270;
+  col += texture2D(uSampler, uv + (off1 / uResolution)) * 0.3162162162;
+  col += texture2D(uSampler, uv - (off1 / uResolution)) * 0.3162162162;
+  col += texture2D(uSampler, uv + (off2 / uResolution)) * 0.0702702703;
+  col += texture2D(uSampler, uv - (off2 / uResolution)) * 0.0702702703;
+  return col;
+}`,
+    gauss13: `vec4 gauss13(vec2 dir) {
+  vec2 uv = gl_FragCoord.xy / uResolution;
+  vec4 col = vec4(0.0);
+  vec2 off1 = vec2(1.411764705882353) * dir;
+  vec2 off2 = vec2(3.2941176470588234) * dir;
+  vec2 off3 = vec2(5.176470588235294) * dir;
+  col += texture2D(uSampler, uv) * 0.1964825501511404;
+  col += texture2D(uSampler, uv + (off1 / uResolution)) * 0.2969069646728344;
+  col += texture2D(uSampler, uv - (off1 / uResolution)) * 0.2969069646728344;
+  col += texture2D(uSampler, uv + (off2 / uResolution)) * 0.09447039785044732;
+  col += texture2D(uSampler, uv - (off2 / uResolution)) * 0.09447039785044732;
+  col += texture2D(uSampler, uv + (off3 / uResolution)) * 0.010381362401148057;
+  col += texture2D(uSampler, uv - (off3 / uResolution)) * 0.010381362401148057;
   return col;
 }`,
     contrast: `vec4 contrast(float val, vec4 col) {
@@ -1691,9 +1859,14 @@ exports.glslFuncs = {
 
   return vec4(rgbB.r, rgbB.g, rgbB.b, alpha);
 }`,
+    // normal curve is a = 0 and b = 1
+    gaussian: `float gaussian(float x, float a, float b) {
+  float e = 2.71828;
+  return pow(e, -pow(x - a, 2.) / b);
+}`,
 };
 
-},{}],30:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -1734,9 +1907,10 @@ __exportStar(require("./expressions/trigexpr"), exports);
 __exportStar(require("./expressions/powexpr"), exports);
 __exportStar(require("./expressions/fxaaexpr"), exports);
 __exportStar(require("./expressions/buffersampleexpr"), exports);
+__exportStar(require("./expressions/dofloop"), exports);
 __exportStar(require("./expressions/expr"), exports);
 
-},{"./expressions/blur2dloop":3,"./expressions/blurexpr":4,"./expressions/brightnessexpr":5,"./expressions/buffersampleexpr":6,"./expressions/changecompexpr":7,"./expressions/contrastexpr":8,"./expressions/expr":9,"./expressions/fragcolorexpr":10,"./expressions/fxaaexpr":11,"./expressions/getcompexpr":12,"./expressions/grainexpr":13,"./expressions/hsvtorgbexpr":14,"./expressions/lenexpr":15,"./expressions/normcenterfragcoordexpr":16,"./expressions/normfragcoordexpr":17,"./expressions/opexpr":18,"./expressions/powerblur":19,"./expressions/powexpr":20,"./expressions/randomexpr":21,"./expressions/rgbtohsvexpr":22,"./expressions/scenesampleexpr":23,"./expressions/setcolorexpr":24,"./expressions/timeexpr":25,"./expressions/trigexpr":26,"./expressions/vecexprs":27,"./exprtypes":28,"./glslfunctions":29,"./mergepass":31}],31:[function(require,module,exports){
+},{"./expressions/blur2dloop":3,"./expressions/blurexpr":4,"./expressions/brightnessexpr":5,"./expressions/buffersampleexpr":6,"./expressions/changecompexpr":7,"./expressions/contrastexpr":8,"./expressions/dofloop":9,"./expressions/expr":10,"./expressions/fragcolorexpr":11,"./expressions/fxaaexpr":12,"./expressions/getcompexpr":14,"./expressions/grainexpr":15,"./expressions/hsvtorgbexpr":16,"./expressions/lenexpr":17,"./expressions/normcenterfragcoordexpr":18,"./expressions/normfragcoordexpr":19,"./expressions/opexpr":20,"./expressions/powerblur":21,"./expressions/powexpr":22,"./expressions/randomexpr":23,"./expressions/rgbtohsvexpr":24,"./expressions/scenesampleexpr":25,"./expressions/setcolorexpr":26,"./expressions/timeexpr":27,"./expressions/trigexpr":28,"./expressions/vecexprs":29,"./exprtypes":30,"./glslfunctions":31,"./mergepass":33}],33:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendTexture = exports.makeTexture = exports.Merger = exports.loop = exports.EffectLoop = void 0;
@@ -1943,7 +2117,7 @@ function sendTexture(gl, src) {
 }
 exports.sendTexture = sendTexture;
 
-},{"./codebuilder":1,"./webglprogramloop":32}],32:[function(require,module,exports){
+},{"./codebuilder":1,"./webglprogramloop":34}],34:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WebGLProgramLoop = exports.updateNeeds = void 0;
@@ -2054,7 +2228,7 @@ class WebGLProgramLoop {
 }
 exports.WebGLProgramLoop = WebGLProgramLoop;
 
-},{}],33:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
