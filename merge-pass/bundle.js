@@ -156,7 +156,7 @@ class CodeBuilder {
 }
 exports.CodeBuilder = CodeBuilder;
 
-},{"./expressions/expr":10,"./webglprogramloop":35}],2:[function(require,module,exports){
+},{"./expressions/expr":11,"./webglprogramloop":37}],2:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -180,6 +180,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const MP = __importStar(require("./index"));
 const dat = __importStar(require("dat.gui"));
+const vecexprs_1 = require("./expressions/vecexprs");
 const glCanvas = document.getElementById("gl");
 const gl = glCanvas.getContext("webgl2");
 if (gl === null) {
@@ -209,7 +210,7 @@ let R = (r, g, b, a = 1) => `rgba(${r | 0},${g | 0},${b | 0},${a})`;
 const demos = {
     edgeblur: () => {
         const lenExpr = MP.op(MP.len(MP.ncfcoord()), "*", 3);
-        const merger = new MP.Merger([MP.blur2d(lenExpr, lenExpr, 6)], sourceCanvas, gl);
+        const merger = new MP.Merger([MP.blur2d(lenExpr, lenExpr, 3)], sourceCanvas, gl);
         return {
             merger: merger,
             change: () => { },
@@ -220,7 +221,7 @@ const demos = {
         const merger = new MP.Merger([MP.blur2d(fl, fl)], sourceCanvas, gl);
         class BlurControls {
             constructor() {
-                this.blur = 0;
+                this.blur = 1;
             }
         }
         const controls = new BlurControls();
@@ -253,7 +254,7 @@ const demos = {
         let vec;
         let m;
         const merger = new MP.Merger([
-            MP.gauss(MP.vec2(0, 1)),
+            MP.gauss(MP.vec2(0, 1), 13),
             MP.grain((m = MP.op(MP.len(MP.op(MP.ncfcoord(), "+", (vec = MP.vec2(MP.mut(0), 0)))), "*", MP.mut(0.3)))),
         ], sourceCanvas, gl);
         class GrainControls {
@@ -388,7 +389,6 @@ const demos = {
         };
     },
     lineardof: (buffers = []) => {
-        //const dof = MP.dof(MP.mut(0.3), MP.mut(0.01));
         const dof = MP.dof(
         // transform a linear depth buffer to hyperbolic where 12 is max depth
         MP.mut(0.3), MP.mut(0.01), MP.op(1, "/", MP.op(1, "+", MP.op(12, "*", MP.op(1, "-", MP.getcomp(MP.buffer(0), "r"))))));
@@ -419,6 +419,45 @@ const demos = {
         ], sourceCanvas, gl, {
             buffers: buffers,
         });
+        return {
+            merger: merger,
+            change: () => { },
+        };
+    },
+    godrays: (buffers = []) => {
+        const merger = new MP.Merger([MP.godrays()], sourceCanvas, gl, {
+            buffers: buffers,
+        });
+        return {
+            merger: merger,
+            change: () => { },
+        };
+    },
+    depthgodrays: (buffers = []) => {
+        const merger = new MP.Merger([
+            MP.godrays(MP.fcolor(), 1.0, 0.99, 1.0, 0.01, MP.vec2(MP.op(0.5, "+", MP.op(MP.cos(MP.time()), "/", 5)), 0.5), 0, {
+                threshold: 0.1,
+                newColor: MP.hsv2rgb(vecexprs_1.vec4(MP.op(MP.time(), "/", 4), 0.5, 0.5, 1)),
+            }),
+        ], sourceCanvas, gl, {
+            buffers: buffers,
+        });
+        class LocationControls {
+            constructor() {
+                this.location = 0;
+                this.exposure = 1.0;
+                this.decay = 1.0;
+                this.density = 1.0;
+                this.weight = 0.01;
+            }
+        }
+        const controls = new LocationControls();
+        const gui = new dat.GUI();
+        gui.add(controls, "location", -1, 1, 0.01);
+        gui.add(controls, "exposure", 0, 1, 0.01);
+        gui.add(controls, "decay", 0, 1, 0.01);
+        gui.add(controls, "density", 0, 1, 0.01);
+        gui.add(controls, "weight", 0, 0.02, 0.001);
         return {
             merger: merger,
             change: () => { },
@@ -474,7 +513,7 @@ const shaderLike = (fillFunc) => {
     };
 };
 const higherOrderWaves = (color) => shaderLike(color
-    ? (x, y) => `hsl(${~~((x + y) / 20) * 100},20%,50%)`
+    ? (x, y) => `hsl(${~~((x + y) / 20) * 100},50%,90%)`
     : (x, y) => R((256 / 4) * Math.round(2 + S(x / 20) + C(y / 30))));
 const bitwiseGrid = () => shaderLike((x, y) => R((x & y) * 20));
 const higherOrderGoo = (color) => {
@@ -556,6 +595,28 @@ const higherOrderPerspective = (color, normalized = true) => {
         }
     };
 };
+const higherOrderDonuts = (color = true) => {
+    const rFunc = (i, j) => 255 * ~~((1 + 3 * C(i / (99 + 20 * C(j / 5))) * S(j / 2)) % 2);
+    const fillFunc = !color
+        ? (i, j) => {
+            let r = 255 - rFunc(i, j);
+            return R(r, r, r);
+        }
+        : (i, j) => {
+            let r = rFunc(i, j);
+            return r > 0 ? R(r / 4) : R(0, 0, 99 * C(i / 10) * S(j / 2) + 30);
+        };
+    return (t, frames) => {
+        if (!frames) {
+            x.fillStyle = "black";
+            x.fillRect(0, 0, 960, 540);
+        }
+        let j = frames / 60;
+        for (let i = 960; i--; x.fillStyle = fillFunc(i, j))
+            x.fillRect(i, 0, 1, 1);
+        x.drawImage(c, 0, 1);
+    };
+};
 const draws = {
     edgeblur: [redSpiral],
     bluramount: [movingGrid],
@@ -580,6 +641,55 @@ const draws = {
         higherOrderPerspective(false, false),
     ],
     lightbands: [higherOrderPerspective(true), higherOrderPerspective(false)],
+    godrays: [higherOrderDonuts(true), higherOrderDonuts(false)],
+    depthgodrays: [higherOrderPerspective(true), higherOrderPerspective(false)],
+};
+const notes = {
+    edgeblur: "the blur radius is a function of distance from the center coordinate." +
+        "this makes the image appear more in focus only around the center",
+    basicdof: "the blue rectangles should be most in focus. you can adjust with the controls " +
+        "in the corner",
+    lineardof: "by default, <code>dof</code> assumes that your depth buffer is " +
+        "stored in buffer 0, and that the red channel is normalized so that 1 is right " +
+        "on top of the camera lense, and 0 is all the way at infinity. this example " +
+        "shows how you might transform a depth buffer that stores the absolute depth " +
+        "into the form that <code>dof</code> interprets",
+    buffereyesore: "despite this demo offering very little in the way of aesthetic value, it " +
+        "demonstrates how you can optionally pass a list of images (which can " +
+        "be canvases or videos) into the merger constructor and sample from them",
+    fxaa: "fxaa stands for fast approximate anti-aliasing. amazingly, it only needs " +
+        "the scene buffer. it's not perfect, but it does the job in many cases. you " +
+        "can see how it eliminates jaggies by looking at the unprocessed image",
+    scanlines: "you can use trigonometric functions and exponents to create masks " +
+        "with interesting shapes",
+    huerotate: "you can use <code>rgb2hsv</code> and <code>hsv2rgb</code> and " +
+        "<code>changecomp</code> to change the hue, saturation or value of a color",
+    timehuerotate: "<code>time</code> will insert the time uniform into the generated code." +
+        "update time by passing in the current time to <code>merger.draw</code> in " +
+        "your draw loop",
+    redgreenswap: "you change only a few components of a vector in line with " +
+        "<code>get2comp</code>. using this in conjunction with <code>change2comp</code> " +
+        'you can sort of <a href="https://en.wikipedia.org/wiki/Swizzling_(computer_graphics)">swizzle</a>',
+    singlepassgrain: "even though a vertical blur is used, only one pass is needed here." +
+        "because of this, only one shader pass is generated (check the console) since " +
+        "since the additional grain effect can run directly afterwards in the same shader",
+    bluramount: "even though the blur effect is split up among multiple shaders, you update " +
+        "a uniform in both shaders by changing only a single mutable. " +
+        "the float expression <code>fl</code> gets passed in as both the " +
+        "horizontal and vertical radii of <code>blur2dloop</code>. <code>fl</code> " +
+        "contains a mutable primitive float which we can change with <code>fl.setVal</code>. " +
+        "(also, because the same expression can appear in the effect tree multiple " +
+        "times, and expressions can contain expressions, you can make reference loops, " +
+        "so don't do that)",
+    vectordisplay: "this glowing vector effect is created by repeatedly bluring and increasing the " +
+        "contrast of the original scene. then the fragment color of the original " +
+        "scene buffer (accessed with <code>input</code>) is added on top of the blurred " +
+        "image",
+    bufferblur: "you can use <code>gauss</code> on an extra buffer instead of " +
+        "the scene buffer by passing in an optional argument",
+    lightbands: "even though the value in the depth buffer is actually 1 / (1 + depth), we can " +
+        "calculate the true depth value with <code>truedepth</code>. with this, we can colorize" +
+        "bands of depth in our scene all the way out to infinity",
 };
 const canvases = [sourceCanvas];
 const contexts = [source];
@@ -594,6 +704,18 @@ window.addEventListener("load", () => {
     const draw = draws[dstr];
     if (draw === undefined)
         throw new Error("draw not found");
+    const note = notes[mstr];
+    if (note !== undefined) {
+        const div = document.getElementById("note");
+        const title = document.createElement("h2");
+        const p = document.createElement("p");
+        title.innerText = "note";
+        p.innerHTML = note;
+        if (div === null)
+            throw new Error("notes div was undefined");
+        div.appendChild(title);
+        div.appendChild(p);
+    }
     // minus 1 because we already included the source canvas and context
     for (let i = 0; i < draw.length - 1; i++) {
         const canvas = document.createElement("canvas");
@@ -661,7 +783,7 @@ window.addEventListener("load", () => {
 glCanvas.addEventListener("click", () => glCanvas.requestFullscreen());
 sourceCanvas.addEventListener("click", () => sourceCanvas.requestFullscreen());
 
-},{"./index":33,"dat.gui":36}],3:[function(require,module,exports){
+},{"./expressions/vecexprs":32,"./index":35,"dat.gui":38}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.blur2d = exports.Blur2dLoop = void 0;
@@ -682,15 +804,15 @@ function blur2d(horizontalExpr, verticalExpr, reps, taps) {
 }
 exports.blur2d = blur2d;
 
-},{"../mergepass":34,"./blurexpr":4,"./expr":10,"./vecexprs":30}],4:[function(require,module,exports){
+},{"../mergepass":36,"./blurexpr":4,"./expr":11,"./vecexprs":32}],4:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.gauss = exports.BlurExpr = void 0;
 const glslfunctions_1 = require("../glslfunctions");
 const expr_1 = require("./expr");
-function genBlurSource(direction, taps) {
+function genBlurSource(direction, taps, buffer) {
     return {
-        sections: [`gauss${taps}(`, ")"],
+        sections: [`gauss${taps}${buffer === undefined ? "" : "_" + buffer}(`, ")"],
         values: [direction],
     };
 }
@@ -706,18 +828,17 @@ function tapsToFuncSource(taps) {
 }
 class BlurExpr extends expr_1.ExprVec4 {
     constructor(direction, taps = 5, samplerNum) {
-        super(genBlurSource(direction, taps), ["uDirection"]);
+        super(genBlurSource(direction, taps, samplerNum), ["uDirection"]);
         if (samplerNum === undefined) {
             this.needs.neighborSample = true;
             this.externalFuncs = [tapsToFuncSource(taps)];
         }
         else {
             this.needs.extraBuffers = new Set([samplerNum]);
+            console.log("taps", taps);
+            console.log("samplerNum", samplerNum);
             this.externalFuncs = [
-                // this relies on the fact that the string `uSampler` doesn't appear
-                // elsewhere in the provided blur functions, which is currently a safe
-                // assumption
-                tapsToFuncSource(taps).replace(/uSampler/g, "uBufferSampler" + samplerNum),
+                glslfunctions_1.replaceSampler(tapsToFuncSource(taps), /vec4\sgauss[0-9]+/g, samplerNum),
             ];
         }
     }
@@ -731,7 +852,7 @@ function gauss(direction, taps = 5, samplerNum) {
 }
 exports.gauss = gauss;
 
-},{"../glslfunctions":32,"./expr":10}],5:[function(require,module,exports){
+},{"../glslfunctions":34,"./expr":11}],5:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.brightness = exports.Brightness = void 0;
@@ -753,7 +874,7 @@ function brightness(val, col) {
 }
 exports.brightness = brightness;
 
-},{"../glslfunctions":32,"./expr":10,"./fragcolorexpr":11}],6:[function(require,module,exports){
+},{"../glslfunctions":34,"./expr":11,"./fragcolorexpr":12}],6:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.buffer = exports.BufferSampleExpr = void 0;
@@ -778,7 +899,7 @@ function buffer(buf, vec) {
 }
 exports.buffer = buffer;
 
-},{"../codebuilder":1,"./expr":10,"./normfragcoordexpr":19}],7:[function(require,module,exports){
+},{"../codebuilder":1,"./expr":11,"./normfragcoordexpr":21}],7:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.changecomp = exports.ChangeCompExpr = void 0;
@@ -828,7 +949,7 @@ function changecomp(vec, setter, comps, op) {
 }
 exports.changecomp = changecomp;
 
-},{"./expr":10,"./getcompexpr":14}],8:[function(require,module,exports){
+},{"./expr":11,"./getcompexpr":15}],8:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.contrast = exports.Contrast = void 0;
@@ -850,7 +971,29 @@ function contrast(val, col) {
 }
 exports.contrast = contrast;
 
-},{"../glslfunctions":32,"./expr":10,"./fragcolorexpr":11}],9:[function(require,module,exports){
+},{"../glslfunctions":34,"./expr":11,"./fragcolorexpr":12}],9:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.depth2occlusion = exports.DepthToOcclusionExpr = void 0;
+const expr_1 = require("./expr");
+const vecexprs_1 = require("./vecexprs");
+const buffersampleexpr_1 = require("./buffersampleexpr");
+class DepthToOcclusionExpr extends expr_1.ExprVec4 {
+    constructor(depthCol = buffersampleexpr_1.buffer(0), newCol = vecexprs_1.vec4(1, 1, 1, 1), threshold = expr_1.float(0.01)) {
+        super(expr_1.tag `depth2occlusion(${depthCol}, ${newCol}, ${threshold})`, [
+            "uDepth",
+            "uNewCol",
+            "uThreshold",
+        ]);
+    }
+}
+exports.DepthToOcclusionExpr = DepthToOcclusionExpr;
+function depth2occlusion(depthCol, newCol, threshold) {
+    return new DepthToOcclusionExpr(depthCol, newCol, expr_1.n2e(threshold));
+}
+exports.depth2occlusion = depth2occlusion;
+
+},{"./buffersampleexpr":6,"./expr":11,"./vecexprs":32}],10:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.dof = exports.DoFLoop = void 0;
@@ -883,11 +1026,11 @@ class DoFLoop extends mergepass_1.EffectLoop {
 }
 exports.DoFLoop = DoFLoop;
 function dof(focus, rad, depth, reps) {
-    return new DoFLoop(focus === undefined ? undefined : expr_1.n2e(focus), rad === undefined ? undefined : expr_1.n2e(rad), depth === undefined ? undefined : expr_1.n2e(depth), reps);
+    return new DoFLoop(expr_1.n2e(focus), expr_1.n2e(rad), expr_1.n2e(depth), reps);
 }
 exports.dof = dof;
 
-},{"../mergepass":34,"./blurexpr":4,"./buffersampleexpr":6,"./expr":10,"./gaussianexpr":13,"./getcompexpr":14,"./opexpr":20,"./powexpr":22,"./vecexprs":30}],10:[function(require,module,exports){
+},{"../mergepass":36,"./blurexpr":4,"./buffersampleexpr":6,"./expr":11,"./gaussianexpr":14,"./getcompexpr":15,"./opexpr":22,"./powexpr":24,"./vecexprs":32}],11:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.tag = exports.wrapInValue = exports.pfloat = exports.n2p = exports.n2e = exports.Operator = exports.ExprVec4 = exports.ExprVec3 = exports.ExprVec2 = exports.float = exports.ExprFloat = exports.BasicFloat = exports.ExprVec = exports.BasicVec4 = exports.BasicVec3 = exports.BasicVec2 = exports.BasicVec = exports.PrimitiveVec4 = exports.PrimitiveVec3 = exports.PrimitiveVec2 = exports.PrimitiveVec = exports.PrimitiveFloat = exports.Primitive = exports.mut = exports.Mutable = exports.Expr = void 0;
@@ -1215,9 +1358,9 @@ class Operator extends Expr {
     }
 }
 exports.Operator = Operator;
-// TODO is this necessary? can we just use wrapInValue?
-/** number to expression float */
 function n2e(num) {
+    if (num === undefined)
+        return undefined;
     if (num instanceof PrimitiveFloat ||
         num instanceof ExprFloat ||
         num instanceof Operator ||
@@ -1249,7 +1392,7 @@ function tag(strings, ...values) {
 }
 exports.tag = tag;
 
-},{"../mergepass":34,"../webglprogramloop":35}],11:[function(require,module,exports){
+},{"../mergepass":36,"../webglprogramloop":37}],12:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fcolor = exports.FragColorExpr = void 0;
@@ -1266,7 +1409,7 @@ function fcolor() {
 }
 exports.fcolor = fcolor;
 
-},{"./expr":10}],12:[function(require,module,exports){
+},{"./expr":11}],13:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fxaa = void 0;
@@ -1284,7 +1427,7 @@ function fxaa() {
 }
 exports.fxaa = fxaa;
 
-},{"../glslfunctions":32,"./expr":10}],13:[function(require,module,exports){
+},{"../glslfunctions":34,"./expr":11}],14:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.gaussian = exports.GaussianExpr = void 0;
@@ -1311,7 +1454,7 @@ function gaussian(x, a = 0, b = 1) {
 }
 exports.gaussian = gaussian;
 
-},{"../glslfunctions":32,"./expr":10}],14:[function(require,module,exports){
+},{"../glslfunctions":34,"./expr":11}],15:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.get4comp = exports.get3comp = exports.get2comp = exports.getcomp = exports.Get4CompExpr = exports.Get3CompExpr = exports.Get2CompExpr = exports.GetCompExpr = exports.checkLegalComponents = exports.typeStringToLength = void 0;
@@ -1348,7 +1491,8 @@ function checkLegalComponents(comps, vec) {
     const inLen = typeStringToLength(vec.typeString());
     const rgbaCheck = check(comps, "rgba".substr(0, inLen));
     const xyzwCheck = check(comps, "xyzw".substr(0, inLen));
-    if (!(rgbaCheck || xyzwCheck)) {
+    const stpqCheck = check(comps, "stpq".substr(0, inLen));
+    if (!(rgbaCheck || xyzwCheck || stpqCheck)) {
         throw new Error("component sets are mixed or incorrect entirely");
     }
 }
@@ -1403,7 +1547,82 @@ function get4comp(vec, comps) {
 }
 exports.get4comp = get4comp;
 
-},{"./expr":10}],15:[function(require,module,exports){
+},{"./expr":11}],16:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.godrays = exports.GodRaysExpr = void 0;
+const expr_1 = require("./expr");
+const fragcolorexpr_1 = require("./fragcolorexpr");
+const glslfunctions_1 = require("../glslfunctions");
+const vecexprs_1 = require("./vecexprs");
+class GodRaysExpr extends expr_1.ExprVec4 {
+    constructor(col, exposure, decay, density, weight, lightPos, samplerNum, convertDepth) {
+        // TODO the metaprogramming here is not so good!
+        // leaving off the function call section for now
+        const sourceLists = expr_1.tag `${col}, ${exposure}, ${decay}, ${density}, ${weight}, ${lightPos}, ${convertDepth !== undefined ? convertDepth.threshold : expr_1.float(0)}, ${convertDepth !== undefined ? convertDepth.newColor : vecexprs_1.vec4(0, 0, 0, 0)})`;
+        // append the _<num> onto the function name
+        // also add _depth if this is a version of the function that uses depth buffer
+        sourceLists.sections[0] += `godrays_${samplerNum}${convertDepth !== undefined ? "_depth" : ""}(`;
+        console.log(sourceLists);
+        super(sourceLists, [
+            "uCol",
+            "uExposure",
+            "uDecay",
+            "uDensity",
+            "uWeight",
+            "uLightPos",
+            "uThreshold",
+            "uNewColor",
+        ]);
+        let customGodRayFunc = glslfunctions_1.replaceSampler(glslfunctions_1.glslFuncs.godrays, /vec4\sgodrays/g, samplerNum, convertDepth === undefined ? undefined : "_depth");
+        if (convertDepth !== undefined) {
+            // uncomment the line that does the conversion
+            customGodRayFunc = customGodRayFunc.replace(/\/\/uncomment\s/g, "");
+            this.externalFuncs.push(glslfunctions_1.glslFuncs.depth2occlusion);
+        }
+        this.externalFuncs.push(customGodRayFunc);
+        this.needs.extraBuffers = new Set([0]);
+    }
+    setColor(color) {
+        this.setUniform("uCol" + this.id, color);
+    }
+    setExposure(exposure) {
+        this.setUniform("uExposure" + this.id, exposure);
+    }
+    setDecay(decay) {
+        this.setUniform("uDecay" + this.id, decay);
+    }
+    setDensity(density) {
+        this.setUniform("uDensity" + this.id, density);
+    }
+    setWeight(weight) {
+        this.setUniform("uWeight" + this.id, weight);
+    }
+    setLightPos(lightPos) {
+        this.setUniform("uLightPos" + this.id, lightPos);
+    }
+    // these only matter when you're using a depth buffer and not an occlusion
+    // buffer (although right now, you'll still be able to set them)
+    setThreshold(threshold) {
+        this.setUniform("uThreshold" + this.id, threshold);
+    }
+    setNewcolor(newColor) {
+        this.setUniform("uNewColor" + this.id, newColor);
+    }
+}
+exports.GodRaysExpr = GodRaysExpr;
+// sane godray defaults from https://github.com/Erkaman/glsl-godrays/blob/master/example/index.js
+function godrays(col = fragcolorexpr_1.fcolor(), exposure = 1.0, decay = 1.0, density = 1.0, weight = 0.01, lightPos = vecexprs_1.vec2(0.5, 0.5), samplerNum = 0, convertDepth) {
+    return new GodRaysExpr(col, expr_1.n2e(exposure), expr_1.n2e(decay), expr_1.n2e(density), expr_1.n2e(weight), lightPos, samplerNum, convertDepth === undefined
+        ? undefined
+        : {
+            threshold: expr_1.n2e(convertDepth.threshold),
+            newColor: convertDepth.newColor,
+        });
+}
+exports.godrays = godrays;
+
+},{"../glslfunctions":34,"./expr":11,"./fragcolorexpr":12,"./vecexprs":32}],17:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.grain = exports.GrainExpr = void 0;
@@ -1427,7 +1646,7 @@ function grain(val) {
 }
 exports.grain = grain;
 
-},{"../glslfunctions":32,"./expr":10}],16:[function(require,module,exports){
+},{"../glslfunctions":34,"./expr":11}],18:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.hsv2rgb = exports.HSVToRGBExpr = void 0;
@@ -1445,7 +1664,7 @@ function hsv2rgb(col) {
 }
 exports.hsv2rgb = hsv2rgb;
 
-},{"../glslfunctions":32,"./expr":10}],17:[function(require,module,exports){
+},{"../glslfunctions":34,"./expr":11}],19:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.len = exports.LenExpr = void 0;
@@ -1465,7 +1684,7 @@ function len(vec) {
 }
 exports.len = len;
 
-},{"./expr":10}],18:[function(require,module,exports){
+},{"./expr":11}],20:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ncfcoord = exports.NormCenterFragCoordExpr = void 0;
@@ -1481,7 +1700,7 @@ function ncfcoord() {
 }
 exports.ncfcoord = ncfcoord;
 
-},{"./expr":10}],19:[function(require,module,exports){
+},{"./expr":11}],21:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.nfcoord = exports.NormFragCoordExpr = void 0;
@@ -1497,7 +1716,7 @@ function nfcoord() {
 }
 exports.nfcoord = nfcoord;
 
-},{"./expr":10}],20:[function(require,module,exports){
+},{"./expr":11}],22:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.op = exports.OpExpr = void 0;
@@ -1528,7 +1747,7 @@ function op(left, op, right) {
 }
 exports.op = op;
 
-},{"./expr":10}],21:[function(require,module,exports){
+},{"./expr":11}],23:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pblur = exports.PowerBlurLoop = void 0;
@@ -1566,7 +1785,7 @@ function pblur(size) {
 }
 exports.pblur = pblur;
 
-},{"../mergepass":34,"./blurexpr":4,"./expr":10,"./vecexprs":30}],22:[function(require,module,exports){
+},{"../mergepass":36,"./blurexpr":4,"./expr":11,"./vecexprs":32}],24:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pow = exports.PowExpr = void 0;
@@ -1589,7 +1808,7 @@ function pow(base, exponent) {
 }
 exports.pow = pow;
 
-},{"./expr":10}],23:[function(require,module,exports){
+},{"./expr":11}],25:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RandomExpr = void 0;
@@ -1603,7 +1822,7 @@ class RandomExpr extends expr_1.ExprVec4 {
 }
 exports.RandomExpr = RandomExpr;
 
-},{"../glslfunctions":32,"./expr":10}],24:[function(require,module,exports){
+},{"../glslfunctions":34,"./expr":11}],26:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.rgb2hsv = exports.RGBToHSVExpr = void 0;
@@ -1621,7 +1840,7 @@ function rgb2hsv(col) {
 }
 exports.rgb2hsv = rgb2hsv;
 
-},{"../glslfunctions":32,"./expr":10}],25:[function(require,module,exports){
+},{"../glslfunctions":34,"./expr":11}],27:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.input = exports.SceneSampleExpr = void 0;
@@ -1639,7 +1858,7 @@ function input(vec) {
 }
 exports.input = input;
 
-},{"./expr":10,"./normfragcoordexpr":19}],26:[function(require,module,exports){
+},{"./expr":11,"./normfragcoordexpr":21}],28:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setcolor = exports.SetColorExpr = void 0;
@@ -1655,7 +1874,7 @@ function setcolor(val) {
 }
 exports.setcolor = setcolor;
 
-},{"./expr":10}],27:[function(require,module,exports){
+},{"./expr":11}],29:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.time = exports.TimeExpr = void 0;
@@ -1672,7 +1891,7 @@ function time() {
 }
 exports.time = time;
 
-},{"./expr":10}],28:[function(require,module,exports){
+},{"./expr":11}],30:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.tan = exports.cos = exports.sin = exports.TrigExpr = void 0;
@@ -1706,7 +1925,7 @@ function tan(val) {
 }
 exports.tan = tan;
 
-},{"./expr":10}],29:[function(require,module,exports){
+},{"./expr":11}],31:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.truedepth = exports.TrueDepthExpr = void 0;
@@ -1727,7 +1946,7 @@ function truedepth(dist) {
 }
 exports.truedepth = truedepth;
 
-},{"../glslfunctions":32,"./expr":10}],30:[function(require,module,exports){
+},{"../glslfunctions":34,"./expr":11}],32:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pvec4 = exports.pvec3 = exports.pvec2 = exports.vec4 = exports.vec3 = exports.vec2 = void 0;
@@ -1771,14 +1990,14 @@ function pvec4(comp1, comp2, comp3, comp4) {
 }
 exports.pvec4 = pvec4;
 
-},{"./expr":10}],31:[function(require,module,exports){
+},{"./expr":11}],33:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 
-},{}],32:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.glslFuncs = void 0;
+exports.replaceSampler = exports.captureAndAppend = exports.glslFuncs = void 0;
 // adapted from The Book of Shaders
 exports.glslFuncs = {
     // TODO replace with a better one
@@ -1932,9 +2151,52 @@ exports.glslFuncs = {
   i = max(i, 0.00000001);
   return (1. - i) / i;
 }`,
-};
+    // based off of https://fabiensanglard.net/lightScattering/index.php
+    godrays: `vec4 godrays(
+    vec4 col,
+    float exposure,
+    float decay,
+    float density,
+    float weight,
+    vec2 lightPos,
+    float threshold,
+    vec4 newColor
+  ) {	
+  vec2 texCoord = gl_FragCoord.xy / uResolution;
+  vec2 deltaTexCoord = texCoord - lightPos;
 
-},{}],33:[function(require,module,exports){
+  const int NUM_SAMPLES = 100;
+  deltaTexCoord *= 1. / float(NUM_SAMPLES) * density;
+  float illuminationDecay = 1.0;
+
+  for (int i=0; i < NUM_SAMPLES; i++) {
+    texCoord -= deltaTexCoord;
+    vec4 sample = texture2D(uSampler, texCoord);
+    //uncomment sample = depth2occlusion(sample, newColor, threshold);
+    sample *= illuminationDecay * weight;
+    col += sample;
+    illuminationDecay *= decay;
+  }
+  return col * exposure;
+}`,
+    depth2occlusion: `vec4 depth2occlusion(vec4 depthCol, vec4 newCol, float threshold) {
+    float red = 1. - ceil(depthCol.r - threshold);
+    return vec4(newCol.rgb * red, 1.0);
+  }`,
+};
+function captureAndAppend(str, reg, suffix) {
+    const matches = str.match(reg);
+    if (matches === null)
+        throw new Error("no match in the given string");
+    return str.replace(reg, matches[0] + suffix);
+}
+exports.captureAndAppend = captureAndAppend;
+function replaceSampler(fullString, funcRegExp, samplerNum, extra) {
+    return captureAndAppend(fullString.replace(/uSampler/g, "uBufferSampler" + samplerNum), funcRegExp, "_" + samplerNum + (extra === undefined ? "" : extra));
+}
+exports.replaceSampler = replaceSampler;
+
+},{}],35:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -1976,9 +2238,11 @@ __exportStar(require("./expressions/fxaaexpr"), exports);
 __exportStar(require("./expressions/buffersampleexpr"), exports);
 __exportStar(require("./expressions/dofloop"), exports);
 __exportStar(require("./expressions/truedepthexpr"), exports);
+__exportStar(require("./expressions/godraysexpr"), exports);
+__exportStar(require("./expressions/depthtoocclusionexpr"), exports);
 __exportStar(require("./expressions/expr"), exports);
 
-},{"./expressions/blur2dloop":3,"./expressions/blurexpr":4,"./expressions/brightnessexpr":5,"./expressions/buffersampleexpr":6,"./expressions/changecompexpr":7,"./expressions/contrastexpr":8,"./expressions/dofloop":9,"./expressions/expr":10,"./expressions/fragcolorexpr":11,"./expressions/fxaaexpr":12,"./expressions/getcompexpr":14,"./expressions/grainexpr":15,"./expressions/hsvtorgbexpr":16,"./expressions/lenexpr":17,"./expressions/normcenterfragcoordexpr":18,"./expressions/normfragcoordexpr":19,"./expressions/opexpr":20,"./expressions/powerblur":21,"./expressions/powexpr":22,"./expressions/randomexpr":23,"./expressions/rgbtohsvexpr":24,"./expressions/scenesampleexpr":25,"./expressions/setcolorexpr":26,"./expressions/timeexpr":27,"./expressions/trigexpr":28,"./expressions/truedepthexpr":29,"./expressions/vecexprs":30,"./exprtypes":31,"./glslfunctions":32,"./mergepass":34}],34:[function(require,module,exports){
+},{"./expressions/blur2dloop":3,"./expressions/blurexpr":4,"./expressions/brightnessexpr":5,"./expressions/buffersampleexpr":6,"./expressions/changecompexpr":7,"./expressions/contrastexpr":8,"./expressions/depthtoocclusionexpr":9,"./expressions/dofloop":10,"./expressions/expr":11,"./expressions/fragcolorexpr":12,"./expressions/fxaaexpr":13,"./expressions/getcompexpr":15,"./expressions/godraysexpr":16,"./expressions/grainexpr":17,"./expressions/hsvtorgbexpr":18,"./expressions/lenexpr":19,"./expressions/normcenterfragcoordexpr":20,"./expressions/normfragcoordexpr":21,"./expressions/opexpr":22,"./expressions/powerblur":23,"./expressions/powexpr":24,"./expressions/randomexpr":25,"./expressions/rgbtohsvexpr":26,"./expressions/scenesampleexpr":27,"./expressions/setcolorexpr":28,"./expressions/timeexpr":29,"./expressions/trigexpr":30,"./expressions/truedepthexpr":31,"./expressions/vecexprs":32,"./exprtypes":33,"./glslfunctions":34,"./mergepass":36}],36:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendTexture = exports.makeTexture = exports.Merger = exports.loop = exports.EffectLoop = void 0;
@@ -2101,6 +2365,7 @@ class Merger {
             scene: undefined,
             bufTextures: [],
         };
+        // TODO allow the user to specify an existing framebuffer
         // create the framebuffer
         const framebuffer = gl.createFramebuffer();
         if (framebuffer === null) {
@@ -2193,7 +2458,7 @@ function sendTexture(gl, src) {
 }
 exports.sendTexture = sendTexture;
 
-},{"./codebuilder":1,"./webglprogramloop":35}],35:[function(require,module,exports){
+},{"./codebuilder":1,"./webglprogramloop":37}],37:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WebGLProgramLoop = exports.updateNeeds = void 0;
@@ -2304,7 +2569,7 @@ class WebGLProgramLoop {
 }
 exports.WebGLProgramLoop = WebGLProgramLoop;
 
-},{}],36:[function(require,module,exports){
+},{}],38:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
