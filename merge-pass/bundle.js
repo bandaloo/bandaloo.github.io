@@ -179,9 +179,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const MP = __importStar(require("./index"));
 const dat = __importStar(require("dat.gui"));
-const vecexprs_1 = require("./expressions/vecexprs");
+const MP = __importStar(require("./index"));
 const glCanvas = document.getElementById("gl");
 const gl = glCanvas.getContext("webgl2");
 if (gl === null) {
@@ -289,7 +288,7 @@ const demos = {
         return {
             merger: merger,
             change: (merger, time, frame) => {
-                vec.setComp(0, controls.location);
+                vec.setComp(0, -controls.location);
                 m.setRight(controls.strength);
             },
         };
@@ -458,7 +457,7 @@ const demos = {
         const merger = new MP.Merger([
             (godrays = MP.godrays(MP.fcolor(), MP.mut(1.0), MP.mut(0.99), MP.mut(1.0), MP.mut(0.01), MP.vec2(MP.op(0.5, "+", MP.op((pos = MP.float(MP.mut(0))), "/", 5)), 0.5), 0, {
                 threshold: 0.1,
-                newColor: MP.hsv2rgb(vecexprs_1.vec4(MP.op(MP.time(), "/", 4), 0.5, 0.5, 1)),
+                newColor: MP.hsv2rgb(MP.vec4(MP.op(MP.time(), "/", 4), 0.5, 0.5, 1)),
             })),
         ], sourceCanvas, gl, {
             channels: channels,
@@ -724,6 +723,13 @@ const notes = {
     lightbands: "even though the value in the depth buffer is actually 1 / (1 + depth), we can " +
         "calculate the true depth value with <code>truedepth</code>. with this, we can colorize" +
         "bands of depth in our scene all the way out to infinity",
+    godrays: "the <code>godrays</code> effect requires an occlusion buffer. black pixels denote the silhouette " +
+        "of the geometry and the white (or any color) pixels denote the light shining behind",
+    depthgodrays: "<code>godrays</code> can also be made to read depth buffer info " +
+        "instead of an occlusion buffer. as the final argument, you must specify an" +
+        "object that has a <code>threshold</code> " +
+        "(all depth values lower than this are not occluded) and a <code>newColor</code> " +
+        "which denotes what color the shining light should be",
 };
 const canvases = [sourceCanvas];
 const contexts = [source];
@@ -817,7 +823,7 @@ window.addEventListener("load", () => {
 glCanvas.addEventListener("click", () => glCanvas.requestFullscreen());
 sourceCanvas.addEventListener("click", () => sourceCanvas.requestFullscreen());
 
-},{"./expressions/vecexprs":32,"./index":35,"dat.gui":38}],3:[function(require,module,exports){
+},{"./index":35,"dat.gui":38}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.blur2d = exports.Blur2dLoop = void 0;
@@ -894,16 +900,16 @@ exports.gauss = gauss;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.brightness = exports.Brightness = void 0;
+const glslfunctions_1 = require("../glslfunctions");
 const expr_1 = require("./expr");
 const fragcolorexpr_1 = require("./fragcolorexpr");
-const glslfunctions_1 = require("../glslfunctions");
 class Brightness extends expr_1.ExprVec4 {
     constructor(val, col = fragcolorexpr_1.fcolor()) {
         super(expr_1.tag `(brightness(${val}, ${col}))`, ["uBrightness", "uColor"]);
         this.externalFuncs = [glslfunctions_1.glslFuncs.brightness];
     }
     setBrightness(brightness) {
-        this.setUniform("uBrightness" + this.id, expr_1.n2e(brightness));
+        this.setUniform("uBrightness" + this.id, brightness);
     }
 }
 exports.Brightness = Brightness;
@@ -978,7 +984,7 @@ class ChangeCompExpr extends expr_1.Operator {
         this.setUniform("uOriginal" + this.id, vec);
     }
     setNew(setter) {
-        this.setUniform("uNew" + this.id, expr_1.wrapInValue(setter));
+        this.setUniform("uNew" + this.id, setter);
     }
 }
 exports.ChangeCompExpr = ChangeCompExpr;
@@ -1000,7 +1006,7 @@ class Contrast extends expr_1.ExprVec4 {
         this.externalFuncs = [glslfunctions_1.glslFuncs.contrast];
     }
     setContrast(contrast) {
-        this.setUniform("uContrast" + this.id, expr_1.n2p(contrast));
+        this.setUniform("uContrast" + this.id, contrast);
     }
 }
 exports.Contrast = Contrast;
@@ -1016,6 +1022,7 @@ exports.depth2occlusion = exports.DepthToOcclusionExpr = void 0;
 const expr_1 = require("./expr");
 const vecexprs_1 = require("./vecexprs");
 const buffersampleexpr_1 = require("./buffersampleexpr");
+// TODO reconsider whether we need this
 class DepthToOcclusionExpr extends expr_1.ExprVec4 {
     constructor(depthCol = buffersampleexpr_1.channel(0), newCol = vecexprs_1.vec4(1, 1, 1, 1), threshold = expr_1.float(0.01)) {
         super(expr_1.tag `depth2occlusion(${depthCol}, ${newCol}, ${threshold})`, [
@@ -1047,7 +1054,7 @@ const vecexprs_1 = require("./vecexprs");
 class DoFLoop extends mergepass_1.EffectLoop {
     constructor(focus = expr_1.mut(expr_1.pfloat(0.3)), rad = expr_1.mut(expr_1.pfloat(0.01)), depth = getcompexpr_1.getcomp(buffersampleexpr_1.channel(0), "r"), reps = 2) {
         let guassianExpr = gaussianexpr_1.gaussian(depth, focus, rad);
-        // TODO should 13 be the default taps?
+        // TODO optional taps number
         const side = blurexpr_1.gauss(vecexprs_1.vec2(powexpr_1.pow(opexpr_1.op(1, "-", guassianExpr), 4), 0), 13);
         const up = blurexpr_1.gauss(vecexprs_1.vec2(0, powexpr_1.pow(opexpr_1.op(1, "-", guassianExpr), 4)), 13);
         super([side, up], { num: reps });
@@ -1142,8 +1149,7 @@ class Expr {
         if (oldVal === undefined) {
             throw new Error("tried to set uniform " +
                 name +
-                " which doesn't exist." +
-                " original name: " +
+                " which doesn't exist. original name: " +
                 originalName);
         }
         if (oldVal.typeString() !== newVal.typeString()) {
@@ -1477,13 +1483,13 @@ class GaussianExpr extends expr_1.ExprFloat {
         this.externalFuncs = [glslfunctions_1.glslFuncs.gaussian];
     }
     setX(x) {
-        this.setUniform("uFloatX" + this.id, expr_1.n2e(x));
+        this.setUniform("uFloatX" + this.id, x);
     }
     setA(a) {
-        this.setUniform("uFloatA" + this.id, expr_1.n2e(a));
+        this.setUniform("uFloatA" + this.id, a);
     }
     setB(b) {
-        this.setUniform("uFloatB" + this.id, expr_1.n2e(b));
+        this.setUniform("uFloatB" + this.id, b);
     }
 }
 exports.GaussianExpr = GaussianExpr;
@@ -1624,16 +1630,16 @@ class GodRaysExpr extends expr_1.ExprVec4 {
         this.setUniform("uCol" + this.id, color);
     }
     setExposure(exposure) {
-        this.setUniform("uExposure" + this.id, expr_1.n2e(exposure));
+        this.setUniform("uExposure" + this.id, exposure);
     }
     setDecay(decay) {
-        this.setUniform("uDecay" + this.id, expr_1.n2e(decay));
+        this.setUniform("uDecay" + this.id, decay);
     }
     setDensity(density) {
-        this.setUniform("uDensity" + this.id, expr_1.n2e(density));
+        this.setUniform("uDensity" + this.id, density);
     }
     setWeight(weight) {
-        this.setUniform("uWeight" + this.id, expr_1.n2e(weight));
+        this.setUniform("uWeight" + this.id, weight);
     }
     setLightPos(lightPos) {
         this.setUniform("uLightPos" + this.id, lightPos);
@@ -1674,7 +1680,7 @@ class GrainExpr extends expr_1.ExprVec4 {
         this.needs.centerSample = true;
     }
     setGrain(grain) {
-        this.setUniform("uGrain" + this.id, expr_1.n2e(grain));
+        this.setUniform("uGrain" + this.id, grain);
     }
 }
 exports.GrainExpr = GrainExpr;
@@ -1693,6 +1699,9 @@ class HSVToRGBExpr extends expr_1.ExprVec4 {
     constructor(col) {
         super(expr_1.tag `hsv2rgb(${col})`, ["uHSVCol"]);
         this.externalFuncs = [glslfunctions_1.glslFuncs.hsv2rgb];
+    }
+    setColor(col) {
+        this.setUniform("uHSVCol", col);
     }
 }
 exports.HSVToRGBExpr = HSVToRGBExpr;
@@ -1771,10 +1780,10 @@ class OpExpr extends expr_1.Operator {
         this.right = right;
     }
     setLeft(left) {
-        this.setUniform("uLeft" + this.id, expr_1.wrapInValue(left));
+        this.setUniform("uLeft" + this.id, left);
     }
     setRight(right) {
-        this.setUniform("uRight" + this.id, expr_1.wrapInValue(right));
+        this.setUniform("uRight" + this.id, right);
     }
 }
 exports.OpExpr = OpExpr;
@@ -1832,10 +1841,10 @@ class PowExpr extends expr_1.Operator {
         super(base, expr_1.tag `pow(${base}, ${exponent})`, ["uBase", "uExponent"]);
     }
     setBase(left) {
-        this.setUniform("uBase" + this.id, expr_1.wrapInValue(left));
+        this.setUniform("uBase" + this.id, left);
     }
     setExponent(right) {
-        this.setUniform("uExponent" + this.id, expr_1.wrapInValue(right));
+        this.setUniform("uExponent" + this.id, right);
     }
 }
 exports.PowExpr = PowExpr;
@@ -1870,6 +1879,9 @@ class RGBToHSVExpr extends expr_1.ExprVec4 {
         super(expr_1.tag `rgb2hsv(${col})`, ["uRGBCol"]);
         this.externalFuncs = [glslfunctions_1.glslFuncs.rgb2hsv];
     }
+    setColor(col) {
+        this.setUniform("uRGBCol", col);
+    }
 }
 exports.RGBToHSVExpr = RGBToHSVExpr;
 function rgb2hsv(col) {
@@ -1885,8 +1897,11 @@ const expr_1 = require("./expr");
 const normfragcoordexpr_1 = require("./normfragcoordexpr");
 class SceneSampleExpr extends expr_1.ExprVec4 {
     constructor(coord = normfragcoordexpr_1.nfcoord()) {
-        super(expr_1.tag `texture2D(uSceneSampler, ${coord})`, ["uVec"]);
+        super(expr_1.tag `texture2D(uSceneSampler, ${coord})`, ["uCoord"]);
         this.needs.sceneBuffer = true;
+    }
+    setCoord(coord) {
+        this.setUniform("uCoord", coord);
     }
 }
 exports.SceneSampleExpr = SceneSampleExpr;
@@ -1903,6 +1918,9 @@ const expr_1 = require("./expr");
 class SetColorExpr extends expr_1.ExprVec4 {
     constructor(val) {
         super(expr_1.tag `(${val})`, ["uVal"]);
+    }
+    setVal(val) {
+        this.setUniform("uVal", val);
     }
 }
 exports.SetColorExpr = SetColorExpr;
@@ -1944,8 +1962,8 @@ class TrigExpr extends expr_1.Operator {
         super(val, genTrigSourceList(operation, val), ["uVal"]);
         this.val = val;
     }
-    setExponent(right) {
-        this.setUniform("uVal" + this.id, expr_1.wrapInValue(right));
+    setVal(right) {
+        this.setUniform("uVal" + this.id, right);
     }
 }
 exports.TrigExpr = TrigExpr;
@@ -1974,7 +1992,7 @@ class TrueDepthExpr extends expr_1.ExprFloat {
         this.externalFuncs = [glslfunctions_1.glslFuncs.truedepth];
     }
     setDist(dist) {
-        this.setUniform("uDist", expr_1.n2e(dist));
+        this.setUniform("uDist", dist);
     }
 }
 exports.TrueDepthExpr = TrueDepthExpr;
