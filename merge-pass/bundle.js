@@ -87,10 +87,11 @@ class CodeBuilder {
             Array.from(this.totalNeeds.extraBuffers)
                 .map((n) => bufferSamplerDeclaration(n))
                 .join("\n") +
+            "\n" +
             [...this.uniformDeclarations].join("\n") +
+            "\n" +
             [...this.externalFuncs].join("\n") +
             "\n" +
-            //this.funcs.join("\n") +
             "void main() {\n" +
             (this.totalNeeds.centerSample ? FRAG_SET : "") +
             this.calls.join("\n") +
@@ -234,6 +235,24 @@ const demos = {
             },
         };
     },
+    bluramountnamed: () => {
+        const fl = MP.float(MP.mut(1, "uCustomName"));
+        const merger = new MP.Merger([MP.blur2d(fl, fl)], sourceCanvas, gl);
+        class BlurControls {
+            constructor() {
+                this.blur = 1;
+            }
+        }
+        const controls = new BlurControls();
+        const gui = new dat.GUI();
+        gui.add(controls, "blur", 0, 1, 0.01);
+        return {
+            merger: merger,
+            change: () => {
+                fl.setUniform("uCustomName", controls.blur);
+            },
+        };
+    },
     vectordisplay: () => {
         const merger = new MP.Merger([
             MP.loop([
@@ -341,34 +360,34 @@ const demos = {
             change: () => { },
         };
     },
-    bufferblur: (buffers = []) => {
+    channelblur: (channels = []) => {
         const merger = new MP.Merger([
             MP.hsv2rgb(MP.changecomp(MP.rgb2hsv(MP.fcolor()), MP.getcomp(MP.gauss(MP.vec2(8, 0), 13, 0), "r"), "z")),
         ], sourceCanvas, gl, {
-            buffers: buffers,
+            channels: channels,
         });
         return {
             merger: merger,
             change: () => { },
         };
     },
-    buffereyesore: (buffers = []) => {
+    channeleyesore: (channels = []) => {
         const merger = new MP.Merger([
-            MP.hsv2rgb(MP.changecomp(MP.rgb2hsv(MP.fcolor()), MP.vec2(MP.getcomp(MP.buffer(0), "x"), MP.getcomp(MP.buffer(1), "x")), "xy", "+")),
+            MP.hsv2rgb(MP.changecomp(MP.rgb2hsv(MP.fcolor()), MP.vec2(MP.getcomp(MP.channel(0), "x"), MP.getcomp(MP.channel(1), "x")), "xy", "+")),
             MP.fxaa(),
         ], sourceCanvas, gl, {
-            buffers: buffers,
+            channels: channels,
         });
         return {
             merger: merger,
             change: () => { },
         };
     },
-    basicdof: (buffers = []) => {
+    basicdof: (channels = []) => {
         //const dof = MP.dof(MP.mut(0.3), MP.mut(0.01));
         const dof = MP.dof();
         const merger = new MP.Merger([dof], sourceCanvas, gl, {
-            buffers: buffers,
+            channels: channels,
         });
         class FocusControls {
             constructor() {
@@ -388,12 +407,12 @@ const demos = {
             },
         };
     },
-    lineardof: (buffers = []) => {
+    lineardof: (channels = []) => {
         const dof = MP.dof(
         // transform a linear depth buffer to hyperbolic where 12 is max depth
-        MP.mut(0.3), MP.mut(0.01), MP.op(1, "/", MP.op(1, "+", MP.op(12, "*", MP.op(1, "-", MP.getcomp(MP.buffer(0), "r"))))));
+        MP.mut(0.3), MP.mut(0.01), MP.op(1, "/", MP.op(1, "+", MP.op(12, "*", MP.op(1, "-", MP.getcomp(MP.channel(0), "r"))))));
         const merger = new MP.Merger([dof], sourceCanvas, gl, {
-            buffers: buffers,
+            channels: channels,
         });
         class FocusControls {
             constructor() {
@@ -413,34 +432,36 @@ const demos = {
             },
         };
     },
-    lightbands: (buffers = []) => {
+    lightbands: (channels = []) => {
         const merger = new MP.Merger([
-            MP.brightness(MP.cos(MP.op(MP.time(), "+", MP.truedepth(MP.getcomp(MP.buffer(0), "r"))))),
+            MP.brightness(MP.cos(MP.op(MP.time(), "+", MP.truedepth(MP.getcomp(MP.channel(0), "r"))))),
         ], sourceCanvas, gl, {
-            buffers: buffers,
+            channels: channels,
         });
         return {
             merger: merger,
             change: () => { },
         };
     },
-    godrays: (buffers = []) => {
+    godrays: (channels = []) => {
         const merger = new MP.Merger([MP.godrays()], sourceCanvas, gl, {
-            buffers: buffers,
+            channels: channels,
         });
         return {
             merger: merger,
             change: () => { },
         };
     },
-    depthgodrays: (buffers = []) => {
+    depthgodrays: (channels = []) => {
+        let pos;
+        let godrays;
         const merger = new MP.Merger([
-            MP.godrays(MP.fcolor(), 1.0, 0.99, 1.0, 0.01, MP.vec2(MP.op(0.5, "+", MP.op(MP.cos(MP.time()), "/", 5)), 0.5), 0, {
+            (godrays = MP.godrays(MP.fcolor(), MP.mut(1.0), MP.mut(0.99), MP.mut(1.0), MP.mut(0.01), MP.vec2(MP.op(0.5, "+", MP.op((pos = MP.float(MP.mut(0))), "/", 5)), 0.5), 0, {
                 threshold: 0.1,
                 newColor: MP.hsv2rgb(vecexprs_1.vec4(MP.op(MP.time(), "/", 4), 0.5, 0.5, 1)),
-            }),
+            })),
         ], sourceCanvas, gl, {
-            buffers: buffers,
+            channels: channels,
         });
         class LocationControls {
             constructor() {
@@ -455,12 +476,18 @@ const demos = {
         const gui = new dat.GUI();
         gui.add(controls, "location", -1, 1, 0.01);
         gui.add(controls, "exposure", 0, 1, 0.01);
-        gui.add(controls, "decay", 0, 1, 0.01);
+        gui.add(controls, "decay", 0.9, 1, 0.001);
         gui.add(controls, "density", 0, 1, 0.01);
         gui.add(controls, "weight", 0, 0.02, 0.001);
         return {
             merger: merger,
-            change: () => { },
+            change: () => {
+                pos.setVal(-controls.location);
+                godrays.setExposure(controls.exposure);
+                godrays.setDecay(controls.decay);
+                godrays.setDensity(controls.density);
+                godrays.setWeight(controls.weight);
+            },
         };
     },
 };
@@ -620,6 +647,7 @@ const higherOrderDonuts = (color = true) => {
 const draws = {
     edgeblur: [redSpiral],
     bluramount: [movingGrid],
+    bluramountnamed: [movingGrid],
     vectordisplay: [vectorSpiral],
     singlepassgrain: [pinkishHelix],
     redonly: [stripes],
@@ -629,8 +657,8 @@ const draws = {
     timehuerotate: [fabric],
     scanlines: [pinkishHelix],
     fxaa: [higherOrderGoo(true)],
-    bufferblur: [higherOrderGoo(true), higherOrderGoo(false)],
-    buffereyesore: [
+    channelblur: [higherOrderGoo(true), higherOrderGoo(false)],
+    channeleyesore: [
         higherOrderWaves(true),
         higherOrderWaves(false),
         bitwiseGrid(),
@@ -649,16 +677,16 @@ const notes = {
         "this makes the image appear more in focus only around the center",
     basicdof: "the blue rectangles should be most in focus. you can adjust with the controls " +
         "in the corner",
-    lineardof: "by default, <code>dof</code> assumes that your depth buffer is " +
-        "stored in buffer 0, and that the red channel is normalized so that 1 is right " +
+    lineardof: "by default, <code>dof</code> assumes that the image with your depth buffer info is " +
+        "stored in channel 0, and that the red channel is normalized so that 1 is right " +
         "on top of the camera lense, and 0 is all the way at infinity. this example " +
         "shows how you might transform a depth buffer that stores the absolute depth " +
         "into the form that <code>dof</code> interprets",
-    buffereyesore: "despite this demo offering very little in the way of aesthetic value, it " +
+    channeleyesore: "despite this demo offering very little in the way of aesthetic value, it " +
         "demonstrates how you can optionally pass a list of images (which can " +
         "be canvases or videos) into the merger constructor and sample from them",
     fxaa: "fxaa stands for fast approximate anti-aliasing. amazingly, it only needs " +
-        "the scene buffer. it's not perfect, but it does the job in many cases. you " +
+        "the scene buffer info. it's not perfect, but it does the job in many cases. you " +
         "can see how it eliminates jaggies by looking at the unprocessed image",
     scanlines: "you can use trigonometric functions and exponents to create masks " +
         "with interesting shapes",
@@ -681,12 +709,18 @@ const notes = {
         "(also, because the same expression can appear in the effect tree multiple " +
         "times, and expressions can contain expressions, you can make reference loops, " +
         "so don't do that)",
+    bluramountnamed: "instead of using member functions on an expression to change a mutable value, you can " +
+        'give a mutable in an expression a custom name with <code>fl = MP.float(MP.mut(1, "uCustomName"))</code> ' +
+        'and do <code>fl.setUniform("uCustomName", 1.0)</code> ' +
+        "instead of <code>fl.setVal(1.0)</code>. honestly, the latter is easier but you have " +
+        "the option! and, giving a mutable a custom name does not prevent you from using " +
+        "<code>setVal</code>",
     vectordisplay: "this glowing vector effect is created by repeatedly bluring and increasing the " +
         "contrast of the original scene. then the fragment color of the original " +
-        "scene buffer (accessed with <code>input</code>) is added on top of the blurred " +
+        "scene (accessed with <code>input</code>) is added on top of the blurred " +
         "image",
-    bufferblur: "you can use <code>gauss</code> on an extra buffer instead of " +
-        "the scene buffer by passing in an optional argument",
+    channelblur: "you can use <code>gauss</code> on an extra channel instead of " +
+        "the scene channel by passing in an optional argument",
     lightbands: "even though the value in the depth buffer is actually 1 / (1 + depth), we can " +
         "calculate the true depth value with <code>truedepth</code>. with this, we can colorize" +
         "bands of depth in our scene all the way out to infinity",
@@ -728,7 +762,7 @@ window.addEventListener("load", () => {
         canvases.push(canvas);
         contexts.push(context);
         const header = document.createElement("h3");
-        header.innerText = "buffer " + i;
+        header.innerText = "channel " + i;
         (_a = document.getElementById("buffers")) === null || _a === void 0 ? void 0 : _a.appendChild(header);
         (_b = document.getElementById("buffers")) === null || _b === void 0 ? void 0 : _b.appendChild(canvas);
     }
@@ -828,6 +862,10 @@ function tapsToFuncSource(taps) {
 }
 class BlurExpr extends expr_1.ExprVec4 {
     constructor(direction, taps = 5, samplerNum) {
+        // this is already guaranteed by typescript
+        if (![5, 9, 13].includes(taps)) {
+            throw new Error("taps for gauss blur can only be 5, 9 or 13");
+        }
         super(genBlurSource(direction, taps, samplerNum), ["uDirection"]);
         if (samplerNum === undefined) {
             this.needs.neighborSample = true;
@@ -877,7 +915,7 @@ exports.brightness = brightness;
 },{"../glslfunctions":34,"./expr":11,"./fragcolorexpr":12}],6:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.buffer = exports.BufferSampleExpr = void 0;
+exports.channel = exports.BufferSampleExpr = void 0;
 const codebuilder_1 = require("../codebuilder");
 const expr_1 = require("./expr");
 const normfragcoordexpr_1 = require("./normfragcoordexpr");
@@ -894,10 +932,10 @@ class BufferSampleExpr extends expr_1.ExprVec4 {
     }
 }
 exports.BufferSampleExpr = BufferSampleExpr;
-function buffer(buf, vec) {
-    return new BufferSampleExpr(buf, vec);
+function channel(channel, vec) {
+    return new BufferSampleExpr(channel, vec);
 }
-exports.buffer = buffer;
+exports.channel = channel;
 
 },{"../codebuilder":1,"./expr":11,"./normfragcoordexpr":21}],7:[function(require,module,exports){
 "use strict";
@@ -979,7 +1017,7 @@ const expr_1 = require("./expr");
 const vecexprs_1 = require("./vecexprs");
 const buffersampleexpr_1 = require("./buffersampleexpr");
 class DepthToOcclusionExpr extends expr_1.ExprVec4 {
-    constructor(depthCol = buffersampleexpr_1.buffer(0), newCol = vecexprs_1.vec4(1, 1, 1, 1), threshold = expr_1.float(0.01)) {
+    constructor(depthCol = buffersampleexpr_1.channel(0), newCol = vecexprs_1.vec4(1, 1, 1, 1), threshold = expr_1.float(0.01)) {
         super(expr_1.tag `depth2occlusion(${depthCol}, ${newCol}, ${threshold})`, [
             "uDepth",
             "uNewCol",
@@ -1007,7 +1045,7 @@ const opexpr_1 = require("./opexpr");
 const powexpr_1 = require("./powexpr");
 const vecexprs_1 = require("./vecexprs");
 class DoFLoop extends mergepass_1.EffectLoop {
-    constructor(focus = expr_1.mut(expr_1.pfloat(0.3)), rad = expr_1.mut(expr_1.pfloat(0.01)), depth = getcompexpr_1.getcomp(buffersampleexpr_1.buffer(0), "r"), reps = 2) {
+    constructor(focus = expr_1.mut(expr_1.pfloat(0.3)), rad = expr_1.mut(expr_1.pfloat(0.01)), depth = getcompexpr_1.getcomp(buffersampleexpr_1.channel(0), "r"), reps = 2) {
         let guassianExpr = gaussianexpr_1.gaussian(depth, focus, rad);
         // TODO should 13 be the default taps?
         const side = blurexpr_1.gauss(vecexprs_1.vec2(powexpr_1.pow(opexpr_1.op(1, "-", guassianExpr), 4), 0), 13);
@@ -1088,6 +1126,7 @@ class Expr {
     }
     setUniform(name, newVal) {
         var _a, _b;
+        newVal = wrapInValue(newVal);
         const originalName = name;
         if (typeof newVal === "number") {
             newVal = n2p(newVal);
@@ -1165,7 +1204,6 @@ class Mutable {
 }
 exports.Mutable = Mutable;
 function mut(val, name) {
-    // TODO use n2e
     const primitive = typeof val === "number" ? n2p(val) : val;
     return new Mutable(primitive, name);
 }
@@ -1563,7 +1601,6 @@ class GodRaysExpr extends expr_1.ExprVec4 {
         // append the _<num> onto the function name
         // also add _depth if this is a version of the function that uses depth buffer
         sourceLists.sections[0] += `godrays_${samplerNum}${convertDepth !== undefined ? "_depth" : ""}(`;
-        console.log(sourceLists);
         super(sourceLists, [
             "uCol",
             "uExposure",
@@ -1587,16 +1624,16 @@ class GodRaysExpr extends expr_1.ExprVec4 {
         this.setUniform("uCol" + this.id, color);
     }
     setExposure(exposure) {
-        this.setUniform("uExposure" + this.id, exposure);
+        this.setUniform("uExposure" + this.id, expr_1.n2e(exposure));
     }
     setDecay(decay) {
-        this.setUniform("uDecay" + this.id, decay);
+        this.setUniform("uDecay" + this.id, expr_1.n2e(decay));
     }
     setDensity(density) {
-        this.setUniform("uDensity" + this.id, density);
+        this.setUniform("uDensity" + this.id, expr_1.n2e(density));
     }
     setWeight(weight) {
-        this.setUniform("uWeight" + this.id, weight);
+        this.setUniform("uWeight" + this.id, expr_1.n2e(weight));
     }
     setLightPos(lightPos) {
         this.setUniform("uLightPos" + this.id, lightPos);
@@ -2153,15 +2190,15 @@ exports.glslFuncs = {
 }`,
     // based off of https://fabiensanglard.net/lightScattering/index.php
     godrays: `vec4 godrays(
-    vec4 col,
-    float exposure,
-    float decay,
-    float density,
-    float weight,
-    vec2 lightPos,
-    float threshold,
-    vec4 newColor
-  ) {	
+  vec4 col,
+  float exposure,
+  float decay,
+  float density,
+  float weight,
+  vec2 lightPos,
+  float threshold,
+  vec4 newColor
+) {
   vec2 texCoord = gl_FragCoord.xy / uResolution;
   vec2 deltaTexCoord = texCoord - lightPos;
 
@@ -2180,9 +2217,9 @@ exports.glslFuncs = {
   return col * exposure;
 }`,
     depth2occlusion: `vec4 depth2occlusion(vec4 depthCol, vec4 newCol, float threshold) {
-    float red = 1. - ceil(depthCol.r - threshold);
-    return vec4(newCol.rgb * red, 1.0);
-  }`,
+  float red = 1. - ceil(depthCol.r - threshold);
+  return vec4(newCol.rgb * red, 1.0);
+}`,
 };
 function captureAndAppend(str, reg, suffix) {
     const matches = str.match(reg);
@@ -2325,11 +2362,11 @@ class Merger {
     constructor(effects, source, gl, options) {
         var _a;
         this.uniformLocs = {};
-        /** additional buffers */
-        this.buffers = [];
-        // set buffers if provided with buffers
-        if ((options === null || options === void 0 ? void 0 : options.buffers) !== undefined)
-            this.buffers = options === null || options === void 0 ? void 0 : options.buffers;
+        /** additional channels */
+        this.channels = [];
+        // set channels if provided with channels
+        if ((options === null || options === void 0 ? void 0 : options.channels) !== undefined)
+            this.channels = options === null || options === void 0 ? void 0 : options.channels;
         // wrap the given list of effects as a loop if need be
         if (!(effects instanceof EffectLoop)) {
             this.effectLoop = new EffectLoop(effects, { num: 1 });
@@ -2360,12 +2397,15 @@ class Merger {
         this.gl.compileShader(vShader);
         // make textures
         this.tex = {
-            front: makeTexture(this.gl, this.options),
+            // make the front texture the source if we're given a texture instead of
+            // an image
+            front: source instanceof WebGLTexture
+                ? source
+                : makeTexture(this.gl, this.options),
             back: makeTexture(this.gl, this.options),
             scene: undefined,
             bufTextures: [],
         };
-        // TODO allow the user to specify an existing framebuffer
         // create the framebuffer
         const framebuffer = gl.createFramebuffer();
         if (framebuffer === null) {
@@ -2394,17 +2434,26 @@ class Merger {
         }
         console.log(this.programLoop);
         // create x amount of empty textures based on buffers needed
-        let buffersNeeded = 0;
+        let channelsNeeded = 0;
         if (((_a = this.programLoop.totalNeeds) === null || _a === void 0 ? void 0 : _a.extraBuffers) !== undefined) {
-            buffersNeeded = Math.max(...this.programLoop.totalNeeds.extraBuffers) + 1;
+            channelsNeeded =
+                Math.max(...this.programLoop.totalNeeds.extraBuffers) + 1;
         }
-        let buffersSupplied = this.buffers.length;
-        if (buffersNeeded > buffersSupplied) {
-            throw new Error("not enough buffers supplied for this effect");
+        let channelsSupplied = this.channels.length;
+        if (channelsNeeded > channelsSupplied) {
+            throw new Error("not enough channels supplied for this effect");
         }
-        for (let i = 0; i < this.buffers.length; i++) {
-            const texture = makeTexture(this.gl, this.options);
-            this.tex.bufTextures.push(texture);
+        for (let i = 0; i < this.channels.length; i++) {
+            const texOrImage = this.channels[i];
+            if (!(texOrImage instanceof WebGLTexture)) {
+                // create a new texture; we will update this with the image source every draw
+                const texture = makeTexture(this.gl, this.options);
+                this.tex.bufTextures.push(texture);
+            }
+            else {
+                // this is already a texture; the user will handle updating this
+                this.tex.bufTextures.push(texOrImage);
+            }
         }
     }
     draw(time = 0) {
@@ -2420,7 +2469,7 @@ class Merger {
         }
         // bind the additional buffers
         let counter = 0;
-        for (const b of this.buffers) {
+        for (const b of this.channels) {
             // TODO what's the limit on amount of textures?
             this.gl.activeTexture(this.gl.TEXTURE2 + counter);
             this.gl.bindTexture(this.gl.TEXTURE_2D, this.tex.bufTextures[counter]);
@@ -2454,6 +2503,10 @@ function makeTexture(gl, options) {
 }
 exports.makeTexture = makeTexture;
 function sendTexture(gl, src) {
+    // if you are using textures instead of images, the user is responsible for
+    // doing `texImage2D` and updating it with new info, so just return
+    if (src instanceof WebGLTexture)
+        return;
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
 }
 exports.sendTexture = sendTexture;
