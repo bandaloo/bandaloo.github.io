@@ -496,6 +496,14 @@ const demos = {
             change: () => { },
         };
     },
+    mitosis: () => {
+        // prettier-ignore
+        const merger = new MP.Merger([MP.input(MP.changecomp(MP.nfcoord(), MP.op(MP.op(MP.op(0.5, "+", MP.op(0.5, "*", MP.a1("cos", MP.time()))), "*", 0.3), "*", MP.a1("cos", MP.op(MP.getcomp(MP.nfcoord(), "x"), "*", 3 * Math.PI))), "x", "+")), MP.fxaa()], sourceCanvas, gl);
+        return {
+            merger: merger,
+            change: () => { },
+        };
+    },
 };
 // canvas drawing loops
 const stripes = (t, frames) => {
@@ -681,6 +689,7 @@ const draws = {
     lightbands: [higherOrderPerspective(true), higherOrderPerspective(false)],
     depthgodrays: [higherOrderPerspective(true), higherOrderPerspective(false)],
     mousegodrays: [higherOrderDonuts(true), higherOrderDonuts(false)],
+    mitosis: [uncommonCheckerboard],
 };
 const notes = {
     edgeblur: "the blur radius is a function of distance from the center coordinate." +
@@ -745,6 +754,8 @@ const notes = {
         "position with <code>MP.mouse()</code> and the resolution with <code>MP.resolution()</code>. " +
         "if you are using mouse input, pass the x and y position (in pixels) of the mouse in as the " +
         "second and third arguments like this: <code>merger.draw(time, mouseX, mouseY)</code>.",
+    mitosis: "if you sample the original scene at some offset of the pixel coordinate, you can distort " +
+        "the original scene. (fxaa is used here just because we can)",
 };
 const canvases = [sourceCanvas];
 const contexts = [source];
@@ -840,7 +851,6 @@ glCanvas.addEventListener("mousemove", (e) => {
     const rect = glCanvas.getBoundingClientRect();
     mousePos.x = (960 * (e.clientX - rect.left)) / rect.width;
     mousePos.y = (540 * (rect.height - (e.clientY - rect.top))) / rect.height;
-    console.log(rect.width);
 });
 sourceCanvas.addEventListener("click", () => sourceCanvas.requestFullscreen());
 
