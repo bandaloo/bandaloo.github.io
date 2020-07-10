@@ -1,27 +1,42 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CodeBuilder = exports.bufferSamplerName = void 0;
-const expr_1 = require("./expressions/expr");
+exports.CodeBuilder = exports.channelSamplerName = void 0;
+const expr_1 = require("./exprs/expr");
 const webglprogramloop_1 = require("./webglprogramloop");
+/** @ignore */
 const FRAG_SET = `  gl_FragColor = texture2D(uSampler, gl_FragCoord.xy / uResolution);\n`;
+/** @ignore */
 const SCENE_SET = `uniform sampler2D uSceneSampler;\n`;
+/** @ignore */
 const TIME_SET = `uniform mediump float uTime;\n`;
+/** @ignore */
 const MOUSE_SET = `uniform mediump vec2 uMouse;\n`;
+/** @ignore */
 const BOILERPLATE = `#ifdef GL_ES
 precision mediump float;
 #endif
 
 uniform sampler2D uSampler;
 uniform mediump vec2 uResolution;\n`;
-function bufferSamplerName(buf) {
+/**
+ * returns the string name of the sampler uniform for code generation purposes
+ * @param num channel number to sample from
+ */
+function channelSamplerName(num) {
     // texture 2 sampler has number 0 (0 and 1 are used for back buffer and scene)
-    return `uBufferSampler${buf}`;
+    return `uBufferSampler${num}`;
 }
-exports.bufferSamplerName = bufferSamplerName;
-function bufferSamplerDeclaration(buf) {
-    return `uniform sampler2D ${bufferSamplerName(buf)};`;
+exports.channelSamplerName = channelSamplerName;
+/**
+ * returns the string of the declaration of the sampler for code generation
+ * purposes
+ * @param num channel number to sample from
+ */
+function channelSamplerDeclaration(num) {
+    return `uniform sampler2D ${channelSamplerName(num)};`;
 }
+/** class that manages generation and compilation of GLSL code */
 class CodeBuilder {
     constructor(effectLoop) {
         this.calls = [];
@@ -48,7 +63,6 @@ class CodeBuilder {
             const typeName = buildInfo.uniformTypes[name];
             this.uniformDeclarations.add(`uniform mediump ${typeName} ${name};`);
         }
-        //this.uniformNames = Object.keys(buildInfo.uniformTypes);
         // add all external functions from the `BuildInfo` instance
         buildInfo.externalFuncs.forEach((func) => this.externalFuncs.add(func));
         this.totalNeeds = buildInfo.needs;
@@ -77,7 +91,8 @@ class CodeBuilder {
             this.calls.push("  ".repeat(indentLevel - 1) + "}");
         }
     }
-    compileProgram(gl, vShader, uniformLocs) {
+    /** generate the code and compile the program into a loop */
+    compileProgram(gl, vShader, uniformLocs, shaders = []) {
         // set up the fragment shader
         const fShader = gl.createShader(gl.FRAGMENT_SHADER);
         if (fShader === null) {
@@ -88,7 +103,7 @@ class CodeBuilder {
             (this.totalNeeds.timeUniform ? TIME_SET : "") +
             (this.totalNeeds.mouseUniform ? MOUSE_SET : "") +
             Array.from(this.totalNeeds.extraBuffers)
-                .map((n) => bufferSamplerDeclaration(n))
+                .map((n) => channelSamplerDeclaration(n))
                 .join("\n") +
             "\n" +
             [...this.uniformDeclarations].join("\n") +
@@ -106,8 +121,10 @@ class CodeBuilder {
         if (program === null) {
             throw new Error("problem creating program");
         }
+        // TODO are we attaching the vertex shader more times than is necessary?
         gl.attachShader(program, vShader);
         gl.attachShader(program, fShader);
+        shaders.push(fShader);
         const shaderLog = (name, shader) => {
             const output = gl.getShaderInfoLog(shader);
             if (output)
@@ -145,7 +162,7 @@ class CodeBuilder {
         }
         // set all sampler uniforms
         for (const b of this.totalNeeds.extraBuffers) {
-            const location = gl.getUniformLocation(program, bufferSamplerName(b));
+            const location = gl.getUniformLocation(program, channelSamplerName(b));
             // offset the texture location by 2 (0 and 1 are used for scene and original)
             gl.uniform1i(location, b + 2);
         }
@@ -155,12 +172,15 @@ class CodeBuilder {
         gl.enableVertexAttribArray(position);
         // points to the vertices in the last bound array buffer
         gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
-        return new webglprogramloop_1.WebGLProgramLoop(program, this.baseLoop.repeat, gl, this.totalNeeds, this.exprs);
+        return new webglprogramloop_1.WebGLProgramLoop(new webglprogramloop_1.WebGLProgramLeaf(program, this.totalNeeds, this.exprs), this.baseLoop.repeat, gl
+        //this.totalNeeds,
+        //this.exprs
+        );
     }
 }
 exports.CodeBuilder = CodeBuilder;
 
-},{"./expressions/expr":13,"./webglprogramloop":39}],2:[function(require,module,exports){
+},{"./exprs/expr":13,"./webglprogramloop":46}],2:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -182,6 +202,10 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * @packageDocumentation
+ * @ignore
+ */
 const dat = __importStar(require("dat.gui"));
 const MP = __importStar(require("./index"));
 const glCanvas = document.getElementById("gl");
@@ -364,8 +388,6 @@ const demos = {
         };
     },
     channelblur: (channels = []) => {
-        // TODO get rid of this
-        const a = MP.a1("sin", 1);
         const merger = new MP.Merger([
             MP.hsv2rgb(MP.changecomp(MP.rgb2hsv(MP.fcolor()), MP.getcomp(MP.gauss(MP.vec2(8, 0), 13, 0), "r"), "z")),
         ], sourceCanvas, gl, {
@@ -497,8 +519,83 @@ const demos = {
         };
     },
     mitosis: () => {
-        // prettier-ignore
-        const merger = new MP.Merger([MP.input(MP.changecomp(MP.nfcoord(), MP.op(MP.op(MP.op(0.5, "+", MP.op(0.5, "*", MP.a1("cos", MP.time()))), "*", 0.3), "*", MP.a1("cos", MP.op(MP.getcomp(MP.nfcoord(), "x"), "*", 3 * Math.PI))), "x", "+")), MP.fxaa()], sourceCanvas, gl);
+        const merger = new MP.Merger([
+            MP.input(MP.changecomp(MP.nfcoord(), MP.op(MP.op(MP.op(0.5, "+", MP.op(0.5, "*", MP.a1("cos", MP.time()))), "*", 0.3), "*", MP.a1("cos", MP.op(MP.getcomp(MP.nfcoord(), "x"), "*", 3 * Math.PI))), "x", "+")),
+            MP.fxaa(),
+        ], sourceCanvas, gl);
+        return {
+            merger: merger,
+            change: () => { },
+        };
+    },
+    swirl: () => {
+        const vec = MP.nmouse();
+        const dist = MP.op(MP.len(MP.op(MP.nfcoord(), "-", vec)), "*", 99);
+        const angle = MP.op(MP.op(1, "/", MP.op(1, "+", dist)), "*", 20);
+        const centered = MP.translate(MP.nfcoord(), MP.op(vec, "*", -1));
+        const rot = MP.rotate(centered, angle);
+        const reverted = MP.translate(rot, vec);
+        const merger = new MP.Merger([MP.input(reverted)], sourceCanvas, gl);
+        return {
+            merger: merger,
+            change: () => { },
+        };
+    },
+    perlin: () => {
+        const merger = new MP.Merger([
+            MP.brightness(MP.perlin(MP.op(MP.op(MP.nfcoord(), "+", MP.op(MP.time(), "/", 9)), "*", MP.op(MP.resolution(), "/", 99)))),
+        ], sourceCanvas, gl);
+        return {
+            merger: merger,
+            change: () => { },
+        };
+    },
+    fractalize: () => {
+        const offset = MP.vec2(3, 3);
+        const merger = new MP.Merger([
+            MP.brightness(MP.op(MP.fractalize(MP.op(MP.op(offset, "+", MP.nfcoord()), "*", 3), 6, MP.simplex), "/", 6)),
+        ], sourceCanvas, gl);
+        return {
+            merger: merger,
+            change: () => { },
+        };
+    },
+    dictionary: () => {
+        const merger = new MP.Merger(new MP.EffectDictionary({
+            default: [MP.brightness(0.3)],
+            darken: [MP.brightness(-0.3)],
+        }), sourceCanvas, gl);
+        class ChangeControls {
+            constructor() {
+                this.brighten = () => {
+                    merger.changeProgram("default");
+                };
+                this.darken = () => {
+                    merger.changeProgram("darken");
+                };
+            }
+        }
+        const controls = new ChangeControls();
+        const gui = new dat.GUI();
+        gui.add(controls, "brighten");
+        gui.add(controls, "darken");
+        return {
+            merger: merger,
+            change: () => { },
+        };
+    },
+    noisegodrays: (channels = []) => {
+        const fog = MP.op(MP.op(MP.simplex(MP.op(MP.op(MP.nfcoord(), "+", MP.op(MP.time(), "/", 100)), "*", MP.op(MP.resolution(), "/", 200))), "*", MP.simplex(MP.op(MP.op(MP.nfcoord(), "+", MP.op(MP.time(), "/", -200)), "*", MP.op(MP.resolution(), "/", 400)))), "*", 0.5);
+        const merger = new MP.Merger([
+            MP.godrays({
+                lightPos: MP.op(MP.mouse(), "/", MP.resolution()),
+                //color: MP.brightness(fog, MP.fcolor()),
+                weight: 0.009,
+                density: MP.op(0.2, "+", MP.op(fog, "*", 0.5)),
+            }),
+        ], sourceCanvas, gl, {
+            channels: channels,
+        });
         return {
             merger: merger,
             change: () => { },
@@ -640,7 +737,7 @@ const higherOrderPerspective = (color, normalized = true) => {
         }
     };
 };
-const higherOrderDonuts = (color = true) => {
+const higherOrderDonuts = (color = true, extra = 0) => {
     const rFunc = (i, j) => 255 * ~~((1 + 3 * C(i / (99 + 20 * C(j / 5))) * S(j / 2)) % 2);
     const fillFunc = !color
         ? (i, j) => {
@@ -649,7 +746,9 @@ const higherOrderDonuts = (color = true) => {
         }
         : (i, j) => {
             let r = rFunc(i, j);
-            return r > 0 ? R(r / 4) : R(0, 0, 99 * C(i / 10) * S(j / 2) + 30);
+            return r > 0
+                ? R(r / 4, extra)
+                : R(extra, 0, 99 * C(i / 10) * S(j / 2) + 30);
         };
     return (t, frames) => {
         if (!frames) {
@@ -690,6 +789,11 @@ const draws = {
     depthgodrays: [higherOrderPerspective(true), higherOrderPerspective(false)],
     mousegodrays: [higherOrderDonuts(true), higherOrderDonuts(false)],
     mitosis: [uncommonCheckerboard],
+    swirl: [stripes],
+    perlin: [stripes],
+    fractalize: [stripes],
+    dictionary: [movingGrid],
+    noisegodrays: [higherOrderDonuts(true, 150), higherOrderDonuts(false, 10)],
 };
 const notes = {
     edgeblur: "the blur radius is a function of distance from the center coordinate." +
@@ -756,9 +860,24 @@ const notes = {
         "second and third arguments like this: <code>merger.draw(time, mouseX, mouseY)</code>.",
     mitosis: "if you sample the original scene at some offset of the pixel coordinate, you can distort " +
         "the original scene. (fxaa is used here just because we can)",
+    swirl: "this distortion is done with rotations and translations based on the distance " +
+        "from the mouse position",
+    perlin: "you can use <code>perlin</code> to create a variety of different effects. " +
+        "<code>resolution</code> is used to scale the noise based on the aspect ratio " +
+        "so it doesn't appear stretched",
+    fractalize: "<code>fractalize</code> will take a function that takes a position and a float, " +
+        "and will repeatedly sum calls to it with doubling frequency and halving amplitude. " +
+        "it works well with <code>perlin</code> and <code>simplex</code>. adding an offset " +
+        "prevents it from looking like the noise is scaling from the corner",
+    dictionary: "you can pass in an <code>EffectDictionary</code> to create multiple compiled program loops " +
+        'which you can switch between with <code>merger.changeProgram("effectName")</code>. ' +
+        'you must have one with the name <code>"default"</code>, which will be the currently enabled' +
+        "program loop",
 };
 const canvases = [sourceCanvas];
 const contexts = [source];
+let demo;
+let key;
 window.addEventListener("load", () => {
     var _a, _b;
     let mstr = getVariable("m");
@@ -798,7 +917,8 @@ window.addEventListener("load", () => {
         (_a = document.getElementById("buffers")) === null || _a === void 0 ? void 0 : _a.appendChild(header);
         (_b = document.getElementById("buffers")) === null || _b === void 0 ? void 0 : _b.appendChild(canvas);
     }
-    const demo = demos[mstr](canvases.slice(1));
+    key = mstr;
+    demo = demos[key](canvases.slice(1));
     if (demo === undefined)
         throw new Error("merger not found");
     document.getElementById("title").innerText =
@@ -808,10 +928,11 @@ window.addEventListener("load", () => {
         .split("\n")
         .map((l) => l.substr(4))
         .join("\n")
-        .replace(/ /g, "&nbsp;");
+        .replace(/ /g, "&nbsp");
     const codeElem = document.getElementById("mergercode");
-    const reg = /Merger\(\[[\s\S]+\]/g;
+    const reg = /Merger([\s\S]*?);/g;
     const matches = codeStr.match(reg);
+    console.log(matches);
     if (matches === null)
         throw new Error("matches was null");
     codeElem.innerHTML = codeStr.replace(reg, "<em>" + matches[0] + "</em>");
@@ -853,30 +974,50 @@ glCanvas.addEventListener("mousemove", (e) => {
     mousePos.y = (540 * (rect.height - (e.clientY - rect.top))) / rect.height;
 });
 sourceCanvas.addEventListener("click", () => sourceCanvas.requestFullscreen());
+// used to test destruction and creation of merger
+// uncomment to test destruction and creation of merger
+/*
+function destroyAndCreate(str: string) {
+  demo.merger.delete();
+  console.log("deleted old merger");
+  demo = demos[str](canvases.slice(1));
+  if (demo === undefined) throw new Error("merger not found");
+  console.log("created another merger");
+}
 
-},{"./index":37,"dat.gui":40}],3:[function(require,module,exports){
+setTimeout(() => destroyAndCreate("redgreenswap"), 2000);
+*/
+
+},{"./index":44,"dat.gui":47}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.a1 = exports.Arity1HomogenousExpr = void 0;
 const expr_1 = require("./expr");
+/** @ignore */
 function genArity1SourceList(name, val) {
     return {
         sections: [name + "(", ")"],
         values: [val],
     };
 }
+/** arity 1 homogenous function expression */
 class Arity1HomogenousExpr extends expr_1.Operator {
     constructor(val, operation) {
         super(val, genArity1SourceList(operation, val), ["uVal"]);
         this.val = val;
     }
+    /** set the value being passed into the arity 1 homogenous function */
     setVal(val) {
         this.setUniform("uVal" + this.id, val);
-        // TODO way to get rid of this cast?
         this.val = expr_1.wrapInValue(val);
     }
 }
 exports.Arity1HomogenousExpr = Arity1HomogenousExpr;
+/**
+ * built-in functions that take in one `genType x` and return a `genType x`
+ * @param name function name (see [[Arity1HomogenousName]] for valid function names)
+ * @param val the `genType x` argument
+ */
 function a1(name, val) {
     return new Arity1HomogenousExpr(expr_1.wrapInValue(val), name);
 }
@@ -887,31 +1028,39 @@ exports.a1 = a1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.a2 = exports.Arity2HomogenousExpr = void 0;
 const expr_1 = require("./expr");
+/** @ignore */
 function genArity1SourceList(name, val1, val2) {
     return {
         sections: [name + "(", ",", ")"],
         values: [val1, val2],
     };
 }
+/** arity 2 homogenous function expression */
 class Arity2HomogenousExpr extends expr_1.Operator {
     constructor(name, val1, val2) {
         super(val1, genArity1SourceList(name, val1, val2), ["uVal1", "uVal2"]);
         this.val1 = val1;
         this.val2 = val2;
     }
+    /** set the first value being passed into the arity 2 homogenous function */
     setFirstVal(val1) {
         this.setUniform("uVal1" + this.id, val1);
-        // TODO get rid of this cast
         this.val1 = expr_1.wrapInValue(val1);
     }
+    /** set the second value being passed into the arity 2 homogenous function */
     setSecondVal(val2) {
         this.setUniform("uVal2" + this.id, val2);
-        // TODO get rid of this cast
         this.val2 = expr_1.wrapInValue(val2);
     }
 }
 exports.Arity2HomogenousExpr = Arity2HomogenousExpr;
 // implementation
+/**
+ * built-in functions that take in two `genType x` arguments and return a `genType x`
+ * @param name function name (see [[Arity2HomogenousName]] for valid function names)
+ * @param val1 the first `genType x` argument
+ * @param val2 the second `genType x` argument
+ */
 function a2(name, val1, val2) {
     return new Arity2HomogenousExpr(name, expr_1.wrapInValue(val1), expr_1.wrapInValue(val2));
 }
@@ -925,6 +1074,7 @@ const mergepass_1 = require("../mergepass");
 const blurexpr_1 = require("./blurexpr");
 const expr_1 = require("./expr");
 const vecexprs_1 = require("./vecexprs");
+/** 2D blur loop */
 class Blur2dLoop extends mergepass_1.EffectLoop {
     constructor(horizontal = expr_1.float(expr_1.mut(1)), vertical = expr_1.float(expr_1.mut(1)), reps = 2, taps) {
         const side = blurexpr_1.gauss(vecexprs_1.vec2(horizontal, 0), taps);
@@ -933,35 +1083,54 @@ class Blur2dLoop extends mergepass_1.EffectLoop {
         this.horizontal = horizontal;
         this.vertical = vertical;
     }
+    /**
+     * set the horizontal stretch of the blur effect (no greater than 1 for best
+     * effect)
+     */
     setHorizontal(float) {
         if (!(this.horizontal instanceof expr_1.BasicFloat))
-            throw new Error("horizontal expression not basic float");
+            throw new Error("horizontal expression not primitive float");
         this.horizontal.setVal(float);
     }
+    /**
+     * set the vertical stretch of the blur effect (no greater than 1 for best
+     * effect)
+     */
     setVertical(float) {
         if (!(this.vertical instanceof expr_1.BasicFloat))
-            throw new Error("vertical expression not basic float");
+            throw new Error("vertical expression not primitive float");
         this.vertical.setVal(float);
     }
 }
 exports.Blur2dLoop = Blur2dLoop;
+/**
+ * creates a loop that runs a horizontal, then vertical gaussian blur (anything
+ * more than 1 pixel in the horizontal or vertical direction will create a
+ * ghosting effect, which is usually not desirable)
+ * @param horizontalExpr float for the horizontal blur (1 pixel default)
+ * @param verticalExpr float for the vertical blur (1 pixel default)
+ * @param reps how many passes (defaults to 2)
+ * @param taps how many taps (5, 9, or 13, defaults to 5)
+ */
 function blur2d(horizontalExpr, verticalExpr, reps, taps) {
     return new Blur2dLoop(expr_1.n2e(horizontalExpr), expr_1.n2e(verticalExpr), reps, taps);
 }
 exports.blur2d = blur2d;
 
-},{"../mergepass":38,"./blurexpr":6,"./expr":13,"./vecexprs":34}],6:[function(require,module,exports){
+},{"../mergepass":45,"./blurexpr":6,"./expr":13,"./vecexprs":41}],6:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.gauss = exports.BlurExpr = void 0;
 const glslfunctions_1 = require("../glslfunctions");
 const expr_1 = require("./expr");
+/** @ignore */
 function genBlurSource(direction, taps, buffer) {
     return {
         sections: [`gauss${taps}${buffer === undefined ? "" : "_" + buffer}(`, ")"],
         values: [direction],
     };
 }
+/** @ignore */
 function tapsToFuncSource(taps) {
     switch (taps) {
         case 5:
@@ -972,10 +1141,11 @@ function tapsToFuncSource(taps) {
             return glslfunctions_1.glslFuncs.gauss13;
     }
 }
+/** gaussian blur expression */
 class BlurExpr extends expr_1.ExprVec4 {
     constructor(direction, taps = 5, samplerNum) {
         // this is already guaranteed by typescript, but creates helpful error for
-        // use in gibber
+        // use in gibber or anyone just using javascript
         if (![5, 9, 13].includes(taps)) {
             throw new Error("taps for gauss blur can only be 5, 9 or 13");
         }
@@ -994,84 +1164,83 @@ class BlurExpr extends expr_1.ExprVec4 {
             ];
         }
     }
+    /** set the blur direction (keep magnitude no greater than 1 for best effect) */
     setDirection(direction) {
         this.setUniform("uDirection" + this.id, direction);
         this.direction = direction;
     }
 }
 exports.BlurExpr = BlurExpr;
+/**
+ * creates expression that performs one pass of a gaussian blur
+ * @param direction direction to blur (keep magnitude no greater than 1 for
+ * best effect)
+ * @param taps number of taps (defaults to 5)
+ * @param samplerNum which channel to sample from (defaut 0)
+ */
 function gauss(direction, taps = 5, samplerNum) {
     return new BlurExpr(direction, taps, samplerNum);
 }
 exports.gauss = gauss;
 
-},{"../glslfunctions":36,"./expr":13}],7:[function(require,module,exports){
+},{"../glslfunctions":43,"./expr":13}],7:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.brightness = exports.Brightness = void 0;
 const glslfunctions_1 = require("../glslfunctions");
 const expr_1 = require("./expr");
 const fragcolorexpr_1 = require("./fragcolorexpr");
+/** brightness expression */
 class Brightness extends expr_1.ExprVec4 {
     constructor(brightness, col = fragcolorexpr_1.fcolor()) {
         super(expr_1.tag `(brightness(${brightness}, ${col}))`, ["uBrightness", "uColor"]);
         this.brightness = brightness;
         this.externalFuncs = [glslfunctions_1.glslFuncs.brightness];
     }
+    /** set the brightness (should probably be between -1 and 1) */
     setBrightness(brightness) {
         this.setUniform("uBrightness" + this.id, brightness);
         this.brightness = expr_1.n2e(brightness);
     }
 }
 exports.Brightness = Brightness;
+/**
+ * changes the brightness of a color
+ * @param val float for how much to change the brightness by (should probably be
+ * between -1 and 1)
+ * @param col the color to increase the brightness of (defaults to current
+ * fragment color)
+ */
 function brightness(val, col) {
     return new Brightness(expr_1.n2e(val), col);
 }
 exports.brightness = brightness;
 
-},{"../glslfunctions":36,"./expr":13,"./fragcolorexpr":14}],8:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.channel = exports.BufferSampleExpr = void 0;
-const codebuilder_1 = require("../codebuilder");
-const expr_1 = require("./expr");
-const normfragcoordexpr_1 = require("./normfragcoordexpr");
-function genBufferSamplerSource(buf, coord) {
-    return {
-        sections: [`texture2D(${codebuilder_1.bufferSamplerName(buf)}, `, `)`],
-        values: [coord],
-    };
-}
-class BufferSampleExpr extends expr_1.ExprVec4 {
-    constructor(buf, coord = normfragcoordexpr_1.nfcoord()) {
-        super(genBufferSamplerSource(buf, coord), ["uVec"]);
-        this.coord = coord;
-        this.needs.extraBuffers = new Set([buf]);
-    }
-    setCoord(coord) {
-        this.setUniform("uVec", coord);
-        this.coord = coord;
-    }
-}
-exports.BufferSampleExpr = BufferSampleExpr;
-function channel(channel, vec) {
-    return new BufferSampleExpr(channel, vec);
-}
-exports.channel = channel;
-
-},{"../codebuilder":1,"./expr":13,"./normfragcoordexpr":24}],9:[function(require,module,exports){
+},{"../glslfunctions":43,"./expr":13,"./fragcolorexpr":14}],8:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.changecomp = exports.ChangeCompExpr = void 0;
 const expr_1 = require("./expr");
 const getcompexpr_1 = require("./getcompexpr");
+/** @ignore */
 function getChangeFunc(typ, id, setter, comps, op = "") {
     return `${typ} changecomp_${id}(${typ} col, ${setter.typeString()} setter) {
   col.${comps} ${op}= setter;
   return col;
 }`;
 }
-function checkGetComponents(comps, setter, vec) {
+/**
+ * throws a runtime error if component access is not valid, and disallows
+ * duplicate components because duplicate components can not be in a left
+ * expression. (for example `v.xyx = vec3(1., 2., 3.)` is illegal, but `v1.xyz
+ * = v2.xyx` is legal.) also checks for type errors such as `v1.xy = vec3(1.,
+ * 2., 3.)`; the right hand side can only be a `vec2` if only two components
+ * are supplied
+ * @param comps component string
+ * @param setter how the components are being changed
+ * @param vec the vector where components are being accessed
+ */
+function checkChangeComponents(comps, setter, vec) {
     // setter has different length than components
     if (comps.length !== getcompexpr_1.typeStringToLength(setter.typeString())) {
         throw new Error("components length must be equal to the target float/vec");
@@ -1083,12 +1252,14 @@ function checkGetComponents(comps, setter, vec) {
     // legal components
     getcompexpr_1.checkLegalComponents(comps, vec);
 }
+/** @ignore */
 function duplicateComponents(comps) {
     return new Set(comps.split("")).size !== comps.length;
 }
+/** change component expression */
 class ChangeCompExpr extends expr_1.Operator {
     constructor(vec, setter, comps, op) {
-        checkGetComponents(comps, setter, vec);
+        checkChangeComponents(comps, setter, vec);
         // part of name of custom function
         const suffix = `${vec.typeString()}_${setter.typeString()}_${comps}`;
         super(vec, { sections: [`changecomp_${suffix}(`, ", ", ")"], values: [vec, setter] }, ["uOriginal", "uNew"]);
@@ -1098,76 +1269,158 @@ class ChangeCompExpr extends expr_1.Operator {
             getChangeFunc(vec.typeString(), suffix, setter, comps, op),
         ];
     }
+    /** set the original vector */
     setOriginal(originalVec) {
         this.setUniform("uOriginal" + this.id, originalVec);
         this.originalVec = originalVec;
     }
+    /** set the neww vector */
     setNew(newVal) {
         this.setUniform("uNew" + this.id, newVal);
-        // TODO way to get rid of this cast?
         this.newVal = expr_1.wrapInValue(newVal);
     }
 }
 exports.ChangeCompExpr = ChangeCompExpr;
+/**
+ * change the components of a vector
+ * @param vec the vector to augment components of
+ * @param setter the vector (or float, if only one component is changed) for
+ * how to change the components
+ * @param comps string representing the components to change (e.g. `"xy"` or
+ * `"r"` or `"stpq"`.)
+ * @param op optionally perform an operation on the original component
+ * (defaults to no operation, just assigning that component to a new value)
+ */
 function changecomp(vec, setter, comps, op) {
     return new ChangeCompExpr(vec, expr_1.wrapInValue(setter), comps, op);
 }
 exports.changecomp = changecomp;
 
-},{"./expr":13,"./getcompexpr":17}],10:[function(require,module,exports){
+},{"./expr":13,"./getcompexpr":18}],9:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.contrast = exports.Contrast = void 0;
+exports.channel = exports.ChannelSampleExpr = void 0;
+const codebuilder_1 = require("../codebuilder");
+const expr_1 = require("./expr");
+const normfragcoordexpr_1 = require("./normfragcoordexpr");
+/** @ignore */
+function genChannelSampleSource(buf, coord) {
+    return {
+        sections: [`texture2D(${codebuilder_1.channelSamplerName(buf)}, `, `)`],
+        values: [coord],
+    };
+}
+/** channel sample expression */
+class ChannelSampleExpr extends expr_1.ExprVec4 {
+    constructor(buf, coord = normfragcoordexpr_1.nfcoord()) {
+        super(genChannelSampleSource(buf, coord), ["uVec"]);
+        this.coord = coord;
+        this.needs.extraBuffers = new Set([buf]);
+    }
+    setCoord(coord) {
+        this.setUniform("uVec", coord);
+        this.coord = coord;
+    }
+}
+exports.ChannelSampleExpr = ChannelSampleExpr;
+/**
+ * creates an expression that samples from one of the user-defined channels
+ * @param channel which channel to sample from
+ * @param vec where to sample the channel texture (defaults to the normalized
+ * frag coord)
+ */
+function channel(channel, vec) {
+    return new ChannelSampleExpr(channel, vec);
+}
+exports.channel = channel;
+
+},{"../codebuilder":1,"./expr":13,"./normfragcoordexpr":26}],10:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.contrast = exports.ContrastExpr = void 0;
 const glslfunctions_1 = require("../glslfunctions");
 const expr_1 = require("./expr");
 const fragcolorexpr_1 = require("./fragcolorexpr");
-class Contrast extends expr_1.ExprVec4 {
+class ContrastExpr extends expr_1.ExprVec4 {
     constructor(contrast, col = fragcolorexpr_1.fcolor()) {
         super(expr_1.tag `contrast(${contrast}, ${col})`, ["uVal", "uCol"]);
         this.contrast = contrast;
         this.externalFuncs = [glslfunctions_1.glslFuncs.contrast];
     }
+    /** sets the contrast */
     setContrast(contrast) {
         this.setUniform("uContrast" + this.id, contrast);
         this.contrast = contrast;
     }
 }
-exports.Contrast = Contrast;
+exports.ContrastExpr = ContrastExpr;
+/**
+ * changes the contrast of a color
+ * @param val float for how much to change the contrast by (should probably be
+ * between -1 and 1)
+ * @param col the color to increase the contrast of (defaults to current
+ * fragment color)
+ */
 function contrast(val, col) {
-    return new Contrast(expr_1.n2e(val), col);
+    return new ContrastExpr(expr_1.n2e(val), col);
 }
 exports.contrast = contrast;
 
-},{"../glslfunctions":36,"./expr":13,"./fragcolorexpr":14}],11:[function(require,module,exports){
+},{"../glslfunctions":43,"./expr":13,"./fragcolorexpr":14}],11:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.depth2occlusion = exports.DepthToOcclusionExpr = void 0;
+const channelsampleexpr_1 = require("./channelsampleexpr");
 const expr_1 = require("./expr");
 const vecexprs_1 = require("./vecexprs");
-const buffersampleexpr_1 = require("./buffersampleexpr");
-// TODO reconsider whether we need this
+/** depth info to occlussion info expression */
 class DepthToOcclusionExpr extends expr_1.ExprVec4 {
-    constructor(depthCol = buffersampleexpr_1.channel(0), newCol = vecexprs_1.vec4(1, 1, 1, 1), threshold = expr_1.float(0.01)) {
+    constructor(depthCol = channelsampleexpr_1.channel(0), newCol = expr_1.mut(vecexprs_1.pvec4(1, 1, 1, 1)), threshold = expr_1.mut(expr_1.pfloat(0.01))) {
         super(expr_1.tag `depth2occlusion(${depthCol}, ${newCol}, ${threshold})`, [
             "uDepth",
             "uNewCol",
             "uThreshold",
         ]);
+        this.depthCol = depthCol;
+        this.newCol = newCol;
+        this.threshold = threshold;
+    }
+    setDepthColor(depthCol) {
+        this.setUniform("uDepth" + this.id, depthCol);
+        this.depthCol = depthCol;
+    }
+    setNewColor(newCol) {
+        this.setUniform("uNewCol" + this.id, newCol);
+        this.newCol = newCol;
+    }
+    setThreshold(threshold) {
+        this.setUniform("uThreshold" + this.id, threshold);
+        this.threshold = threshold;
     }
 }
 exports.DepthToOcclusionExpr = DepthToOcclusionExpr;
+/**
+ * converts a `1 / distance` depth texture to an occlusion texture, with all
+ * occluded geometry being rendered as black
+ * @param depthCol the color representing the inverse depth (defaults to
+ * sampling from channel 0)
+ * @param newCol the color to replace unoccluded areas by (defaults to white
+ * and is mutable by default)
+ * @param threshold values below this are not occluded (set to something low,
+ * like 0.1 or lower; defaults to 0.01 and is mutable by default)
+ */
 function depth2occlusion(depthCol, newCol, threshold) {
     return new DepthToOcclusionExpr(depthCol, newCol, expr_1.n2e(threshold));
 }
 exports.depth2occlusion = depth2occlusion;
 
-},{"./buffersampleexpr":8,"./expr":13,"./vecexprs":34}],12:[function(require,module,exports){
+},{"./channelsampleexpr":9,"./expr":13,"./vecexprs":41}],12:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.dof = exports.DoFLoop = void 0;
 const mergepass_1 = require("../mergepass");
 const blurexpr_1 = require("./blurexpr");
-const buffersampleexpr_1 = require("./buffersampleexpr");
+const channelsampleexpr_1 = require("./channelsampleexpr");
 const expr_1 = require("./expr");
 const gaussianexpr_1 = require("./gaussianexpr");
 const getcompexpr_1 = require("./getcompexpr");
@@ -1175,11 +1428,10 @@ const opexpr_1 = require("./opexpr");
 const arity2_1 = require("./arity2");
 const vecexprs_1 = require("./vecexprs");
 class DoFLoop extends mergepass_1.EffectLoop {
-    constructor(focus = expr_1.mut(expr_1.pfloat(0.3)), rad = expr_1.mut(expr_1.pfloat(0.01)), depth = getcompexpr_1.getcomp(buffersampleexpr_1.channel(0), "r"), reps = 2) {
-        let guassianExpr = gaussianexpr_1.gaussian(depth, focus, rad);
-        // TODO optional taps number
-        const side = blurexpr_1.gauss(vecexprs_1.vec2(arity2_1.a2("pow", opexpr_1.op(1, "-", guassianExpr), 4), 0), 13);
-        const up = blurexpr_1.gauss(vecexprs_1.vec2(0, arity2_1.a2("pow", opexpr_1.op(1, "-", guassianExpr), 4)), 13);
+    constructor(depth = expr_1.mut(expr_1.pfloat(0.3)), rad = expr_1.mut(expr_1.pfloat(0.01)), depthInfo = getcompexpr_1.getcomp(channelsampleexpr_1.channel(0), "r"), reps = 2, taps = 13) {
+        let guassianExpr = gaussianexpr_1.gaussian(depthInfo, depth, rad);
+        const side = blurexpr_1.gauss(vecexprs_1.vec2(arity2_1.a2("pow", opexpr_1.op(1, "-", guassianExpr), 4), 0), taps);
+        const up = blurexpr_1.gauss(vecexprs_1.vec2(0, arity2_1.a2("pow", opexpr_1.op(1, "-", guassianExpr), 4)), taps);
         super([side, up], { num: reps });
         this.gaussian = guassianExpr;
     }
@@ -1193,17 +1445,32 @@ class DoFLoop extends mergepass_1.EffectLoop {
     }
 }
 exports.DoFLoop = DoFLoop;
-function dof(focus, rad, depth, reps) {
-    return new DoFLoop(expr_1.n2e(focus), expr_1.n2e(rad), expr_1.n2e(depth), reps);
+/**
+ * creates depth of field expression; all values are mutable by default
+ * @param depth float for what inverse depth to focus on (1 on top of the
+ * camera; 0 is infinity)
+ * @param rad float for how deep the band of in-focus geometry is (a value
+ * between 0.01 and 0.1 is reasonable)
+ * @param depthInfo float the expression that represents the inverse depth
+ * (defaults to sampling the red component from channel 0)
+ * @param reps how many times to repeat the gaussian blur
+ */
+function dof(depth, rad, depthInfo, reps) {
+    return new DoFLoop(expr_1.n2e(depth), expr_1.n2e(rad), expr_1.n2e(depthInfo), reps);
 }
 exports.dof = dof;
 
-},{"../mergepass":38,"./arity2":4,"./blurexpr":6,"./buffersampleexpr":8,"./expr":13,"./gaussianexpr":16,"./getcompexpr":17,"./opexpr":25,"./vecexprs":34}],13:[function(require,module,exports){
+},{"../mergepass":45,"./arity2":4,"./blurexpr":6,"./channelsampleexpr":9,"./expr":13,"./gaussianexpr":17,"./getcompexpr":18,"./opexpr":28,"./vecexprs":41}],13:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.tag = exports.wrapInValue = exports.pfloat = exports.n2p = exports.n2e = exports.Operator = exports.ExprVec4 = exports.ExprVec3 = exports.ExprVec2 = exports.float = exports.ExprFloat = exports.BasicFloat = exports.ExprVec = exports.BasicVec4 = exports.BasicVec3 = exports.BasicVec2 = exports.BasicVec = exports.PrimitiveVec4 = exports.PrimitiveVec3 = exports.PrimitiveVec2 = exports.PrimitiveVec = exports.PrimitiveFloat = exports.Primitive = exports.mut = exports.Mutable = exports.Expr = void 0;
 const mergepass_1 = require("../mergepass");
 const webglprogramloop_1 = require("../webglprogramloop");
+/**
+ * adds a `.` after a number if needed (e.g converts `1` to `"1."` but leaves
+ * `1.2` as `"1.2"`)
+ * @param num number to convert
+ */
 function toGLSLFloatString(num) {
     let str = "" + num;
     if (!str.includes("."))
@@ -1255,6 +1522,11 @@ class Expr {
     getSampleNum(mult = 1) {
         return this.needs.neighborSample ? mult : 0;
     }
+    /**
+     * set a uniform by name directly
+     * @param name uniform name in the source code
+     * @param newVal value to set the uniform to
+     */
     setUniform(name, newVal) {
         var _a, _b;
         newVal = wrapInValue(newVal);
@@ -1282,7 +1554,10 @@ class Expr {
         this.uniformValChangeMap[name].val = newVal;
         this.uniformValChangeMap[name].changed = true;
     }
-    /** parses this expression into a string, adding info as it recurses */
+    /**
+     * parses this expression into a string, adding info as it recurses into
+     * nested expressions
+     */
     parse(buildInfo) {
         this.sourceCode = "";
         buildInfo.exprs.push(this);
@@ -1301,6 +1576,9 @@ class Expr {
     }
 }
 exports.Expr = Expr;
+/**
+ * increments for each expression created; used to uniquely id each expression
+ */
 Expr.count = 0;
 class Mutable {
     constructor(primitive, name) {
@@ -1333,13 +1611,21 @@ class Mutable {
     }
 }
 exports.Mutable = Mutable;
+/**
+ * makes a primitive value mutable. wrapping a [[PrimitiveVec]] or
+ * [[PrimitiveFloat]] in [[mut]] before passing it into an expression will
+ * allow you to use the setters on that expression to change those values at
+ * runtime
+ * @param val the primitive float or primitive vec to make mutable
+ * @param name the optional name for the uniform
+ */
 function mut(val, name) {
     const primitive = typeof val === "number" ? n2p(val) : val;
     return new Mutable(primitive, name);
 }
 exports.mut = mut;
 class Primitive {
-    parse(buildInfo, defaultName, enc) {
+    parse() {
         return this.toString();
     }
 }
@@ -1402,7 +1688,7 @@ class BasicVec extends Expr {
     constructor(sourceLists, defaultNames) {
         super(sourceLists, defaultNames);
         // this cast is fine as long as you only instantiate these with the
-        // shorthand version
+        // shorthand version and not the constructor
         const values = sourceLists.values;
         this.values = values;
         this.defaultNames = defaultNames;
@@ -1410,6 +1696,7 @@ class BasicVec extends Expr {
     typeString() {
         return ("vec" + this.values.length);
     }
+    /** sets a component of the vector */
     setComp(index, primitive) {
         if (index < 0 || index >= this.values.length) {
             throw new Error("out of bounds of setting component");
@@ -1508,8 +1795,8 @@ class ExprVec4 extends ExprVec {
     repeat(num) {
         return new mergepass_1.EffectLoop([this], { num: num });
     }
-    genPrograms(gl, vShader, uniformLocs) {
-        return new mergepass_1.EffectLoop([this], { num: 1 }).genPrograms(gl, vShader, uniformLocs);
+    genPrograms(gl, vShader, uniformLocs, shaders) {
+        return new mergepass_1.EffectLoop([this], { num: 1 }).genPrograms(gl, vShader, uniformLocs, shaders);
     }
     typeString() {
         return "vec4";
@@ -1538,6 +1825,7 @@ function n2e(num) {
     return new PrimitiveFloat(num);
 }
 exports.n2e = n2e;
+// TODO see if we need this
 /** number to primitive float */
 function n2p(num) {
     if (num instanceof PrimitiveFloat)
@@ -1545,26 +1833,30 @@ function n2p(num) {
     return new PrimitiveFloat(num);
 }
 exports.n2p = n2p;
+/** creates a primitive float */
 function pfloat(num) {
     return new PrimitiveFloat(num);
 }
 exports.pfloat = pfloat;
+/** @ignore */
 function wrapInValue(num) {
     if (typeof num === "number")
         return pfloat(num);
     return num;
 }
 exports.wrapInValue = wrapInValue;
+/** @ignore */
 function tag(strings, ...values) {
     return { sections: strings.concat([]), values: values };
 }
 exports.tag = tag;
 
-},{"../mergepass":38,"../webglprogramloop":39}],14:[function(require,module,exports){
+},{"../mergepass":45,"../webglprogramloop":46}],14:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fcolor = exports.FragColorExpr = void 0;
 const expr_1 = require("./expr");
+/** fragment color expression */
 class FragColorExpr extends expr_1.ExprVec4 {
     constructor() {
         super(expr_1.tag `gl_FragColor`, []);
@@ -1572,6 +1864,7 @@ class FragColorExpr extends expr_1.ExprVec4 {
     }
 }
 exports.FragColorExpr = FragColorExpr;
+/** creates an expression that evaluates to the fragment color */
 function fcolor() {
     return new FragColorExpr();
 }
@@ -1580,9 +1873,31 @@ exports.fcolor = fcolor;
 },{"./expr":13}],15:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.fcoord = exports.FragCoordExpr = void 0;
+const expr_1 = require("./expr");
+/** frag coord expression (xy components only) */
+class FragCoordExpr extends expr_1.ExprVec2 {
+    constructor() {
+        super(expr_1.tag `gl_FragCoord.xy`, []);
+    }
+}
+exports.FragCoordExpr = FragCoordExpr;
+/**
+ * creates an expression that evaluates to the frag coord in pixels (samplers
+ * take normalized coordinates, so you might want [[nfcoord]] instead)
+ */
+function fcoord() {
+    return new FragCoordExpr();
+}
+exports.fcoord = fcoord;
+
+},{"./expr":13}],16:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 exports.fxaa = void 0;
 const expr_1 = require("./expr");
 const glslfunctions_1 = require("../glslfunctions");
+/** FXAA expression */
 class FXAAExpr extends expr_1.ExprVec4 {
     constructor() {
         super(expr_1.tag `fxaa()`, []);
@@ -1590,17 +1905,19 @@ class FXAAExpr extends expr_1.ExprVec4 {
         this.needs.neighborSample = true;
     }
 }
+/** FXAA antaliasing expression */
 function fxaa() {
     return new FXAAExpr();
 }
 exports.fxaa = fxaa;
 
-},{"../glslfunctions":36,"./expr":13}],16:[function(require,module,exports){
+},{"../glslfunctions":43,"./expr":13}],17:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.gaussian = exports.GaussianExpr = void 0;
 const expr_1 = require("./expr");
 const glslfunctions_1 = require("../glslfunctions");
+/** gaussian expression */
 class GaussianExpr extends expr_1.ExprFloat {
     constructor(x, a, b) {
         super(expr_1.tag `gaussian(${x}, ${a}, ${b})`, ["uFloatX", "uFloatA", "uFloatB"]);
@@ -1623,17 +1940,24 @@ class GaussianExpr extends expr_1.ExprFloat {
     }
 }
 exports.GaussianExpr = GaussianExpr;
+/**
+ * gaussian function that defaults to normal distribution
+ * @param x x position in the curve
+ * @param a horizontal position of peak (defaults to 0 for normal distribution)
+ * @param b horizontal stretch of the curve (defaults to 1 for normal distribution)
+ */
 function gaussian(x, a = 0, b = 1) {
     return new GaussianExpr(expr_1.n2e(x), expr_1.n2e(a), expr_1.n2e(b));
 }
 exports.gaussian = gaussian;
 
-},{"../glslfunctions":36,"./expr":13}],17:[function(require,module,exports){
+},{"../glslfunctions":43,"./expr":13}],18:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.get4comp = exports.get3comp = exports.get2comp = exports.getcomp = exports.Get4CompExpr = exports.Get3CompExpr = exports.Get2CompExpr = exports.GetCompExpr = exports.checkLegalComponents = exports.typeStringToLength = void 0;
 const expr_1 = require("./expr");
 // TODO this should probably be somewhere else
+/** @ignore */
 function typeStringToLength(str) {
     switch (str) {
         case "float":
@@ -1647,12 +1971,20 @@ function typeStringToLength(str) {
     }
 }
 exports.typeStringToLength = typeStringToLength;
+/** @ignore */
 function genCompSource(vec, components) {
     return {
         sections: ["", "." + components],
         values: [vec],
     };
 }
+/**
+ * checks if components accessing a vector are legal. components can be illegal
+ * if they mix sets (e.g. `v.rgzw`) or contain characters outside of any set
+ * (e.g. `v.lmno`)
+ * @param comps components string
+ * @param vec vector being accessed
+ */
 function checkLegalComponents(comps, vec) {
     const check = (range, domain) => {
         let inside = 0;
@@ -1671,11 +2003,20 @@ function checkLegalComponents(comps, vec) {
     }
 }
 exports.checkLegalComponents = checkLegalComponents;
+/**
+ * performs all validity checks of [[checkLegalComponents]] and checks if the
+ * number of accessed components does not exceed the size of the vector being
+ * assigned to
+ * @param comps components string
+ * @param outLen length of the resultant vector
+ * @param vec vector being accessed
+ */
 function checkGetComponents(comps, outLen, vec) {
     if (comps.length > outLen)
         throw new Error("too many components");
     checkLegalComponents(comps, vec);
 }
+/** get component expression */
 class GetCompExpr extends expr_1.ExprFloat {
     constructor(vec, comps) {
         checkGetComponents(comps, 1, vec);
@@ -1688,6 +2029,7 @@ class GetCompExpr extends expr_1.ExprFloat {
     }
 }
 exports.GetCompExpr = GetCompExpr;
+/** get 2 components expression */
 class Get2CompExpr extends expr_1.ExprVec2 {
     constructor(vec, comps) {
         checkGetComponents(comps, 2, vec);
@@ -1700,6 +2042,7 @@ class Get2CompExpr extends expr_1.ExprVec2 {
     }
 }
 exports.Get2CompExpr = Get2CompExpr;
+/** get 3 components expression */
 class Get3CompExpr extends expr_1.ExprVec3 {
     constructor(vec, comps) {
         checkGetComponents(comps, 3, vec);
@@ -1712,6 +2055,7 @@ class Get3CompExpr extends expr_1.ExprVec3 {
     }
 }
 exports.Get3CompExpr = Get3CompExpr;
+/** get 3 components expression */
 class Get4CompExpr extends expr_1.ExprVec4 {
     constructor(vec, comps) {
         checkGetComponents(comps, 4, vec);
@@ -1724,24 +2068,44 @@ class Get4CompExpr extends expr_1.ExprVec4 {
     }
 }
 exports.Get4CompExpr = Get4CompExpr;
+/**
+ * creates an expression that gets 1 component from a vector
+ * @param vec the vector to get components of
+ * @param comps components string
+ */
 function getcomp(vec, comps) {
     return new GetCompExpr(vec, comps);
 }
 exports.getcomp = getcomp;
+/**
+ * creates an expression that gets 2 components from a vector
+ * @param vec the vector to get components of
+ * @param comps components string
+ */
 function get2comp(vec, comps) {
     return new Get2CompExpr(vec, comps);
 }
 exports.get2comp = get2comp;
+/**
+ * creates an expression that gets 3 components from a vector
+ * @param vec the vector to get components of
+ * @param comps components string
+ */
 function get3comp(vec, comps) {
     return new Get3CompExpr(vec, comps);
 }
 exports.get3comp = get3comp;
+/**
+ * creates an expression that gets 4 components from a vector
+ * @param vec the vector to get components of
+ * @param comps components string
+ */
 function get4comp(vec, comps) {
     return new Get4CompExpr(vec, comps);
 }
 exports.get4comp = get4comp;
 
-},{"./expr":13}],18:[function(require,module,exports){
+},{"./expr":13}],19:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.godrays = exports.GodRaysExpr = void 0;
@@ -1749,6 +2113,7 @@ const glslfunctions_1 = require("../glslfunctions");
 const expr_1 = require("./expr");
 const fragcolorexpr_1 = require("./fragcolorexpr");
 const vecexprs_1 = require("./vecexprs");
+/** godrays expression */
 class GodRaysExpr extends expr_1.ExprVec4 {
     constructor(col = fragcolorexpr_1.fcolor(), exposure = expr_1.mut(1.0), decay = expr_1.mut(1.0), density = expr_1.mut(1.0), weight = expr_1.mut(0.01), lightPos = expr_1.mut(vecexprs_1.pvec2(0.5, 0.5)), samplerNum = 0, convertDepth) {
         // TODO the metaprogramming here is not so good!
@@ -1778,32 +2143,40 @@ class GodRaysExpr extends expr_1.ExprVec4 {
         let customGodRayFunc = glslfunctions_1.replaceSampler(glslfunctions_1.glslFuncs.godrays, /vec4\sgodrays/g, samplerNum, convertDepth === undefined ? undefined : "_depth");
         if (convertDepth !== undefined) {
             // uncomment the line that does the conversion
+            // TODO replace this with a more generic #ifdef and #ifndef kind of
+            // like the C preprocessor
             customGodRayFunc = customGodRayFunc.replace(/\/\/uncomment\s/g, "");
             this.externalFuncs.push(glslfunctions_1.glslFuncs.depth2occlusion);
         }
         this.externalFuncs.push(customGodRayFunc);
         this.needs.extraBuffers = new Set([0]);
     }
+    /** sets the light color */
     setColor(color) {
         this.setUniform("uCol" + this.id, color);
         this.col = color;
     }
+    /** sets the exposure */
     setExposure(exposure) {
         this.setUniform("uExposure" + this.id, exposure);
         this.exposure = expr_1.n2e(exposure);
     }
+    /** sets the decay */
     setDecay(decay) {
         this.setUniform("uDecay" + this.id, decay);
         this.decay = expr_1.n2e(decay);
     }
+    /** sets the density */
     setDensity(density) {
         this.setUniform("uDensity" + this.id, density);
         this.density = expr_1.n2e(density);
     }
+    /** sets the weight */
     setWeight(weight) {
         this.setUniform("uWeight" + this.id, weight);
         this.weight = expr_1.n2e(weight);
     }
+    /** sets the light position */
     setLightPos(lightPos) {
         this.setUniform("uLightPos" + this.id, lightPos);
         this.lightPos = lightPos;
@@ -1821,6 +2194,11 @@ class GodRaysExpr extends expr_1.ExprVec4 {
 }
 exports.GodRaysExpr = GodRaysExpr;
 // sane godray defaults from https://github.com/Erkaman/glsl-godrays/blob/master/example/index.js
+/**
+ * create a godrays expression which requires an occlusion map; all values are
+ * mutable by default
+ * @param options object that defines godrays properties (has sane defaults)
+ */
 function godrays(options = {}) {
     return new GodRaysExpr(options.color, expr_1.n2e(options.exposure), expr_1.n2e(options.decay), expr_1.n2e(options.density), expr_1.n2e(options.weight), options.lightPos, options.samplerNum, options.convertDepth === undefined
         ? undefined
@@ -1831,19 +2209,18 @@ function godrays(options = {}) {
 }
 exports.godrays = godrays;
 
-},{"../glslfunctions":36,"./expr":13,"./fragcolorexpr":14,"./vecexprs":34}],19:[function(require,module,exports){
+},{"../glslfunctions":43,"./expr":13,"./fragcolorexpr":14,"./vecexprs":41}],20:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.grain = exports.GrainExpr = void 0;
 const glslfunctions_1 = require("../glslfunctions");
 const expr_1 = require("./expr");
+/** grain expression */
 class GrainExpr extends expr_1.ExprVec4 {
     constructor(grain) {
-        // TODO compose with other expressions rather than write full glsl?
         super(expr_1.tag `vec4((1.0 - ${grain} * random(gl_FragCoord.xy)) * gl_FragColor.rgb, gl_FragColor.a);`, ["uGrain"]);
         this.grain = grain;
         this.externalFuncs = [glslfunctions_1.glslFuncs.random];
-        // TODO get rid of this if we choose to use fcolor instead later
         this.needs.centerSample = true;
     }
     setGrain(grain) {
@@ -1852,17 +2229,22 @@ class GrainExpr extends expr_1.ExprVec4 {
     }
 }
 exports.GrainExpr = GrainExpr;
+/**
+ * adds random grain
+ * @param val how much the grain should impact the image (0 to 1 is reasonable)
+ */
 function grain(val) {
     return new GrainExpr(expr_1.n2e(val));
 }
 exports.grain = grain;
 
-},{"../glslfunctions":36,"./expr":13}],20:[function(require,module,exports){
+},{"../glslfunctions":43,"./expr":13}],21:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.hsv2rgb = exports.HSVToRGBExpr = void 0;
 const expr_1 = require("./expr");
 const glslfunctions_1 = require("../glslfunctions");
+/** HSV to RGB expression */
 class HSVToRGBExpr extends expr_1.ExprVec4 {
     constructor(color) {
         super(expr_1.tag `hsv2rgb(${color})`, ["uHSVCol"]);
@@ -1875,19 +2257,24 @@ class HSVToRGBExpr extends expr_1.ExprVec4 {
     }
 }
 exports.HSVToRGBExpr = HSVToRGBExpr;
+/**
+ * converts a color (with an alpha compoment) from hsv to rgb
+ * @param col the hsva color to convert to rgba
+ */
 function hsv2rgb(col) {
     return new HSVToRGBExpr(col);
 }
 exports.hsv2rgb = hsv2rgb;
 
-},{"../glslfunctions":36,"./expr":13}],21:[function(require,module,exports){
+},{"../glslfunctions":43,"./expr":13}],22:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.len = exports.LenExpr = void 0;
 const expr_1 = require("./expr");
+/** length expression */
 class LenExpr extends expr_1.ExprFloat {
     constructor(vec) {
-        super(expr_1.tag `(length(${vec}))`, ["uVec"]);
+        super(expr_1.tag `length(${vec})`, ["uVec"]);
         this.vec = vec;
     }
     setVec(vec) {
@@ -1896,16 +2283,18 @@ class LenExpr extends expr_1.ExprFloat {
     }
 }
 exports.LenExpr = LenExpr;
+/** creates an expreession that calculates the length of a vector */
 function len(vec) {
     return new LenExpr(vec);
 }
 exports.len = len;
 
-},{"./expr":13}],22:[function(require,module,exports){
+},{"./expr":13}],23:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.mouse = exports.MouseExpr = void 0;
 const expr_1 = require("./expr");
+/** mouse position expression */
 class MouseExpr extends expr_1.ExprVec2 {
     constructor() {
         super(expr_1.tag `uMouse`, []);
@@ -1913,44 +2302,103 @@ class MouseExpr extends expr_1.ExprVec2 {
     }
 }
 exports.MouseExpr = MouseExpr;
+/**
+ * creates an expression that evaluates to a vector representing the mouse
+ * position in pixels
+ */
 function mouse() {
     return new MouseExpr();
 }
 exports.mouse = mouse;
 
-},{"./expr":13}],23:[function(require,module,exports){
+},{"./expr":13}],24:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ncfcoord = exports.NormCenterFragCoordExpr = void 0;
 const expr_1 = require("./expr");
+/** normalized centered frag coord expression */
 class NormCenterFragCoordExpr extends expr_1.ExprVec2 {
     constructor() {
         super(expr_1.tag `(gl_FragCoord.xy / uResolution - 0.5)`, []);
     }
 }
 exports.NormCenterFragCoordExpr = NormCenterFragCoordExpr;
+/**
+ * creates an expression that calculates the normalized centered coord
+ * (coordinates range from -0.5 to 0.5)
+ */
 function ncfcoord() {
     return new NormCenterFragCoordExpr();
 }
 exports.ncfcoord = ncfcoord;
 
-},{"./expr":13}],24:[function(require,module,exports){
+},{"./expr":13}],25:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.norm = exports.NormExpr = void 0;
+const expr_1 = require("./expr");
+/** normalize expression */
+class NormExpr extends expr_1.Operator {
+    constructor(vec) {
+        super(vec, expr_1.tag `normalize(${vec})`, ["uVec"]);
+        this.vec = vec;
+    }
+    setVec(vec) {
+        this.setUniform("uVec" + this.id, vec);
+        this.vec = vec;
+    }
+}
+exports.NormExpr = NormExpr;
+/** creates an expression that normalizes a vector */
+function norm(vec) {
+    return new NormExpr(vec);
+}
+exports.norm = norm;
+
+},{"./expr":13}],26:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.nfcoord = exports.NormFragCoordExpr = void 0;
 const expr_1 = require("./expr");
+/** normalized frag coord expression */
 class NormFragCoordExpr extends expr_1.ExprVec2 {
     constructor() {
         super(expr_1.tag `(gl_FragCoord.xy / uResolution)`, []);
     }
 }
 exports.NormFragCoordExpr = NormFragCoordExpr;
+/**
+ * creates an expression that calculates the normalized frag coord (coordinates
+ * range from 0.0 to 1.0)
+ */
 function nfcoord() {
     return new NormFragCoordExpr();
 }
 exports.nfcoord = nfcoord;
 
-},{"./expr":13}],25:[function(require,module,exports){
+},{"./expr":13}],27:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.nmouse = exports.NormMouseExpr = void 0;
+const expr_1 = require("./expr");
+/** normalized mouse position expression */
+class NormMouseExpr extends expr_1.ExprVec2 {
+    constructor() {
+        super(expr_1.tag `(uMouse / uResolution.xy)`, []);
+        this.needs.mouseUniform = true;
+    }
+}
+exports.NormMouseExpr = NormMouseExpr;
+/**
+ * creates an expression that calculates the normalized mouse position
+ * (coordinates range from 0 to 1)
+ */
+function nmouse() {
+    return new NormMouseExpr();
+}
+exports.nmouse = nmouse;
+
+},{"./expr":13}],28:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.op = exports.OpExpr = void 0;
@@ -1969,23 +2417,76 @@ class OpExpr extends expr_1.Operator {
     }
     setLeft(left) {
         this.setUniform("uLeft" + this.id, left);
-        // TODO way to get rid of this cast?
         this.left = expr_1.wrapInValue(left);
     }
     setRight(right) {
         this.setUniform("uRight" + this.id, right);
-        // TODO way to get rid of this cast?
         this.right = expr_1.wrapInValue(right);
     }
 }
 exports.OpExpr = OpExpr;
 // implementation
+/**
+ * creates an arithmetic operator expression
+ * @param left expression left of operator
+ * @param op string representing arithmetic operator
+ * @param right expression right of operator
+ */
 function op(left, op, right) {
     return new OpExpr(expr_1.wrapInValue(left), op, expr_1.wrapInValue(right));
 }
 exports.op = op;
 
-},{"./expr":13}],26:[function(require,module,exports){
+},{"./expr":13}],29:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.fractalize = exports.perlin = exports.PerlinExpr = void 0;
+const glslfunctions_1 = require("../glslfunctions");
+const expr_1 = require("./expr");
+const opexpr_1 = require("./opexpr");
+/** Perlin noise expression */
+class PerlinExpr extends expr_1.ExprFloat {
+    constructor(pos) {
+        super(expr_1.tag `gradientnoise(${pos})`, ["uPos"]);
+        this.pos = pos;
+        this.externalFuncs = [glslfunctions_1.glslFuncs.random2, glslfunctions_1.glslFuncs.gradientnoise];
+    }
+    setPos(pos) {
+        this.setUniform("uPos", pos);
+        this.pos = pos;
+    }
+}
+exports.PerlinExpr = PerlinExpr;
+/**
+ * creates a perlin noise expression; values range from -1 to 1 but they tend
+ * to be grayer than the [[simplex]] implementation
+ * @param pos position
+ */
+function perlin(pos) {
+    return new PerlinExpr(pos);
+}
+exports.perlin = perlin;
+/**
+ * take any function from a position to a float, and repeatedly sum calls to it
+ * with doubling frequency and halving amplitude (works well with [[simplex]]
+ * and [[perlin]])
+ * @param pos position
+ * @param octaves how many layers deep to make the fractal
+ * @param func the function to fractalize
+ */
+function fractalize(pos, octaves, func) {
+    if (octaves < 0)
+        throw new Error("octaves can't be < 0");
+    const recurse = (pos, size, level) => {
+        if (level <= 0)
+            return expr_1.pfloat(0);
+        return opexpr_1.op(func(opexpr_1.op(pos, "/", size * 2)), "+", recurse(pos, size / 2, level - 1));
+    };
+    return recurse(pos, 0.5, octaves);
+}
+exports.fractalize = fractalize;
+
+},{"../glslfunctions":43,"./expr":13,"./opexpr":28}],30:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pblur = exports.PowerBlurLoop = void 0;
@@ -1994,6 +2495,7 @@ const blurexpr_1 = require("./blurexpr");
 const vecexprs_1 = require("./vecexprs");
 const expr_1 = require("./expr");
 const baseLog = (x, y) => Math.log(y) / Math.log(x);
+/** power blur loop */
 class PowerBlurLoop extends mergepass_1.EffectLoop {
     constructor(size) {
         const side = blurexpr_1.gauss(expr_1.mut(vecexprs_1.pvec2(size, 0)));
@@ -2009,6 +2511,7 @@ class PowerBlurLoop extends mergepass_1.EffectLoop {
             side.setDirection(vecexprs_1.pvec2(distance, 0));
         };
     }
+    /** sets the size of the radius */
     setSize(size) {
         this.size = size;
         this.repeat.num = Math.ceil(baseLog(2, size));
@@ -2017,16 +2520,17 @@ class PowerBlurLoop extends mergepass_1.EffectLoop {
 exports.PowerBlurLoop = PowerBlurLoop;
 /**
  * fast approximate blur for large blur radius that might look good in some cases
+ * @param size the radius of the blur
  */
 function pblur(size) {
     return new PowerBlurLoop(size);
 }
 exports.pblur = pblur;
 
-},{"../mergepass":38,"./blurexpr":6,"./expr":13,"./vecexprs":34}],27:[function(require,module,exports){
+},{"../mergepass":45,"./blurexpr":6,"./expr":13,"./vecexprs":41}],31:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RandomExpr = void 0;
+exports.random = exports.RandomExpr = void 0;
 const glslfunctions_1 = require("../glslfunctions");
 const expr_1 = require("./expr");
 const normfragcoordexpr_1 = require("./normfragcoordexpr");
@@ -2036,35 +2540,47 @@ class RandomExpr extends expr_1.ExprVec4 {
         this.seed = seed;
         this.externalFuncs = [glslfunctions_1.glslFuncs.random];
     }
+    /** sets the seed (vary this over time to get a moving effect) */
     setSeed(seed) {
         this.setUniform("uSeed", seed);
         this.seed = seed;
     }
 }
 exports.RandomExpr = RandomExpr;
+/**
+ * creates expression that evaluates to a pseudorandom number
+ * @param seed vec2 to to seed the random number (defaults to the normalized frag coord)
+ */
+function random(seed) {
+    return new RandomExpr(seed);
+}
+exports.random = random;
 
-},{"../glslfunctions":36,"./expr":13,"./normfragcoordexpr":24}],28:[function(require,module,exports){
+},{"../glslfunctions":43,"./expr":13,"./normfragcoordexpr":26}],32:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resolution = exports.ResolutionExpr = void 0;
 const expr_1 = require("./expr");
+/** resolution expression */
 class ResolutionExpr extends expr_1.ExprVec2 {
     constructor() {
         super(expr_1.tag `uResolution`, []);
     }
 }
 exports.ResolutionExpr = ResolutionExpr;
+/** creates an expression that evaluates to a vector representing the resolution */
 function resolution() {
     return new ResolutionExpr();
 }
 exports.resolution = resolution;
 
-},{"./expr":13}],29:[function(require,module,exports){
+},{"./expr":13}],33:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.rgb2hsv = exports.RGBToHSVExpr = void 0;
 const expr_1 = require("./expr");
 const glslfunctions_1 = require("../glslfunctions");
+/** RGB to HSV expression */
 class RGBToHSVExpr extends expr_1.ExprVec4 {
     constructor(color) {
         super(expr_1.tag `rgb2hsv(${color})`, ["uRGBCol"]);
@@ -2077,62 +2593,144 @@ class RGBToHSVExpr extends expr_1.ExprVec4 {
     }
 }
 exports.RGBToHSVExpr = RGBToHSVExpr;
+/**
+ * creates an expression that converts a color (with an alpha component) from
+ * rgb to hsv
+ * @param col the rgba color to convert to hsva
+ */
 function rgb2hsv(col) {
     return new RGBToHSVExpr(col);
 }
 exports.rgb2hsv = rgb2hsv;
 
-},{"../glslfunctions":36,"./expr":13}],30:[function(require,module,exports){
+},{"../glslfunctions":43,"./expr":13}],34:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.rotate = exports.RotateExpr = void 0;
+const expr_1 = require("./expr");
+const glslfunctions_1 = require("../glslfunctions");
+/** rotate expression */
+class RotateExpr extends expr_1.ExprVec2 {
+    constructor(vec, angle) {
+        super(expr_1.tag `rotate2d(${vec}, ${angle})`, ["uVec", "uAngle"]);
+        this.vec = vec;
+        this.angle = angle;
+        this.externalFuncs = [glslfunctions_1.glslFuncs.rotate2d];
+    }
+    setVec(vec) {
+        this.setUniform("uVec" + this.id, vec);
+        this.vec = vec;
+    }
+    setAngle(angle) {
+        this.setUniform("uAngle" + this.id, expr_1.n2e(angle));
+        this.angle = expr_1.n2e(angle);
+    }
+}
+exports.RotateExpr = RotateExpr;
+/**
+ * creates an expression that rotates a vector by a given angle
+ * @param vec the vector to rotate
+ * @param angle radians to rotate vector by
+ */
+function rotate(vec, angle) {
+    return new RotateExpr(vec, expr_1.n2e(angle));
+}
+exports.rotate = rotate;
+
+},{"../glslfunctions":43,"./expr":13}],35:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.input = exports.SceneSampleExpr = void 0;
 const expr_1 = require("./expr");
 const normfragcoordexpr_1 = require("./normfragcoordexpr");
+/** scene sample expression */
 class SceneSampleExpr extends expr_1.ExprVec4 {
     constructor(coord = normfragcoordexpr_1.nfcoord()) {
         super(expr_1.tag `texture2D(uSceneSampler, ${coord})`, ["uCoord"]);
         this.coord = coord;
         this.needs.sceneBuffer = true;
     }
+    /** sets coordinate where scene is being sampled from */
     setCoord(coord) {
         this.setUniform("uCoord", coord);
         this.coord = coord;
     }
 }
 exports.SceneSampleExpr = SceneSampleExpr;
+/**
+ * creates an expression that samples the original scene
+ * @param vec where to sample the original scene texture (defaults to the
+ * normalized frag coord, but change this if you want to transform the
+ * coordinate space of the original image)
+ */
 function input(vec) {
     return new SceneSampleExpr(vec);
 }
 exports.input = input;
 
-},{"./expr":13,"./normfragcoordexpr":24}],31:[function(require,module,exports){
+},{"./expr":13,"./normfragcoordexpr":26}],36:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setcolor = exports.SetColorExpr = void 0;
 const expr_1 = require("./expr");
 // TODO the only reason this class exists is because `Operator<ExprVec4>` is not
 // actually a subclass of ExprVec4, so it doesn't have `genPrograms`
+/** set fragment color expression */
 class SetColorExpr extends expr_1.ExprVec4 {
     constructor(vec) {
         super(expr_1.tag `(${vec})`, ["uVal"]);
         this.vec = vec;
     }
+    /** sets the value which will be set to the color */
     setVal(vec) {
         this.setUniform("uVal", vec);
         this.vec = vec;
     }
 }
 exports.SetColorExpr = SetColorExpr;
+/**
+ * sets the frag color to a new color
+ * @param val the color to set the frag color to
+ */
 function setcolor(val) {
     return new SetColorExpr(val);
 }
 exports.setcolor = setcolor;
 
-},{"./expr":13}],32:[function(require,module,exports){
+},{"./expr":13}],37:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.simplex = exports.SimplexNoise = void 0;
+const glslfunctions_1 = require("../glslfunctions");
+const expr_1 = require("./expr");
+/** simplex noise expression */
+class SimplexNoise extends expr_1.ExprFloat {
+    constructor(pos) {
+        super(expr_1.tag `simplexnoise(${pos})`, ["uPos"]);
+        this.pos = pos;
+        this.externalFuncs = [glslfunctions_1.glslFuncs.simplexhelpers, glslfunctions_1.glslFuncs.simplexnoise];
+    }
+    setPos(pos) {
+        this.setUniform("uPos", pos);
+        this.pos = pos;
+    }
+}
+exports.SimplexNoise = SimplexNoise;
+/**
+ * creates a simplex noise expression; values range from -1 to 1
+ * @param pos position
+ */
+function simplex(pos) {
+    return new SimplexNoise(pos);
+}
+exports.simplex = simplex;
+
+},{"../glslfunctions":43,"./expr":13}],38:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.time = exports.TimeExpr = void 0;
 const expr_1 = require("./expr");
+/** time expression */
 class TimeExpr extends expr_1.ExprFloat {
     constructor() {
         super(expr_1.tag `uTime`, []);
@@ -2140,39 +2738,77 @@ class TimeExpr extends expr_1.ExprFloat {
     }
 }
 exports.TimeExpr = TimeExpr;
+/** creates a time expression that evaluates to the current time */
 function time() {
     return new TimeExpr();
 }
 exports.time = time;
 
-},{"./expr":13}],33:[function(require,module,exports){
+},{"./expr":13}],39:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.translate = exports.TranslateExpr = void 0;
+const expr_1 = require("./expr");
+// really just adding two vecs together, but it might be confusing that there's
+// rotate but no translate, so this is included. also it could make some
+// operations more readable
+/** sets the translate expression */
+class TranslateExpr extends expr_1.ExprVec2 {
+    constructor(vec, pos) {
+        super(expr_1.tag `(${vec} + ${pos})`, ["uVec", "uPos"]);
+        this.vec = vec;
+        this.pos = pos;
+    }
+    /** sets the starting position */
+    setVec(vec) {
+        this.setUniform("uVec" + this.id, vec);
+        this.vec = vec;
+    }
+    /** sets how far the vector will be translated */
+    setPos(pos) {
+        this.setUniform("uPos" + this.id, pos);
+        this.pos = pos;
+    }
+}
+exports.TranslateExpr = TranslateExpr;
+/** translates the position of a vector by another vector */
+function translate(vec, pos) {
+    return new TranslateExpr(vec, pos);
+}
+exports.translate = translate;
+
+},{"./expr":13}],40:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.truedepth = exports.TrueDepthExpr = void 0;
 const expr_1 = require("./expr");
 const glslfunctions_1 = require("../glslfunctions");
+/** true depth expression */
 class TrueDepthExpr extends expr_1.ExprFloat {
     constructor(depth) {
         super(expr_1.tag `truedepth(${depth})`, ["uDist"]);
         this.depth = depth;
         this.externalFuncs = [glslfunctions_1.glslFuncs.truedepth];
     }
+    /** sets the distance to convert to the true depth */
     setDist(depth) {
         this.setUniform("uDist", depth);
         this.depth = expr_1.n2e(depth);
     }
 }
 exports.TrueDepthExpr = TrueDepthExpr;
+/** calculates the linear depth from inverse depth value `1 / distance` */
 function truedepth(depth) {
     return new TrueDepthExpr(expr_1.n2e(depth));
 }
 exports.truedepth = truedepth;
 
-},{"../glslfunctions":36,"./expr":13}],34:[function(require,module,exports){
+},{"../glslfunctions":43,"./expr":13}],41:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pvec4 = exports.pvec3 = exports.pvec2 = exports.vec4 = exports.vec3 = exports.vec2 = void 0;
 const expr_1 = require("./expr");
+/** @ignore */
 function vecSourceList(...components) {
     const sections = ["vec" + components.length + "("];
     for (let i = 0; i < components.length - 1; i++) {
@@ -2186,52 +2822,63 @@ function vecSourceList(...components) {
     return [{ sections: sections, values: components }, defaultNames];
 }
 // expression vector shorthands
+/** creates a basic vec2 expression */
 function vec2(comp1, comp2) {
     return new expr_1.BasicVec2(...vecSourceList(...[comp1, comp2].map((c) => expr_1.n2e(c))));
 }
 exports.vec2 = vec2;
+/** creates a basic vec3 expression */
 function vec3(comp1, comp2, comp3) {
     return new expr_1.BasicVec3(...vecSourceList(...[comp1, comp2, comp3].map((c) => expr_1.n2e(c))));
 }
 exports.vec3 = vec3;
+/** creates a basic vec4 expression */
 function vec4(comp1, comp2, comp3, comp4) {
     return new expr_1.BasicVec4(...vecSourceList(...[comp1, comp2, comp3, comp4].map((c) => expr_1.n2e(c))));
 }
 exports.vec4 = vec4;
 // primitive vector shorthands
+/** creates a primitive vec2 expression */
 function pvec2(comp1, comp2) {
     return new expr_1.PrimitiveVec2([comp1, comp2]);
 }
 exports.pvec2 = pvec2;
+/** creates a primitive vec3 expression */
 function pvec3(comp1, comp2, comp3) {
     return new expr_1.PrimitiveVec2([comp1, comp2, comp3]);
 }
 exports.pvec3 = pvec3;
+/** creates a primitive vec4 expression */
 function pvec4(comp1, comp2, comp3, comp4) {
     return new expr_1.PrimitiveVec2([comp1, comp2, comp3, comp4]);
 }
 exports.pvec4 = pvec4;
 
-},{"./expr":13}],35:[function(require,module,exports){
+},{"./expr":13}],42:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 
-},{}],36:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.replaceSampler = exports.captureAndAppend = exports.glslFuncs = void 0;
 // adapted from The Book of Shaders
+/** glsl source code for external functions */
 exports.glslFuncs = {
     // TODO replace with a better one
+    // adapted from The Book of Shaders
     random: `float random(vec2 st) {
   return fract(sin(dot(st.xy / 99., vec2(12.9898, 78.233))) * 43758.5453123);
 }`,
-    //  rotate2d: `mat2 rotate2d(float angle) {
-    //  return mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
-    //}`,
-    //  scale: `mat2 scale(vec2 scale) {
-    //  return mat2(scale.x, 0.0, 0.0, scale.y);
-    //}`,
+    // adapted from The Book of Shaders
+    random2: `vec2 random2(vec2 st) {
+  st = vec2(dot(st,vec2(127.1,311.7)), dot(st,vec2(269.5,183.3)));
+  return -1.0 + 2.0*fract(sin(st)*43758.5453123);
+}`,
+    rotate2d: `vec2 rotate2d(vec2 v, float angle) {
+  return mat2(cos(angle), -sin(angle), sin(angle), cos(angle)) * v;
+}`,
+    // adapted from The Book of Shaders
     hsv2rgb: `vec4 hsv2rgb(vec4 co){
   vec3 c = co.xyz;
   vec3 rgb = clamp(abs(mod(
@@ -2240,23 +2887,20 @@ exports.glslFuncs = {
   vec3 hsv = c.z * mix(vec3(1.0), rgb, c.y);
   return vec4(hsv.x, hsv.y, hsv.z, co.a);
 }`,
+    // adapted from The Book of Shaders
     rgb2hsv: `vec4 rgb2hsv(vec4 co){
   vec3 c = co.rgb;
   vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
-  vec4 p = mix(vec4(c.bg, K.wz),
-               vec4(c.gb, K.xy),
-               step(c.b, c.g));
-  vec4 q = mix(vec4(p.xyw, c.r),
-               vec4(c.r, p.yzx),
-               step(p.x, c.r));
+  vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+  vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
   float d = q.x - min(q.w, q.y);
   float e = 1.0e-10;
   return vec4(abs(q.z + (q.w - q.y) / (6.0 * d + e)),
               d / (q.x + e),
               q.x, co.a);
 }`,
-    // TODO code-gen gaussian blur of arbitrary taps by calculating the curve?
-    // adapted from https://github.com/Jam3/glsl-fast-gaussian-blur/blob/master/5.glsl
+    // all gaussian blurs adapted from:
+    // https://github.com/Jam3/glsl-fast-gaussian-blur/blob/master/5.glsl
     gauss5: `vec4 gauss5(vec2 dir) {
   vec2 uv = gl_FragCoord.xy / uResolution;
   vec4 col = vec4(0.0);
@@ -2307,7 +2951,7 @@ exports.glslFuncs = {
 }`,
     // adapted from https://www.shadertoy.com/view/ls3GWS which was adapted from
     // http://www.geeks3d.com/20110405/fxaa-fast-approximate-anti-aliasing-demo-glsl-opengl-test-radeon-geforce/3/
-    // pass in normalized coordinates to rcpFrame
+    // original algorithm created by Timothy Lottes
     fxaa: `vec4 fxaa() {
   float FXAA_SPAN_MAX = 8.0;
   float FXAA_REDUCE_MUL = 1.0 / FXAA_SPAN_MAX;
@@ -2369,6 +3013,7 @@ exports.glslFuncs = {
   return pow(e, -pow(x - a, 2.) / b);
 }`,
     // for calculating the true distance from 0 to 1 depth buffer
+    // the small delta is to prevent division by zero, which is undefined behavior
     truedepth: `float truedepth(float i) {
   i = max(i, 0.00000001);
   return (1. - i) / i;
@@ -2405,7 +3050,87 @@ exports.glslFuncs = {
   float red = 1. - ceil(depthCol.r - threshold);
   return vec4(newCol.rgb * red, 1.0);
 }`,
+    // adapted from The Book of Shaders, which was adapted from Inigo Quilez
+    // from this example: https://www.shadertoy.com/view/XdXGW8
+    gradientnoise: `float gradientnoise(vec2 st) {
+  vec2 i = floor(st);
+  vec2 f = fract(st);
+
+  vec2 u = f * f * (3.0 - 2.0 * f);
+
+  return mix(mix(dot(random2(i + vec2(0.0,0.0)), f - vec2(0.0, 0.0)),
+                     dot(random2(i + vec2(1.0,0.0)), f - vec2(1.0, 0.0)), u.x),
+             mix(dot(random2(i + vec2(0.0,1.0)), f - vec2(0.0, 1.0)),
+                 dot(random2(i + vec2(1.0,1.0)), f - vec2(1.0, 1.0)), u.x), u.y);
+}`,
+    // adapted from The Book of Shaders
+    // https://thebookofshaders.com/edit.php#11/2d-snoise-clear.frag
+    // this was adapted from this fast implementation
+    // https://github.com/ashima/webgl-noise
+    // simplex noise invented by Ken Perlin
+    simplexnoise: `float simplexnoise(vec2 v) {
+  // Precompute values for skewed triangular grid
+  const vec4 C = vec4(0.211324865405187,
+                      // (3.0-sqrt(3.0))/6.0
+                      0.366025403784439,
+                      // 0.5*(sqrt(3.0)-1.0)
+                      -0.577350269189626,
+                      // -1.0 + 2.0 * C.x
+                      0.024390243902439);
+                      // 1.0 / 41.0
+
+  // First corner (x0)
+  vec2 i  = floor(v + dot(v, C.yy));
+  vec2 x0 = v - i + dot(i, C.xx);
+
+  // Other two corners (x1, x2)
+  vec2 i1 = vec2(0.0);
+  i1 = (x0.x > x0.y)? vec2(1.0, 0.0):vec2(0.0, 1.0);
+  vec2 x1 = x0.xy + C.xx - i1;
+  vec2 x2 = x0.xy + C.zz;
+
+  // Do some permutations to avoid
+  // truncation effects in permutation
+  i = mod289_2(i);
+  vec3 p = permute(
+          permute( i.y + vec3(0.0, i1.y, 1.0))
+              + i.x + vec3(0.0, i1.x, 1.0 ));
+
+  vec3 m = max(0.5 - vec3(
+                      dot(x0,x0),
+                      dot(x1,x1),
+                      dot(x2,x2)
+                      ), 0.0);
+
+  m = m*m ;
+  m = m*m ;
+
+  // Gradients:
+  //  41 pts uniformly over a line, mapped onto a diamond
+  //  The ring size 17*17 = 289 is close to a multiple
+  //      of 41 (41*7 = 287)
+
+  vec3 x = 2.0 * fract(p * C.www) - 1.0;
+  vec3 h = abs(x) - 0.5;
+  vec3 ox = floor(x + 0.5);
+  vec3 a0 = x - ox;
+
+  // Normalise gradients implicitly by scaling m
+  // Approximation of: m *= inversesqrt(a0*a0 + h*h);
+  m *= 1.79284291400159 - 0.85373472095314 * (a0*a0+h*h);
+
+  // Compute final noise value at P
+  vec3 g = vec3(0.0);
+  g.x  = a0.x  * x0.x  + h.x  * x0.y;
+  g.yz = a0.yz * vec2(x1.x,x2.x) + h.yz * vec2(x1.y,x2.y);
+  return 130.0 * dot(m, g);
+}`,
+    // only useful for simplex noise
+    simplexhelpers: `vec3 mod289_3(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+vec2 mod289_2(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+vec3 permute(vec3 x) { return mod289_3(((x*34.0)+1.0)*x); }`,
 };
+/** @ignore */
 function captureAndAppend(str, reg, suffix) {
     const matches = str.match(reg);
     if (matches === null)
@@ -2413,12 +3138,13 @@ function captureAndAppend(str, reg, suffix) {
     return str.replace(reg, matches[0] + suffix);
 }
 exports.captureAndAppend = captureAndAppend;
+/** @ignore */
 function replaceSampler(fullString, funcRegExp, samplerNum, extra) {
     return captureAndAppend(fullString.replace(/uSampler/g, "uBufferSampler" + samplerNum), funcRegExp, "_" + samplerNum + (extra === undefined ? "" : extra));
 }
 exports.replaceSampler = replaceSampler;
 
-},{}],37:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -2434,44 +3160,99 @@ Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./mergepass"), exports);
 __exportStar(require("./exprtypes"), exports);
 __exportStar(require("./glslfunctions"), exports);
-__exportStar(require("./expressions/blurexpr"), exports);
-__exportStar(require("./expressions/randomexpr"), exports);
-__exportStar(require("./expressions/fragcolorexpr"), exports);
-__exportStar(require("./expressions/vecexprs"), exports);
-__exportStar(require("./expressions/opexpr"), exports);
-__exportStar(require("./expressions/powerblur"), exports);
-__exportStar(require("./expressions/blur2dloop"), exports);
-__exportStar(require("./expressions/lenexpr"), exports);
-__exportStar(require("./expressions/normfragcoordexpr"), exports);
-__exportStar(require("./expressions/normcenterfragcoordexpr"), exports);
-__exportStar(require("./expressions/scenesampleexpr"), exports);
-__exportStar(require("./expressions/brightnessexpr"), exports);
-__exportStar(require("./expressions/setcolorexpr"), exports);
-__exportStar(require("./expressions/contrastexpr"), exports);
-__exportStar(require("./expressions/grainexpr"), exports);
-__exportStar(require("./expressions/getcompexpr"), exports);
-__exportStar(require("./expressions/changecompexpr"), exports);
-__exportStar(require("./expressions/rgbtohsvexpr"), exports);
-__exportStar(require("./expressions/hsvtorgbexpr"), exports);
-__exportStar(require("./expressions/timeexpr"), exports);
-__exportStar(require("./expressions/arity1"), exports);
-__exportStar(require("./expressions/arity2"), exports);
-__exportStar(require("./expressions/fxaaexpr"), exports);
-__exportStar(require("./expressions/buffersampleexpr"), exports);
-__exportStar(require("./expressions/dofloop"), exports);
-__exportStar(require("./expressions/truedepthexpr"), exports);
-__exportStar(require("./expressions/godraysexpr"), exports);
-__exportStar(require("./expressions/depthtoocclusionexpr"), exports);
-__exportStar(require("./expressions/resolutionexpr"), exports);
-__exportStar(require("./expressions/mouseexpr"), exports);
-__exportStar(require("./expressions/expr"), exports);
+__exportStar(require("./exprs/blurexpr"), exports);
+__exportStar(require("./exprs/randomexpr"), exports);
+__exportStar(require("./exprs/fragcolorexpr"), exports);
+__exportStar(require("./exprs/vecexprs"), exports);
+__exportStar(require("./exprs/opexpr"), exports);
+__exportStar(require("./exprs/powerblur"), exports);
+__exportStar(require("./exprs/blur2dloop"), exports);
+__exportStar(require("./exprs/lenexpr"), exports);
+__exportStar(require("./exprs/normexpr"), exports);
+__exportStar(require("./exprs/fragcoordexpr"), exports);
+__exportStar(require("./exprs/normfragcoordexpr"), exports);
+__exportStar(require("./exprs/normcenterfragcoordexpr"), exports);
+__exportStar(require("./exprs/scenesampleexpr"), exports);
+__exportStar(require("./exprs/brightnessexpr"), exports);
+__exportStar(require("./exprs/setcolorexpr"), exports);
+__exportStar(require("./exprs/contrastexpr"), exports);
+__exportStar(require("./exprs/grainexpr"), exports);
+__exportStar(require("./exprs/getcompexpr"), exports);
+__exportStar(require("./exprs/changecompexpr"), exports);
+__exportStar(require("./exprs/rgbtohsvexpr"), exports);
+__exportStar(require("./exprs/hsvtorgbexpr"), exports);
+__exportStar(require("./exprs/timeexpr"), exports);
+__exportStar(require("./exprs/arity1"), exports);
+__exportStar(require("./exprs/arity2"), exports);
+__exportStar(require("./exprs/fxaaexpr"), exports);
+__exportStar(require("./exprs/channelsampleexpr"), exports);
+__exportStar(require("./exprs/dofloop"), exports);
+__exportStar(require("./exprs/truedepthexpr"), exports);
+__exportStar(require("./exprs/godraysexpr"), exports);
+__exportStar(require("./exprs/depthtoocclusionexpr"), exports);
+__exportStar(require("./exprs/resolutionexpr"), exports);
+__exportStar(require("./exprs/mouseexpr"), exports);
+__exportStar(require("./exprs/rotateexpr"), exports);
+__exportStar(require("./exprs/translateexpr"), exports);
+__exportStar(require("./exprs/normmouseexpr"), exports);
+__exportStar(require("./exprs/perlinexpr"), exports);
+__exportStar(require("./exprs/simplexexpr"), exports);
+// TODO move this out of expressions
+__exportStar(require("./exprs/expr"), exports);
 
-},{"./expressions/arity1":3,"./expressions/arity2":4,"./expressions/blur2dloop":5,"./expressions/blurexpr":6,"./expressions/brightnessexpr":7,"./expressions/buffersampleexpr":8,"./expressions/changecompexpr":9,"./expressions/contrastexpr":10,"./expressions/depthtoocclusionexpr":11,"./expressions/dofloop":12,"./expressions/expr":13,"./expressions/fragcolorexpr":14,"./expressions/fxaaexpr":15,"./expressions/getcompexpr":17,"./expressions/godraysexpr":18,"./expressions/grainexpr":19,"./expressions/hsvtorgbexpr":20,"./expressions/lenexpr":21,"./expressions/mouseexpr":22,"./expressions/normcenterfragcoordexpr":23,"./expressions/normfragcoordexpr":24,"./expressions/opexpr":25,"./expressions/powerblur":26,"./expressions/randomexpr":27,"./expressions/resolutionexpr":28,"./expressions/rgbtohsvexpr":29,"./expressions/scenesampleexpr":30,"./expressions/setcolorexpr":31,"./expressions/timeexpr":32,"./expressions/truedepthexpr":33,"./expressions/vecexprs":34,"./exprtypes":35,"./glslfunctions":36,"./mergepass":38}],38:[function(require,module,exports){
+},{"./exprs/arity1":3,"./exprs/arity2":4,"./exprs/blur2dloop":5,"./exprs/blurexpr":6,"./exprs/brightnessexpr":7,"./exprs/changecompexpr":8,"./exprs/channelsampleexpr":9,"./exprs/contrastexpr":10,"./exprs/depthtoocclusionexpr":11,"./exprs/dofloop":12,"./exprs/expr":13,"./exprs/fragcolorexpr":14,"./exprs/fragcoordexpr":15,"./exprs/fxaaexpr":16,"./exprs/getcompexpr":18,"./exprs/godraysexpr":19,"./exprs/grainexpr":20,"./exprs/hsvtorgbexpr":21,"./exprs/lenexpr":22,"./exprs/mouseexpr":23,"./exprs/normcenterfragcoordexpr":24,"./exprs/normexpr":25,"./exprs/normfragcoordexpr":26,"./exprs/normmouseexpr":27,"./exprs/opexpr":28,"./exprs/perlinexpr":29,"./exprs/powerblur":30,"./exprs/randomexpr":31,"./exprs/resolutionexpr":32,"./exprs/rgbtohsvexpr":33,"./exprs/rotateexpr":34,"./exprs/scenesampleexpr":35,"./exprs/setcolorexpr":36,"./exprs/simplexexpr":37,"./exprs/timeexpr":38,"./exprs/translateexpr":39,"./exprs/truedepthexpr":40,"./exprs/vecexprs":41,"./exprtypes":42,"./glslfunctions":43,"./mergepass":45}],45:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendTexture = exports.makeTexture = exports.Merger = exports.loop = exports.EffectLoop = void 0;
+exports.sendTexture = exports.makeTexture = exports.Merger = exports.loop = exports.EffectLoop = exports.EffectDictionary = void 0;
 const codebuilder_1 = require("./codebuilder");
 const webglprogramloop_1 = require("./webglprogramloop");
+class EffectDictionary {
+    constructor(effectMap) {
+        this.effectMap = effectMap;
+    }
+    toProgramMap(gl, vShader, uniformLocs, fShaders) {
+        const programMap = {};
+        let needs = {
+            neighborSample: false,
+            centerSample: false,
+            sceneBuffer: false,
+            timeUniform: false,
+            mouseUniform: false,
+            extraBuffers: new Set(),
+        };
+        for (const name in this.effectMap) {
+            const effects = this.effectMap[name];
+            // wrap the given list of effects as a loop if need be
+            const effectLoop = !(effects instanceof EffectLoop)
+                ? new EffectLoop(effects, { num: 1 })
+                : effects;
+            if (effectLoop.effects.length === 0) {
+                throw new Error("list of effects was empty");
+            }
+            const programLoop = effectLoop.genPrograms(gl, vShader, uniformLocs, fShaders);
+            // walk the tree to the final program
+            let atBottom = false;
+            let currProgramLoop = programLoop;
+            while (!atBottom) {
+                if (currProgramLoop.programElement instanceof webglprogramloop_1.WebGLProgramLeaf) {
+                    // we traveled right and hit a program, so it must be the last
+                    currProgramLoop.last = true;
+                    atBottom = true;
+                }
+                else {
+                    // set the current program loop to the last in the list
+                    currProgramLoop =
+                        currProgramLoop.programElement[currProgramLoop.programElement.length - 1];
+                }
+            }
+            needs = webglprogramloop_1.updateNeeds(needs, programLoop.getTotalNeeds());
+            programMap[name] = programLoop;
+        }
+        return { programMap, needs };
+    }
+}
+exports.EffectDictionary = EffectDictionary;
+/** effect loop, which can loop over other effects or effect loops */
 class EffectLoop {
     constructor(effects, repeat) {
         this.effects = effects;
@@ -2486,7 +3267,10 @@ class EffectLoop {
         }
         return acc;
     }
-    /** places effects into loops broken up by sampling effects */
+    /**
+     * @ignore
+     * places effects into loops broken up by sampling effects
+     */
     regroup() {
         let sampleCount = 0;
         /** number of samples in all previous */
@@ -2519,50 +3303,52 @@ class EffectLoop {
         breakOff();
         return regroupedEffects;
     }
-    /** recursive descent parser for turning effects into programs */
-    genPrograms(gl, vShader, uniformLocs) {
+    genPrograms(gl, vShader, uniformLocs, shaders) {
         // validate
         const fullSampleNum = this.getSampleNum() / this.repeat.num;
         const firstSampleNum = this.getSampleNum(undefined, 0, 1) / this.repeat.num;
         const restSampleNum = this.getSampleNum(undefined, 1) / this.repeat.num;
         if (fullSampleNum === 0 || (firstSampleNum === 1 && restSampleNum === 0)) {
             const codeBuilder = new codebuilder_1.CodeBuilder(this);
-            const program = codeBuilder.compileProgram(gl, vShader, uniformLocs);
+            const program = codeBuilder.compileProgram(gl, vShader, uniformLocs, shaders);
             return program;
         }
         // otherwise, regroup and try again on regrouped loops
         this.effects = this.regroup();
         // okay to have undefined needs here
-        return new webglprogramloop_1.WebGLProgramLoop(this.effects.map((e) => e.genPrograms(gl, vShader, uniformLocs)), this.repeat, gl);
+        return new webglprogramloop_1.WebGLProgramLoop(this.effects.map((e) => e.genPrograms(gl, vShader, uniformLocs, shaders)), this.repeat, gl);
     }
 }
 exports.EffectLoop = EffectLoop;
+/** creates an effect loop */
 function loop(effects, rep) {
     return new EffectLoop(effects, { num: rep });
 }
 exports.loop = loop;
+/** @ignore */
 const V_SOURCE = `attribute vec2 aPosition;
 void main() {
   gl_Position = vec4(aPosition, 0.0, 1.0);
 }\n`;
+/** class that can merge effects */
 class Merger {
+    /**
+     *
+     * @param effects list of effects that define the final effect
+     * @param source the source image or texture
+     * @param gl the target rendering context
+     * @param options additional options for the texture
+     */
     constructor(effects, source, gl, options) {
-        var _a;
         this.uniformLocs = {};
         /** additional channels */
         this.channels = [];
+        this.fShaders = [];
         // set channels if provided with channels
         if ((options === null || options === void 0 ? void 0 : options.channels) !== undefined)
             this.channels = options === null || options === void 0 ? void 0 : options.channels;
-        // wrap the given list of effects as a loop if need be
-        if (!(effects instanceof EffectLoop)) {
-            this.effectLoop = new EffectLoop(effects, { num: 1 });
-        }
-        else {
-            this.effectLoop = effects;
-        }
-        if (this.effectLoop.effects.length === 0) {
-            throw new Error("list of effects was empty");
+        if (!(effects instanceof EffectDictionary)) {
+            effects = new EffectDictionary({ default: effects });
         }
         this.source = source;
         this.gl = gl;
@@ -2571,15 +3357,22 @@ class Merger {
         this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
         // set up the vertex buffer
         const vertexBuffer = this.gl.createBuffer();
+        if (vertexBuffer === null) {
+            throw new Error("problem creating vertex buffer");
+        }
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, vertexBuffer);
         const vertexArray = [-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1];
         const triangles = new Float32Array(vertexArray);
         this.gl.bufferData(this.gl.ARRAY_BUFFER, triangles, this.gl.STATIC_DRAW);
+        // save the vertex buffer reference just so we can delete it later
+        this.vertexBuffer = vertexBuffer;
         // compile the simple vertex shader (2 big triangles)
         const vShader = this.gl.createShader(this.gl.VERTEX_SHADER);
         if (vShader === null) {
             throw new Error("problem creating the vertex shader");
         }
+        // save the vertex shader reference just so we can delete it later
+        this.vShader = vShader;
         this.gl.shaderSource(vShader, V_SOURCE);
         this.gl.compileShader(vShader);
         // make textures
@@ -2599,34 +3392,20 @@ class Merger {
             throw new Error("problem creating the framebuffer");
         }
         this.framebuffer = framebuffer;
-        // generate the fragment shaders and programs
-        this.programLoop = this.effectLoop.genPrograms(this.gl, vShader, this.uniformLocs);
-        // find the final program
-        let atBottom = false;
-        let currProgramLoop = this.programLoop;
-        while (!atBottom) {
-            if (currProgramLoop.programElement instanceof WebGLProgram) {
-                // we traveled right and hit a program, so it must be the last
-                currProgramLoop.last = true;
-                atBottom = true;
-            }
-            else {
-                // set the current program loop to the last in the list
-                currProgramLoop =
-                    currProgramLoop.programElement[currProgramLoop.programElement.length - 1];
-            }
-        }
-        if (this.programLoop.getTotalNeeds().sceneBuffer) {
+        const { programMap, needs } = effects.toProgramMap(this.gl, this.vShader, this.uniformLocs, this.fShaders);
+        this.programMap = programMap;
+        if (needs.sceneBuffer) {
             this.tex.scene = makeTexture(this.gl, this.options);
         }
-        console.log(this.programLoop);
-        // create x amount of empty textures based on buffers needed
-        let channelsNeeded = 0;
-        if (((_a = this.programLoop.totalNeeds) === null || _a === void 0 ? void 0 : _a.extraBuffers) !== undefined) {
-            channelsNeeded =
-                Math.max(...this.programLoop.totalNeeds.extraBuffers) + 1;
+        if (programMap["default"] === undefined) {
+            throw new Error("no default program");
         }
-        let channelsSupplied = this.channels.length;
+        this.programLoop = programMap["default"];
+        // TODO get rid of this log
+        console.log(programMap);
+        // create x amount of empty textures based on buffers needed
+        const channelsNeeded = Math.max(...needs.extraBuffers) + 1;
+        const channelsSupplied = this.channels.length;
         if (channelsNeeded > channelsSupplied) {
             throw new Error("not enough channels supplied for this effect");
         }
@@ -2643,7 +3422,18 @@ class Merger {
             }
         }
     }
-    draw(time = 0, mouseX = 0, mouseY = 0) {
+    /**
+     * use the source and channels to draw effect to target context; mouse
+     * position (as with all positions) are stored from the bottom left corner as
+     * this is how texture data is stored
+     * @param timeVal number to set the time uniform to (supply this if you plan to
+     * use [[time]])
+     * @param mouseX the x position of the mouse (supply this if you plan to use
+     * [[mouse]] or [[nmouse]])
+     * @param mouseY the y position of the mouse (supply this if you plan to use
+     * [[mouse]] or [[nmouse]])
+     */
+    draw(timeVal = 0, mouseX = 0, mouseY = 0) {
         // TODO double check if this is neccessary
         const originalFront = this.tex.front;
         const originalBack = this.tex.back;
@@ -2660,20 +3450,66 @@ class Merger {
         // bind the additional buffers
         let counter = 0;
         for (const b of this.channels) {
-            // TODO what's the limit on amount of textures?
+            // TODO check for texture limit
             this.gl.activeTexture(this.gl.TEXTURE2 + counter);
             this.gl.bindTexture(this.gl.TEXTURE_2D, this.tex.bufTextures[counter]);
             sendTexture(this.gl, b);
             counter++;
         }
-        // swap textures before beginning draw
-        this.programLoop.draw(this.gl, this.tex, this.framebuffer, this.uniformLocs, this.programLoop.last, { time: time, mouseX: mouseX, mouseY: mouseY });
+        this.programLoop.run(this.gl, this.tex, this.framebuffer, this.uniformLocs, this.programLoop.last, { timeVal: timeVal, mouseX: mouseX, mouseY: mouseY });
         // make sure front and back are in same order
         this.tex.front = originalFront;
         this.tex.back = originalBack;
     }
+    /**
+     * delete all resources created by construction of this [[Merger]]; use right before
+     * intentionally losing a reference to this merger object. this is useful if you want
+     * to construct another [[Merger]] to use new effects
+     */
+    delete() {
+        // call bind with null on all textures
+        for (let i = 0; i < 2 + this.tex.bufTextures.length; i++) {
+            // this gets rid of final texture, scene texture and channels
+            this.gl.activeTexture(this.gl.TEXTURE0);
+            this.gl.bindTexture(this.gl.TEXTURE_2D, null);
+        }
+        // call bind with null on all vertex buffers (just 1)
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
+        // call bind with null on all frame buffers (just 1)
+        // (this might be redundant because this happens at end of draw call)
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+        // delete all programs
+        this.programLoop.delete(this.gl);
+        // delete all textures
+        this.gl.deleteTexture(this.tex.front);
+        this.gl.deleteTexture(this.tex.back);
+        for (const c of this.tex.bufTextures) {
+            this.gl.deleteTexture(c);
+        }
+        // delete all vertex buffers (just 1)
+        this.gl.deleteBuffer(this.vertexBuffer);
+        // delete all frame buffers (just 1)
+        this.gl.deleteFramebuffer(this.framebuffer);
+        // delete all vertex shaders (just 1)
+        this.gl.deleteShader(this.vShader);
+        // delete all fragment shaders
+        for (const f of this.fShaders) {
+            this.gl.deleteShader(f);
+        }
+    }
+    /**
+     * changes the current program loop
+     * @param str key in the program map
+     */
+    changeProgram(str) {
+        if (this.programMap[str] === undefined) {
+            throw new Error(`program "${str}" doesn't exist on this merger`);
+        }
+        this.programLoop = this.programMap[str];
+    }
 }
 exports.Merger = Merger;
+/** creates a texture given a context and options */
 function makeTexture(gl, options) {
     const texture = gl.createTexture();
     if (texture === null) {
@@ -2695,21 +3531,22 @@ function makeTexture(gl, options) {
     return texture;
 }
 exports.makeTexture = makeTexture;
+/** copies onto texture */
 function sendTexture(gl, src) {
     // if you are using textures instead of images, the user is responsible for
-    // doing `texImage2D` and updating it with new info, so just return
+    // updating that texture, so just return
     if (src instanceof WebGLTexture)
         return;
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
 }
 exports.sendTexture = sendTexture;
 
-},{"./codebuilder":1,"./webglprogramloop":39}],39:[function(require,module,exports){
+},{"./codebuilder":1,"./webglprogramloop":46}],46:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.WebGLProgramLoop = exports.updateNeeds = void 0;
+exports.WebGLProgramLoop = exports.WebGLProgramLeaf = exports.updateNeeds = void 0;
 // update me on change to needs
-exports.updateNeeds = (acc, curr) => {
+function updateNeeds(acc, curr) {
     return {
         neighborSample: acc.neighborSample || curr.neighborSample,
         centerSample: acc.centerSample || curr.centerSample,
@@ -2718,34 +3555,40 @@ exports.updateNeeds = (acc, curr) => {
         mouseUniform: acc.mouseUniform || curr.mouseUniform,
         extraBuffers: new Set([...acc.extraBuffers, ...curr.extraBuffers]),
     };
-};
+}
+exports.updateNeeds = updateNeeds;
+class WebGLProgramLeaf {
+    constructor(program, totalNeeds, effects) {
+        this.program = program;
+        this.totalNeeds = totalNeeds;
+        this.effects = effects;
+    }
+}
+exports.WebGLProgramLeaf = WebGLProgramLeaf;
+/** recursive data structure of compiled programs */
 class WebGLProgramLoop {
-    constructor(programElement, repeat, gl, totalNeeds, // only defined when leaf
-    effects = [] // only populated when leaf
-    ) {
-        var _a, _b;
+    constructor(programElement, repeat, gl) {
+        //effects: Expr[];
         this.last = false;
         this.programElement = programElement;
         this.repeat = repeat;
-        this.totalNeeds = totalNeeds;
-        this.effects = effects;
-        if (programElement instanceof WebGLProgram) {
+        if (this.programElement instanceof WebGLProgramLeaf) {
             if (gl === undefined) {
                 throw new Error("program element is a program but context is undefined");
             }
             // get the time uniform location
-            if ((_a = this.totalNeeds) === null || _a === void 0 ? void 0 : _a.timeUniform) {
-                gl.useProgram(programElement);
-                const timeLoc = gl.getUniformLocation(programElement, "uTime");
+            if (this.programElement.totalNeeds.timeUniform) {
+                gl.useProgram(this.programElement.program);
+                const timeLoc = gl.getUniformLocation(this.programElement.program, "uTime");
                 if (timeLoc === null) {
                     throw new Error("could not get the time uniform location");
                 }
                 this.timeLoc = timeLoc;
             }
             // get the mouse uniform location
-            if ((_b = this.totalNeeds) === null || _b === void 0 ? void 0 : _b.mouseUniform) {
-                gl.useProgram(programElement);
-                const mouseLoc = gl.getUniformLocation(programElement, "uMouse");
+            if (this.programElement.totalNeeds.mouseUniform) {
+                gl.useProgram(this.programElement.program);
+                const mouseLoc = gl.getUniformLocation(this.programElement.program, "uMouse");
                 if (mouseLoc === null) {
                     throw new Error("could not get the mouse uniform location");
                 }
@@ -2753,49 +3596,51 @@ class WebGLProgramLoop {
             }
         }
     }
+    /** get all needs from all programs */
     getTotalNeeds() {
         // go through needs of program loop
-        if (!(this.programElement instanceof WebGLProgram)) {
+        if (!(this.programElement instanceof WebGLProgramLeaf)) {
             const allNeeds = [];
             for (const p of this.programElement) {
                 allNeeds.push(p.getTotalNeeds());
             }
-            // update me on change to needs
-            return allNeeds.reduce(exports.updateNeeds);
+            return allNeeds.reduce(updateNeeds);
         }
-        if (this.totalNeeds === undefined) {
-            throw new Error("total needs of webgl program was somehow undefined");
-        }
-        return this.totalNeeds;
+        return this.programElement.totalNeeds;
     }
-    draw(gl, tex, framebuffer, uniformLocs, last, defaultUniforms) {
+    /**
+     * recursively uses all programs in the loop, binding the appropriate
+     * textures and setting the appropriate uniforms; the user should only have
+     * to call [[draw]] on [[Merger]] and never this function directly
+     */
+    run(gl, tex, framebuffer, uniformLocs, last, defaultUniforms) {
         var _a, _b, _c;
         for (let i = 0; i < this.repeat.num; i++) {
             const newLast = i === this.repeat.num - 1;
-            if (this.programElement instanceof WebGLProgram) {
+            if (this.programElement instanceof WebGLProgramLeaf) {
                 // effects list is populated
                 if (i === 0) {
-                    gl.useProgram(this.programElement);
-                    if ((_a = this.totalNeeds) === null || _a === void 0 ? void 0 : _a.sceneBuffer) {
+                    gl.useProgram(this.programElement.program);
+                    if ((_a = this.programElement.totalNeeds) === null || _a === void 0 ? void 0 : _a.sceneBuffer) {
                         if (tex.scene === undefined) {
                             throw new Error("needs scene buffer, but scene texture is somehow undefined");
                         }
                         gl.activeTexture(gl.TEXTURE1);
                         gl.bindTexture(gl.TEXTURE_2D, tex.scene);
                     }
-                    for (const effect of this.effects) {
+                    for (const effect of this.programElement.effects) {
                         effect.applyUniforms(gl, uniformLocs);
                     }
                     // set time uniform if needed
-                    if ((_b = this.totalNeeds) === null || _b === void 0 ? void 0 : _b.timeUniform) {
+                    if ((_b = this.programElement.totalNeeds) === null || _b === void 0 ? void 0 : _b.timeUniform) {
                         if (this.timeLoc === undefined ||
-                            defaultUniforms.time === undefined) {
+                            defaultUniforms.timeVal === undefined) {
                             throw new Error("time or location is undefined");
                         }
-                        gl.uniform1f(this.timeLoc, defaultUniforms.time);
+                        gl.uniform1f(this.timeLoc, defaultUniforms.timeVal);
                     }
                     // set mouse uniforms if needed
-                    if ((_c = this.totalNeeds) === null || _c === void 0 ? void 0 : _c.mouseUniform) {
+                    if ((_c = this.programElement.totalNeeds) === null || _c === void 0 ? void 0 : _c.mouseUniform) {
                         if (this.mouseLoc === undefined ||
                             defaultUniforms.mouseX === undefined ||
                             defaultUniforms.mouseY === undefined) {
@@ -2828,15 +3673,25 @@ class WebGLProgramLoop {
                     this.repeat.func(i);
                 }
                 for (const p of this.programElement) {
-                    p.draw(gl, tex, framebuffer, uniformLocs, newLast, defaultUniforms);
+                    p.run(gl, tex, framebuffer, uniformLocs, newLast, defaultUniforms);
                 }
+            }
+        }
+    }
+    delete(gl) {
+        if (this.programElement instanceof WebGLProgramLeaf) {
+            gl.deleteProgram(this.programElement);
+        }
+        else {
+            for (const p of this.programElement) {
+                p.delete(gl);
             }
         }
     }
 }
 exports.WebGLProgramLoop = WebGLProgramLoop;
 
-},{}],40:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
