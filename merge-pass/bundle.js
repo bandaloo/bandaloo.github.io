@@ -69,12 +69,12 @@ class CodeBuilder {
         this.exprs = buildInfo.exprs;
     }
     addEffectLoop(effectLoop, indentLevel, buildInfo, topLevel = true) {
-        const needsLoop = !topLevel && effectLoop.repeat.num > 1;
+        const needsLoop = !topLevel && effectLoop.loopInfo.num > 1;
         if (needsLoop) {
             const iName = "i" + this.counter;
             indentLevel++;
             const forStart = "  ".repeat(indentLevel - 1) +
-                `for (int ${iName} = 0; ${iName} < ${effectLoop.repeat.num}; ${iName}++) {`;
+                `for (int ${iName} = 0; ${iName} < ${effectLoop.loopInfo.num}; ${iName}++) {`;
             this.calls.push(forStart);
         }
         for (const e of effectLoop.effects) {
@@ -135,7 +135,6 @@ class CodeBuilder {
         gl.linkProgram(program);
         // we need to use the program here so we can get uniform locations
         gl.useProgram(program);
-        console.log(fullCode);
         // find all uniform locations and add them to the dictionary
         for (const expr of this.exprs) {
             for (const name in expr.uniformValChangeMap) {
@@ -172,10 +171,7 @@ class CodeBuilder {
         gl.enableVertexAttribArray(position);
         // points to the vertices in the last bound array buffer
         gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
-        return new webglprogramloop_1.WebGLProgramLoop(new webglprogramloop_1.WebGLProgramLeaf(program, this.totalNeeds, this.exprs), this.baseLoop.repeat, gl
-        //this.totalNeeds,
-        //this.exprs
-        );
+        return new webglprogramloop_1.WebGLProgramLoop(new webglprogramloop_1.WebGLProgramLeaf(program, this.totalNeeds, this.exprs), this.baseLoop.loopInfo, gl);
     }
 }
 exports.CodeBuilder = CodeBuilder;
@@ -402,8 +398,31 @@ const demos = {
         const merger = new MP.Merger([
             MP.hsv2rgb(MP.changecomp(MP.rgb2hsv(MP.fcolor()), MP.vec2(MP.getcomp(MP.channel(0), "x"), MP.getcomp(MP.channel(1), "x")), "xy", "+")),
             MP.fxaa(),
+        ], sourceCanvas, gl, { channels: channels });
+        return {
+            merger: merger,
+            change: () => { },
+        };
+    },
+    buffereyesore: (channels = []) => {
+        const merger = new MP.Merger([
+            MP.blur2d(1, 1).target(1),
+            MP.blur2d(16, 16).target(0),
+            MP.hsv2rgb(MP.changecomp(MP.rgb2hsv(MP.input()), MP.vec2(MP.getcomp(MP.channel(0), "x"), MP.getcomp(MP.channel(1), "x")), "xy", "+")),
+        ], sourceCanvas, gl, { channels: channels });
+        return {
+            merger: merger,
+            change: () => { },
+        };
+    },
+    bufferblend: (channels = []) => {
+        const merger = new MP.Merger([
+            MP.loop([MP.setcolor(MP.op(MP.op(MP.input(), "+", MP.channel(0)), "/", 2))], 2).target(0),
+            //MP.loop([MP.setcolor(MP.vec4(0, 1, 0, 1))], 1).target(0),
+            //MP.blur2d(3, 3).target(0),
+            MP.channel(0),
         ], sourceCanvas, gl, {
-            channels: channels,
+            channels: [null],
         });
         return {
             merger: merger,
@@ -462,9 +481,7 @@ const demos = {
     lightbands: (channels = []) => {
         const merger = new MP.Merger([
             MP.brightness(MP.a1("cos", MP.op(MP.time(), "+", MP.truedepth(MP.getcomp(MP.channel(0), "r"))))),
-        ], sourceCanvas, gl, {
-            channels: channels,
-        });
+        ], sourceCanvas, gl, { channels: channels });
         return {
             merger: merger,
             change: () => { },
@@ -780,6 +797,12 @@ const draws = {
         higherOrderWaves(false),
         bitwiseGrid(),
     ],
+    buffereyesore: [
+        higherOrderWaves(true),
+        higherOrderWaves(false),
+        bitwiseGrid(),
+    ],
+    bufferblend: [redSpiral],
     basicdof: [higherOrderPerspective(true), higherOrderPerspective(false)],
     lineardof: [
         higherOrderPerspective(true),
@@ -808,6 +831,9 @@ const notes = {
     channeleyesore: "despite this demo offering very little in the way of aesthetic value, it " +
         "demonstrates how you can optionally pass a list of images (which can " +
         "be canvases or videos) into the merger constructor and sample from them",
+    buffereyesore: "you can use <code>target</code> to do effect loops on specific channels",
+    bufferblend: "if you want to use one of the channels as an empty buffer you can <code>target</code>, then " +
+        "make that element in the <code>channels</code> array <code>null</code>",
     fxaa: "fxaa stands for fast approximate anti-aliasing. amazingly, it only needs " +
         "the scene buffer info. it's not perfect, but it does the job in many cases. you " +
         "can see how it eliminates jaggies by looking at the unprocessed image",
@@ -932,7 +958,6 @@ window.addEventListener("load", () => {
     const codeElem = document.getElementById("mergercode");
     const reg = /Merger([\s\S]*?);/g;
     const matches = codeStr.match(reg);
-    console.log(matches);
     if (matches === null)
         throw new Error("matches was null");
     codeElem.innerHTML = codeStr.replace(reg, "<em>" + matches[0] + "</em>");
@@ -1076,9 +1101,9 @@ const expr_1 = require("./expr");
 const vecexprs_1 = require("./vecexprs");
 /** 2D blur loop */
 class Blur2dLoop extends mergepass_1.EffectLoop {
-    constructor(horizontal = expr_1.float(expr_1.mut(1)), vertical = expr_1.float(expr_1.mut(1)), reps = 2, taps) {
-        const side = blurexpr_1.gauss(vecexprs_1.vec2(horizontal, 0), taps);
-        const up = blurexpr_1.gauss(vecexprs_1.vec2(0, vertical), taps);
+    constructor(horizontal = expr_1.float(expr_1.mut(1)), vertical = expr_1.float(expr_1.mut(1)), reps = 2, taps, samplerNum) {
+        const side = blurexpr_1.gauss(vecexprs_1.vec2(horizontal, 0), taps, samplerNum);
+        const up = blurexpr_1.gauss(vecexprs_1.vec2(0, vertical), taps, samplerNum);
         super([side, up], { num: reps });
         this.horizontal = horizontal;
         this.vertical = vertical;
@@ -1111,9 +1136,11 @@ exports.Blur2dLoop = Blur2dLoop;
  * @param verticalExpr float for the vertical blur (1 pixel default)
  * @param reps how many passes (defaults to 2)
  * @param taps how many taps (5, 9, or 13, defaults to 5)
+ * @param samplerNum change if you want to sample from a different channel and
+ * the outer loop has a different target
  */
-function blur2d(horizontalExpr, verticalExpr, reps, taps) {
-    return new Blur2dLoop(expr_1.n2e(horizontalExpr), expr_1.n2e(verticalExpr), reps, taps);
+function blur2d(horizontalExpr, verticalExpr, reps, taps, samplerNum) {
+    return new Blur2dLoop(expr_1.n2e(horizontalExpr), expr_1.n2e(verticalExpr), reps, taps, samplerNum);
 }
 exports.blur2d = blur2d;
 
@@ -1157,8 +1184,6 @@ class BlurExpr extends expr_1.ExprVec4 {
         }
         else {
             this.needs.extraBuffers = new Set([samplerNum]);
-            console.log("taps", taps);
-            console.log("samplerNum", samplerNum);
             this.externalFuncs = [
                 glslfunctions_1.replaceSampler(tapsToFuncSource(taps), /vec4\sgauss[0-9]+/g, samplerNum),
             ];
@@ -2505,7 +2530,7 @@ class PowerBlurLoop extends mergepass_1.EffectLoop {
             num: reps + 1,
         });
         this.size = size;
-        this.repeat.func = (i) => {
+        this.loopInfo.func = (i) => {
             const distance = this.size / Math.pow(2, i);
             up.setDirection(vecexprs_1.pvec2(0, distance));
             side.setDirection(vecexprs_1.pvec2(distance, 0));
@@ -2514,7 +2539,7 @@ class PowerBlurLoop extends mergepass_1.EffectLoop {
     /** sets the size of the radius */
     setSize(size) {
         this.size = size;
-        this.repeat.num = Math.ceil(baseLog(2, size));
+        this.loopInfo.num = Math.ceil(baseLog(2, size));
     }
 }
 exports.PowerBlurLoop = PowerBlurLoop;
@@ -3254,12 +3279,12 @@ class EffectDictionary {
 exports.EffectDictionary = EffectDictionary;
 /** effect loop, which can loop over other effects or effect loops */
 class EffectLoop {
-    constructor(effects, repeat) {
+    constructor(effects, loopInfo) {
         this.effects = effects;
-        this.repeat = repeat;
+        this.loopInfo = loopInfo;
     }
     getSampleNum(mult = 1, sliceStart = 0, sliceEnd = this.effects.length) {
-        mult *= this.repeat.num;
+        mult *= this.loopInfo.num;
         let acc = 0;
         const sliced = this.effects.slice(sliceStart, sliceEnd);
         for (const e of sliced) {
@@ -3277,6 +3302,8 @@ class EffectLoop {
         let prevSampleCount = 0;
         let prevEffects = [];
         const regroupedEffects = [];
+        let prevTarget;
+        let currTarget;
         const breakOff = () => {
             if (prevEffects.length > 0) {
                 // break off all previous effects into their own loop
@@ -3295,9 +3322,18 @@ class EffectLoop {
             const sampleNum = e.getSampleNum();
             prevSampleCount = sampleCount;
             sampleCount += sampleNum;
-            if (sampleCount > 0)
+            if (e instanceof EffectLoop) {
+                currTarget = e.loopInfo.target;
+            }
+            else {
+                // if it's not a loop it's assumed the target is that of outer loop
+                currTarget = this.loopInfo.target;
+            }
+            if (sampleCount > 0 || currTarget !== prevTarget) {
                 breakOff();
+            }
             prevEffects.push(e);
+            prevTarget = currTarget;
         }
         // push on all the straggling effects after the grouping is done
         breakOff();
@@ -3305,18 +3341,32 @@ class EffectLoop {
     }
     genPrograms(gl, vShader, uniformLocs, shaders) {
         // validate
-        const fullSampleNum = this.getSampleNum() / this.repeat.num;
-        const firstSampleNum = this.getSampleNum(undefined, 0, 1) / this.repeat.num;
-        const restSampleNum = this.getSampleNum(undefined, 1) / this.repeat.num;
-        if (fullSampleNum === 0 || (firstSampleNum === 1 && restSampleNum === 0)) {
+        const fullSampleNum = this.getSampleNum() / this.loopInfo.num;
+        const firstSampleNum = this.getSampleNum(undefined, 0, 1) / this.loopInfo.num;
+        const restSampleNum = this.getSampleNum(undefined, 1) / this.loopInfo.num;
+        if (!this.hasTargetSwitch() &&
+            (fullSampleNum === 0 || (firstSampleNum === 1 && restSampleNum === 0))) {
             const codeBuilder = new codebuilder_1.CodeBuilder(this);
             const program = codeBuilder.compileProgram(gl, vShader, uniformLocs, shaders);
             return program;
         }
         // otherwise, regroup and try again on regrouped loops
         this.effects = this.regroup();
-        // okay to have undefined needs here
-        return new webglprogramloop_1.WebGLProgramLoop(this.effects.map((e) => e.genPrograms(gl, vShader, uniformLocs, shaders)), this.repeat, gl);
+        return new webglprogramloop_1.WebGLProgramLoop(this.effects.map((e) => e.genPrograms(gl, vShader, uniformLocs, shaders)), this.loopInfo, gl);
+    }
+    /** changes the render target of an effect loop */
+    target(num) {
+        this.loopInfo.target = num;
+        return this;
+    }
+    hasTargetSwitch() {
+        for (const e of this.effects) {
+            if (e instanceof EffectLoop) {
+                if (e.loopInfo.target !== this.loopInfo.target || e.hasTargetSwitch())
+                    return true;
+            }
+        }
+        return false;
     }
 }
 exports.EffectLoop = EffectLoop;
@@ -3401,8 +3451,6 @@ class Merger {
             throw new Error("no default program");
         }
         this.programLoop = programMap["default"];
-        // TODO get rid of this log
-        console.log(programMap);
         // create x amount of empty textures based on buffers needed
         const channelsNeeded = Math.max(...needs.extraBuffers) + 1;
         const channelsSupplied = this.channels.length;
@@ -3435,8 +3483,8 @@ class Merger {
      */
     draw(timeVal = 0, mouseX = 0, mouseY = 0) {
         // TODO double check if this is neccessary
-        const originalFront = this.tex.front;
-        const originalBack = this.tex.back;
+        //const originalFront = this.tex.front;
+        //const originalBack = this.tex.back;
         this.gl.activeTexture(this.gl.TEXTURE0);
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.tex.back);
         sendTexture(this.gl, this.source);
@@ -3458,8 +3506,8 @@ class Merger {
         }
         this.programLoop.run(this.gl, this.tex, this.framebuffer, this.uniformLocs, this.programLoop.last, { timeVal: timeVal, mouseX: mouseX, mouseY: mouseY });
         // make sure front and back are in same order
-        this.tex.front = originalFront;
-        this.tex.back = originalBack;
+        //this.tex.front = originalFront;
+        //this.tex.back = originalBack;
     }
     /**
      * delete all resources created by construction of this [[Merger]]; use right before
@@ -3535,7 +3583,7 @@ exports.makeTexture = makeTexture;
 function sendTexture(gl, src) {
     // if you are using textures instead of images, the user is responsible for
     // updating that texture, so just return
-    if (src instanceof WebGLTexture)
+    if (src instanceof WebGLTexture || src === null)
         return;
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
 }
@@ -3567,11 +3615,11 @@ class WebGLProgramLeaf {
 exports.WebGLProgramLeaf = WebGLProgramLeaf;
 /** recursive data structure of compiled programs */
 class WebGLProgramLoop {
-    constructor(programElement, repeat, gl) {
+    constructor(programElement, loopInfo, gl) {
         //effects: Expr[];
         this.last = false;
         this.programElement = programElement;
-        this.repeat = repeat;
+        this.loopInfo = loopInfo;
         if (this.programElement instanceof WebGLProgramLeaf) {
             if (gl === undefined) {
                 throw new Error("program element is a program but context is undefined");
@@ -3615,8 +3663,15 @@ class WebGLProgramLoop {
      */
     run(gl, tex, framebuffer, uniformLocs, last, defaultUniforms) {
         var _a, _b, _c;
-        for (let i = 0; i < this.repeat.num; i++) {
-            const newLast = i === this.repeat.num - 1;
+        let savedTexture;
+        for (let i = 0; i < this.loopInfo.num; i++) {
+            const newLast = i === this.loopInfo.num - 1;
+            if (i === 0 && this.loopInfo.target !== undefined) {
+                // swap out the back texture for the channel texture if this loop has
+                // an alternate render target
+                savedTexture = tex.back;
+                tex.back = tex.bufTextures[this.loopInfo.target];
+            }
             if (this.programElement instanceof WebGLProgramLeaf) {
                 // effects list is populated
                 if (i === 0) {
@@ -3662,20 +3717,33 @@ class WebGLProgramLoop {
                 }
                 // allows us to read from `texBack`
                 // default sampler is 0, so `uSampler` uniform will always sample from texture 0
+                // TODO bind to the channel texture instead, if the loop has a target
                 gl.activeTexture(gl.TEXTURE0);
                 gl.bindTexture(gl.TEXTURE_2D, tex.back);
-                [tex.back, tex.front] = [tex.front, tex.back];
+                // TODO do we want to swap if a channel target was used?
+                // only swap back if channel target was not used
+                if (savedTexture === undefined) {
+                    [tex.back, tex.front] = [tex.front, tex.back];
+                }
                 // use our last program as the draw program
                 gl.drawArrays(gl.TRIANGLES, 0, 6);
             }
             else {
-                if (this.repeat.func !== undefined) {
-                    this.repeat.func(i);
+                if (this.loopInfo.func !== undefined) {
+                    this.loopInfo.func(i);
                 }
                 for (const p of this.programElement) {
                     p.run(gl, tex, framebuffer, uniformLocs, newLast, defaultUniforms);
                 }
             }
+        }
+        // swap the textures back if we were temporarily using a channel texture
+        if (savedTexture !== undefined) {
+            //[tex.front, savedTexture] = [savedTexture, tex.front];
+            const tempTexture = tex.front;
+            tex.front = savedTexture;
+            // target can't be undefined if texture was saved so cast is ok
+            tex.bufTextures[this.loopInfo.target] = tempTexture;
         }
     }
     delete(gl) {
