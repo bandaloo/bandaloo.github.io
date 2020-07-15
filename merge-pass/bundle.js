@@ -114,6 +114,7 @@ class CodeBuilder {
             (this.totalNeeds.centerSample ? FRAG_SET : "") +
             this.calls.join("\n") +
             "\n}";
+        console.log(fullCode);
         gl.shaderSource(fShader, fullCode);
         gl.compileShader(fShader);
         // set up the program
@@ -204,6 +205,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  */
 const dat = __importStar(require("dat.gui"));
 const MP = __importStar(require("./index"));
+const slow = false;
 const glCanvas = document.getElementById("gl");
 const gl = glCanvas.getContext("webgl2");
 const mousePos = { x: 0, y: 0 };
@@ -233,7 +235,7 @@ let c;
 let R = (r, g, b, a = 1) => `rgba(${r | 0},${g | 0},${b | 0},${a})`;
 const demos = {
     edgeblur: () => {
-        const lenExpr = MP.op(MP.len(MP.ncfcoord()), "*", 3);
+        const lenExpr = MP.op(MP.len(MP.center()), "*", 3);
         const merger = new MP.Merger([MP.blur2d(lenExpr, lenExpr, 3)], sourceCanvas, gl);
         return {
             merger: merger,
@@ -277,16 +279,24 @@ const demos = {
         };
     },
     vectordisplay: () => {
+        // note: we're using two channels here even though we don't need to
         const merger = new MP.Merger([
             MP.loop([
-                MP.gauss(MP.vec2(1, 0)),
-                MP.gauss(MP.vec2(0, 1)),
-                MP.brightness(0.15),
-                MP.contrast(1.2),
-            ], 5),
-            MP.brightness(-0.5),
-            MP.setcolor(MP.op(MP.fcolor(), "+", MP.input())),
-        ], sourceCanvas, gl);
+                MP.input(),
+                MP.loop([
+                    MP.gauss(MP.vec2(1, 0)),
+                    MP.gauss(MP.vec2(0, 1)),
+                    MP.brightness(0.15),
+                    MP.contrast(1.2),
+                ], 4).target(0),
+                MP.brightness(-0.3),
+                MP.setcolor(MP.op(MP.fcolor(), "+", MP.input())),
+            ]).target(0),
+            MP.loop([
+                MP.setcolor(MP.op(MP.op(MP.channel(0), "+", MP.fcolor()), "/", 2)),
+            ]).target(1),
+            MP.channel(1),
+        ], sourceCanvas, gl, { channels: [null, null] });
         return {
             merger: merger,
             change: () => { },
@@ -297,7 +307,7 @@ const demos = {
         let m;
         const merger = new MP.Merger([
             MP.gauss(MP.vec2(0, 1), 13),
-            MP.grain((m = MP.op(MP.len(MP.op(MP.ncfcoord(), "+", (vec = MP.vec2(MP.mut(0), 0)))), "*", MP.mut(0.3)))),
+            MP.grain((m = MP.op(MP.len(MP.op(MP.center(), "+", (vec = MP.vec2(MP.mut(0), 0)))), "*", MP.mut(0.3)))),
         ], sourceCanvas, gl);
         class GrainControls {
             constructor() {
@@ -369,7 +379,7 @@ const demos = {
     },
     scanlines: () => {
         const merger = new MP.Merger([
-            MP.brightness(MP.op(MP.op(-1, "*", MP.a2("pow", MP.a1("cos", MP.op(MP.getcomp(MP.nfcoord(), "y"), "*", (260 / 2) * Math.PI)), 6)), "-", MP.op(1, "*", MP.op(MP.a2("pow", MP.getcomp(MP.op(MP.ncfcoord(), "*", 2), "x"), 4), "+", MP.a2("pow", MP.getcomp(MP.op(MP.ncfcoord(), "*", 2), "y"), 4))))),
+            MP.brightness(MP.op(MP.op(-1, "*", MP.a2("pow", MP.a1("cos", MP.op(MP.getcomp(MP.pos(), "y"), "*", (260 / 2) * Math.PI)), 6)), "-", MP.op(1, "*", MP.op(MP.a2("pow", MP.getcomp(MP.op(MP.center(), "*", 2), "x"), 4), "+", MP.a2("pow", MP.getcomp(MP.op(MP.center(), "*", 2), "y"), 4))))),
         ], sourceCanvas, gl);
         return {
             merger: merger,
@@ -417,9 +427,9 @@ const demos = {
     },
     bufferblend: (channels = []) => {
         const merger = new MP.Merger([
-            MP.loop([MP.setcolor(MP.op(MP.op(MP.input(), "+", MP.channel(0)), "/", 2))], 2).target(0),
-            //MP.loop([MP.setcolor(MP.vec4(0, 1, 0, 1))], 1).target(0),
-            //MP.blur2d(3, 3).target(0),
+            MP.loop([
+                MP.setcolor(MP.op(MP.op(MP.input(), "+", MP.fcolor()), "/", 2)),
+            ]).target(0),
             MP.channel(0),
         ], sourceCanvas, gl, {
             channels: [null],
@@ -537,7 +547,7 @@ const demos = {
     },
     mitosis: () => {
         const merger = new MP.Merger([
-            MP.input(MP.changecomp(MP.nfcoord(), MP.op(MP.op(MP.op(0.5, "+", MP.op(0.5, "*", MP.a1("cos", MP.time()))), "*", 0.3), "*", MP.a1("cos", MP.op(MP.getcomp(MP.nfcoord(), "x"), "*", 3 * Math.PI))), "x", "+")),
+            MP.input(MP.changecomp(MP.pos(), MP.op(MP.op(MP.op(0.5, "+", MP.op(0.5, "*", MP.a1("cos", MP.time()))), "*", 0.3), "*", MP.a1("cos", MP.op(MP.getcomp(MP.pos(), "x"), "*", 3 * Math.PI))), "x", "+")),
             MP.fxaa(),
         ], sourceCanvas, gl);
         return {
@@ -547,9 +557,9 @@ const demos = {
     },
     swirl: () => {
         const vec = MP.nmouse();
-        const dist = MP.op(MP.len(MP.op(MP.nfcoord(), "-", vec)), "*", 99);
+        const dist = MP.op(MP.len(MP.op(MP.pos(), "-", vec)), "*", 99);
         const angle = MP.op(MP.op(1, "/", MP.op(1, "+", dist)), "*", 20);
-        const centered = MP.translate(MP.nfcoord(), MP.op(vec, "*", -1));
+        const centered = MP.translate(MP.pos(), MP.op(vec, "*", -1));
         const rot = MP.rotate(centered, angle);
         const reverted = MP.translate(rot, vec);
         const merger = new MP.Merger([MP.input(reverted)], sourceCanvas, gl);
@@ -560,7 +570,7 @@ const demos = {
     },
     perlin: () => {
         const merger = new MP.Merger([
-            MP.brightness(MP.perlin(MP.op(MP.op(MP.nfcoord(), "+", MP.op(MP.time(), "/", 9)), "*", MP.op(MP.resolution(), "/", 99)))),
+            MP.brightness(MP.perlin(MP.op(MP.op(MP.pos(), "+", MP.op(MP.time(), "/", 9)), "*", MP.op(MP.resolution(), "/", 99)))),
         ], sourceCanvas, gl);
         return {
             merger: merger,
@@ -570,7 +580,7 @@ const demos = {
     fractalize: () => {
         const offset = MP.vec2(3, 3);
         const merger = new MP.Merger([
-            MP.brightness(MP.op(MP.fractalize(MP.op(MP.op(offset, "+", MP.nfcoord()), "*", 3), 6, MP.simplex), "/", 6)),
+            MP.brightness(MP.op(MP.fractalize(MP.op(MP.op(offset, "+", MP.pos()), "*", 3), 6, MP.simplex), "/", 6)),
         ], sourceCanvas, gl);
         return {
             merger: merger,
@@ -602,7 +612,7 @@ const demos = {
         };
     },
     noisegodrays: (channels = []) => {
-        const fog = MP.op(MP.op(MP.simplex(MP.op(MP.op(MP.nfcoord(), "+", MP.op(MP.time(), "/", 100)), "*", MP.op(MP.resolution(), "/", 200))), "*", MP.simplex(MP.op(MP.op(MP.nfcoord(), "+", MP.op(MP.time(), "/", -200)), "*", MP.op(MP.resolution(), "/", 400)))), "*", 0.5);
+        const fog = MP.op(MP.op(MP.simplex(MP.op(MP.op(MP.pos(), "+", MP.op(MP.time(), "/", 100)), "*", MP.op(MP.resolution(), "/", 200))), "*", MP.simplex(MP.op(MP.op(MP.pos(), "+", MP.op(MP.time(), "/", -200)), "*", MP.op(MP.resolution(), "/", 400)))), "*", 0.5);
         const merger = new MP.Merger([
             MP.godrays({
                 lightPos: MP.op(MP.mouse(), "/", MP.resolution()),
@@ -987,7 +997,7 @@ window.addEventListener("load", () => {
         }
         demo.change(demo.merger, t, frame);
         demo.merger.draw(t / 1000, mousePos.x, mousePos.y);
-        requestAnimationFrame(step);
+        !slow ? requestAnimationFrame(step) : setTimeout(step, 1000);
         frame++;
     };
     step(0);
@@ -1135,7 +1145,7 @@ exports.Blur2dLoop = Blur2dLoop;
  * @param horizontalExpr float for the horizontal blur (1 pixel default)
  * @param verticalExpr float for the vertical blur (1 pixel default)
  * @param reps how many passes (defaults to 2)
- * @param taps how many taps (5, 9, or 13, defaults to 5)
+ * @param taps how many taps (defaults to 5)
  * @param samplerNum change if you want to sample from a different channel and
  * the outer loop has a different target
  */
@@ -1198,10 +1208,10 @@ class BlurExpr extends expr_1.ExprVec4 {
 exports.BlurExpr = BlurExpr;
 /**
  * creates expression that performs one pass of a gaussian blur
- * @param direction direction to blur (keep magnitude no greater than 1 for
- * best effect)
+ * @param direction direction to blur (keep magnitude less than or equal to 1
+ * for best effect)
  * @param taps number of taps (defaults to 5)
- * @param samplerNum which channel to sample from (defaut 0)
+ * @param samplerNum which channel to sample from (default 0)
  */
 function gauss(direction, taps = 5, samplerNum) {
     return new BlurExpr(direction, taps, samplerNum);
@@ -1218,7 +1228,7 @@ const fragcolorexpr_1 = require("./fragcolorexpr");
 /** brightness expression */
 class Brightness extends expr_1.ExprVec4 {
     constructor(brightness, col = fragcolorexpr_1.fcolor()) {
-        super(expr_1.tag `(brightness(${brightness}, ${col}))`, ["uBrightness", "uColor"]);
+        super(expr_1.tag `brightness(${brightness}, ${col})`, ["uBrightness", "uColor"]);
         this.brightness = brightness;
         this.externalFuncs = [glslfunctions_1.glslFuncs.brightness];
     }
@@ -1337,7 +1347,7 @@ function genChannelSampleSource(buf, coord) {
 }
 /** channel sample expression */
 class ChannelSampleExpr extends expr_1.ExprVec4 {
-    constructor(buf, coord = normfragcoordexpr_1.nfcoord()) {
+    constructor(buf, coord = normfragcoordexpr_1.pos()) {
         super(genChannelSampleSource(buf, coord), ["uVec"]);
         this.coord = coord;
         this.needs.extraBuffers = new Set([buf]);
@@ -1349,7 +1359,9 @@ class ChannelSampleExpr extends expr_1.ExprVec4 {
 }
 exports.ChannelSampleExpr = ChannelSampleExpr;
 /**
- * creates an expression that samples from one of the user-defined channels
+ * creates an expression that samples from one of the user-defined channels.
+ * don't sample from the same channel that you are using [[target]] on in a
+ * loop, just use [[fcolor]]
  * @param channel which channel to sample from
  * @param vec where to sample the channel texture (defaults to the normalized
  * frag coord)
@@ -1898,7 +1910,7 @@ exports.fcolor = fcolor;
 },{"./expr":13}],15:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fcoord = exports.FragCoordExpr = void 0;
+exports.pixel = exports.FragCoordExpr = void 0;
 const expr_1 = require("./expr");
 /** frag coord expression (xy components only) */
 class FragCoordExpr extends expr_1.ExprVec2 {
@@ -1911,10 +1923,10 @@ exports.FragCoordExpr = FragCoordExpr;
  * creates an expression that evaluates to the frag coord in pixels (samplers
  * take normalized coordinates, so you might want [[nfcoord]] instead)
  */
-function fcoord() {
+function pixel() {
     return new FragCoordExpr();
 }
-exports.fcoord = fcoord;
+exports.pixel = pixel;
 
 },{"./expr":13}],16:[function(require,module,exports){
 "use strict";
@@ -2339,7 +2351,7 @@ exports.mouse = mouse;
 },{"./expr":13}],24:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ncfcoord = exports.NormCenterFragCoordExpr = void 0;
+exports.center = exports.NormCenterFragCoordExpr = void 0;
 const expr_1 = require("./expr");
 /** normalized centered frag coord expression */
 class NormCenterFragCoordExpr extends expr_1.ExprVec2 {
@@ -2352,10 +2364,10 @@ exports.NormCenterFragCoordExpr = NormCenterFragCoordExpr;
  * creates an expression that calculates the normalized centered coord
  * (coordinates range from -0.5 to 0.5)
  */
-function ncfcoord() {
+function center() {
     return new NormCenterFragCoordExpr();
 }
-exports.ncfcoord = ncfcoord;
+exports.center = center;
 
 },{"./expr":13}],25:[function(require,module,exports){
 "use strict";
@@ -2383,7 +2395,7 @@ exports.norm = norm;
 },{"./expr":13}],26:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.nfcoord = exports.NormFragCoordExpr = void 0;
+exports.pos = exports.NormFragCoordExpr = void 0;
 const expr_1 = require("./expr");
 /** normalized frag coord expression */
 class NormFragCoordExpr extends expr_1.ExprVec2 {
@@ -2396,10 +2408,10 @@ exports.NormFragCoordExpr = NormFragCoordExpr;
  * creates an expression that calculates the normalized frag coord (coordinates
  * range from 0.0 to 1.0)
  */
-function nfcoord() {
+function pos() {
     return new NormFragCoordExpr();
 }
-exports.nfcoord = nfcoord;
+exports.pos = pos;
 
 },{"./expr":13}],27:[function(require,module,exports){
 "use strict";
@@ -2560,7 +2572,7 @@ const glslfunctions_1 = require("../glslfunctions");
 const expr_1 = require("./expr");
 const normfragcoordexpr_1 = require("./normfragcoordexpr");
 class RandomExpr extends expr_1.ExprVec4 {
-    constructor(seed = normfragcoordexpr_1.nfcoord()) {
+    constructor(seed = normfragcoordexpr_1.pos()) {
         super(expr_1.tag `random(${seed})`, ["uSeed"]);
         this.seed = seed;
         this.externalFuncs = [glslfunctions_1.glslFuncs.random];
@@ -2670,7 +2682,7 @@ const expr_1 = require("./expr");
 const normfragcoordexpr_1 = require("./normfragcoordexpr");
 /** scene sample expression */
 class SceneSampleExpr extends expr_1.ExprVec4 {
-    constructor(coord = normfragcoordexpr_1.nfcoord()) {
+    constructor(coord = normfragcoordexpr_1.pos()) {
         super(expr_1.tag `texture2D(uSceneSampler, ${coord})`, ["uCoord"]);
         this.coord = coord;
         this.needs.sceneBuffer = true;
@@ -3231,6 +3243,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendTexture = exports.makeTexture = exports.Merger = exports.loop = exports.EffectLoop = exports.EffectDictionary = void 0;
 const codebuilder_1 = require("./codebuilder");
 const webglprogramloop_1 = require("./webglprogramloop");
+const _1 = require(".");
 class EffectDictionary {
     constructor(effectMap) {
         this.effectMap = effectMap;
@@ -3248,9 +3261,7 @@ class EffectDictionary {
         for (const name in this.effectMap) {
             const effects = this.effectMap[name];
             // wrap the given list of effects as a loop if need be
-            const effectLoop = !(effects instanceof EffectLoop)
-                ? new EffectLoop(effects, { num: 1 })
-                : effects;
+            const effectLoop = new EffectLoop(effects, { num: 1 });
             if (effectLoop.effects.length === 0) {
                 throw new Error("list of effects was empty");
             }
@@ -3283,6 +3294,7 @@ class EffectLoop {
         this.effects = effects;
         this.loopInfo = loopInfo;
     }
+    /** @ignore */
     getSampleNum(mult = 1, sliceStart = 0, sliceEnd = this.effects.length) {
         mult *= this.loopInfo.num;
         let acc = 0;
@@ -3354,11 +3366,15 @@ class EffectLoop {
         this.effects = this.regroup();
         return new webglprogramloop_1.WebGLProgramLoop(this.effects.map((e) => e.genPrograms(gl, vShader, uniformLocs, shaders)), this.loopInfo, gl);
     }
-    /** changes the render target of an effect loop */
+    /**
+     * changes the render target of an effect loop (-1 targest the scene texture;
+     * this is used internally)
+     */
     target(num) {
         this.loopInfo.target = num;
         return this;
     }
+    /** @ignore */
     hasTargetSwitch() {
         for (const e of this.effects) {
             if (e instanceof EffectLoop) {
@@ -3371,7 +3387,7 @@ class EffectLoop {
 }
 exports.EffectLoop = EffectLoop;
 /** creates an effect loop */
-function loop(effects, rep) {
+function loop(effects, rep = 1) {
     return new EffectLoop(effects, { num: rep });
 }
 exports.loop = loop;
@@ -3383,7 +3399,7 @@ void main() {
 /** class that can merge effects */
 class Merger {
     /**
-     *
+     * constructs the object that runs the effects
      * @param effects list of effects that define the final effect
      * @param source the source image or texture
      * @param gl the target rendering context
@@ -3394,11 +3410,23 @@ class Merger {
         /** additional channels */
         this.channels = [];
         this.fShaders = [];
+        this.textureMode = source instanceof WebGLTexture;
         // set channels if provided with channels
         if ((options === null || options === void 0 ? void 0 : options.channels) !== undefined)
             this.channels = options === null || options === void 0 ? void 0 : options.channels;
         if (!(effects instanceof EffectDictionary)) {
             effects = new EffectDictionary({ default: effects });
+        }
+        // add the copy to scene texture if in texture mode
+        if (this.textureMode) {
+            // TODO get rid of this
+            console.log("we are in texture mode!");
+            // TODO see if it needs scene texture before doing this
+            // can we even do this? maybe just always make the scene texture
+            for (const name in effects.effectMap) {
+                const list = effects.effectMap[name];
+                list.unshift(loop([_1.input()]).target(-1));
+            }
         }
         this.source = source;
         this.gl = gl;
@@ -3429,10 +3457,13 @@ class Merger {
         this.tex = {
             // make the front texture the source if we're given a texture instead of
             // an image
-            back: source instanceof WebGLTexture
-                ? source
-                : makeTexture(this.gl, this.options),
-            front: makeTexture(this.gl, this.options),
+            back: {
+                name: "orig_back",
+                tex: source instanceof WebGLTexture
+                    ? source
+                    : makeTexture(this.gl, this.options),
+            },
+            front: { name: "orig_front", tex: makeTexture(this.gl, this.options) },
             scene: undefined,
             bufTextures: [],
         };
@@ -3444,8 +3475,12 @@ class Merger {
         this.framebuffer = framebuffer;
         const { programMap, needs } = effects.toProgramMap(this.gl, this.vShader, this.uniformLocs, this.fShaders);
         this.programMap = programMap;
-        if (needs.sceneBuffer) {
-            this.tex.scene = makeTexture(this.gl, this.options);
+        if (needs.sceneBuffer || this.textureMode) {
+            // we always create a scene texture if we're in texture mode
+            this.tex.scene = {
+                name: "scene",
+                tex: makeTexture(this.gl, this.options),
+            };
         }
         if (programMap["default"] === undefined) {
             throw new Error("no default program");
@@ -3462,13 +3497,17 @@ class Merger {
             if (!(texOrImage instanceof WebGLTexture)) {
                 // create a new texture; we will update this with the image source every draw
                 const texture = makeTexture(this.gl, this.options);
-                this.tex.bufTextures.push(texture);
+                this.tex.bufTextures.push({ name: "tex_channel_" + i, tex: texture });
             }
             else {
                 // this is already a texture; the user will handle updating this
-                this.tex.bufTextures.push(texOrImage);
+                this.tex.bufTextures.push({
+                    name: "img_channel_" + i,
+                    tex: texOrImage,
+                });
             }
         }
+        console.log(this.programMap);
     }
     /**
      * use the source and channels to draw effect to target context; mouse
@@ -3486,22 +3525,28 @@ class Merger {
         //const originalFront = this.tex.front;
         //const originalBack = this.tex.back;
         this.gl.activeTexture(this.gl.TEXTURE0);
-        this.gl.bindTexture(this.gl.TEXTURE_2D, this.tex.back);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.tex.back.tex);
         sendTexture(this.gl, this.source);
+        // TODO see if we need to unbind
+        this.gl.bindTexture(this.gl.TEXTURE_2D, null);
         // bind the scene buffer
         if (this.programLoop.getTotalNeeds().sceneBuffer &&
             this.tex.scene !== undefined) {
             this.gl.activeTexture(this.gl.TEXTURE1);
-            this.gl.bindTexture(this.gl.TEXTURE_2D, this.tex.scene);
+            this.gl.bindTexture(this.gl.TEXTURE_2D, this.tex.scene.tex);
             sendTexture(this.gl, this.source);
+            // TODO see if we need to unbind
+            this.gl.bindTexture(this.gl.TEXTURE_2D, null);
         }
         // bind the additional buffers
         let counter = 0;
         for (const b of this.channels) {
             // TODO check for texture limit
             this.gl.activeTexture(this.gl.TEXTURE2 + counter);
-            this.gl.bindTexture(this.gl.TEXTURE_2D, this.tex.bufTextures[counter]);
+            this.gl.bindTexture(this.gl.TEXTURE_2D, this.tex.bufTextures[counter].tex);
             sendTexture(this.gl, b);
+            // TODO see if we need to unbind (this gets rid of the error)
+            this.gl.bindTexture(this.gl.TEXTURE_2D, null);
             counter++;
         }
         this.programLoop.run(this.gl, this.tex, this.framebuffer, this.uniformLocs, this.programLoop.last, { timeVal: timeVal, mouseX: mouseX, mouseY: mouseY });
@@ -3518,7 +3563,7 @@ class Merger {
         // call bind with null on all textures
         for (let i = 0; i < 2 + this.tex.bufTextures.length; i++) {
             // this gets rid of final texture, scene texture and channels
-            this.gl.activeTexture(this.gl.TEXTURE0);
+            this.gl.activeTexture(this.gl.TEXTURE0 + i);
             this.gl.bindTexture(this.gl.TEXTURE_2D, null);
         }
         // call bind with null on all vertex buffers (just 1)
@@ -3529,10 +3574,10 @@ class Merger {
         // delete all programs
         this.programLoop.delete(this.gl);
         // delete all textures
-        this.gl.deleteTexture(this.tex.front);
-        this.gl.deleteTexture(this.tex.back);
+        this.gl.deleteTexture(this.tex.front.tex);
+        this.gl.deleteTexture(this.tex.back.tex);
         for (const c of this.tex.bufTextures) {
-            this.gl.deleteTexture(c);
+            this.gl.deleteTexture(c.tex);
         }
         // delete all vertex buffers (just 1)
         this.gl.deleteBuffer(this.vertexBuffer);
@@ -3589,10 +3634,11 @@ function sendTexture(gl, src) {
 }
 exports.sendTexture = sendTexture;
 
-},{"./codebuilder":1,"./webglprogramloop":46}],46:[function(require,module,exports){
+},{".":44,"./codebuilder":1,"./webglprogramloop":46}],46:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WebGLProgramLoop = exports.WebGLProgramLeaf = exports.updateNeeds = void 0;
+let textureDebug = false;
 // update me on change to needs
 function updateNeeds(acc, curr) {
     return {
@@ -3661,49 +3707,81 @@ class WebGLProgramLoop {
      * textures and setting the appropriate uniforms; the user should only have
      * to call [[draw]] on [[Merger]] and never this function directly
      */
-    run(gl, tex, framebuffer, uniformLocs, last, defaultUniforms) {
-        var _a, _b, _c;
+    run(gl, tex, framebuffer, uniformLocs, last, defaultUniforms, outerLoop) {
         let savedTexture;
-        for (let i = 0; i < this.loopInfo.num; i++) {
-            const newLast = i === this.loopInfo.num - 1;
-            if (i === 0 && this.loopInfo.target !== undefined) {
-                // swap out the back texture for the channel texture if this loop has
-                // an alternate render target
-                savedTexture = tex.back;
+        if (this.loopInfo.target !== undefined &&
+            // if there is a target switch:
+            (outerLoop === null || outerLoop === void 0 ? void 0 : outerLoop.loopInfo.target) !== this.loopInfo.target) {
+            // swap out the back texture for the channel texture if this loop has
+            // an alternate render target
+            savedTexture = tex.back;
+            if (this.loopInfo.target !== -1) {
                 tex.back = tex.bufTextures[this.loopInfo.target];
             }
-            if (this.programElement instanceof WebGLProgramLeaf) {
-                // effects list is populated
-                if (i === 0) {
-                    gl.useProgram(this.programElement.program);
-                    if ((_a = this.programElement.totalNeeds) === null || _a === void 0 ? void 0 : _a.sceneBuffer) {
-                        if (tex.scene === undefined) {
-                            throw new Error("needs scene buffer, but scene texture is somehow undefined");
-                        }
-                        gl.activeTexture(gl.TEXTURE1);
-                        gl.bindTexture(gl.TEXTURE_2D, tex.scene);
-                    }
-                    for (const effect of this.programElement.effects) {
-                        effect.applyUniforms(gl, uniformLocs);
-                    }
-                    // set time uniform if needed
-                    if ((_b = this.programElement.totalNeeds) === null || _b === void 0 ? void 0 : _b.timeUniform) {
-                        if (this.timeLoc === undefined ||
-                            defaultUniforms.timeVal === undefined) {
-                            throw new Error("time or location is undefined");
-                        }
-                        gl.uniform1f(this.timeLoc, defaultUniforms.timeVal);
-                    }
-                    // set mouse uniforms if needed
-                    if ((_c = this.programElement.totalNeeds) === null || _c === void 0 ? void 0 : _c.mouseUniform) {
-                        if (this.mouseLoc === undefined ||
-                            defaultUniforms.mouseX === undefined ||
-                            defaultUniforms.mouseY === undefined) {
-                            throw new Error("mouse uniform or location is undefined");
-                        }
-                        gl.uniform2f(this.mouseLoc, defaultUniforms.mouseX, defaultUniforms.mouseY);
-                    }
+            else {
+                if (tex.scene === undefined) {
+                    throw new Error("tried to target -1 but scene texture was undefined");
                 }
+                tex.back = tex.scene;
+                // TODO get rid of this
+                /*
+                console.log("render target is -1");
+                console.log("tex.back", tex.back);
+                console.log("saved texture", savedTexture);
+                */
+            }
+            tex.bufTextures[this.loopInfo.target] = savedTexture;
+            if (textureDebug)
+                console.log("saved texture: " + savedTexture.name);
+        }
+        // setup for program leaf
+        if (this.programElement instanceof WebGLProgramLeaf) {
+            // bind the scene texture if needed
+            if (this.programElement.totalNeeds.sceneBuffer) {
+                if (tex.scene === undefined) {
+                    throw new Error("needs scene buffer, but scene texture is somehow undefined");
+                }
+                gl.activeTexture(gl.TEXTURE1);
+                if (this.loopInfo.target === -1) {
+                    //console.log("binding scene to the saved texture", savedTexture);
+                    gl.bindTexture(gl.TEXTURE_2D, savedTexture.tex);
+                }
+                else {
+                    gl.bindTexture(gl.TEXTURE_2D, tex.scene.tex);
+                }
+            }
+            // bind all extra channel textures if needed
+            for (const n of this.programElement.totalNeeds.extraBuffers) {
+                gl.activeTexture(gl.TEXTURE2 + n);
+                gl.bindTexture(gl.TEXTURE_2D, tex.bufTextures[n].tex);
+            }
+            // use the current program
+            gl.useProgram(this.programElement.program);
+            // apply all uniforms
+            for (const effect of this.programElement.effects) {
+                effect.applyUniforms(gl, uniformLocs);
+            }
+            // set time uniform if needed
+            if (this.programElement.totalNeeds.timeUniform) {
+                if (this.timeLoc === undefined ||
+                    defaultUniforms.timeVal === undefined) {
+                    throw new Error("time or location is undefined");
+                }
+                gl.uniform1f(this.timeLoc, defaultUniforms.timeVal);
+            }
+            // set mouse uniforms if needed
+            if (this.programElement.totalNeeds.mouseUniform) {
+                if (this.mouseLoc === undefined ||
+                    defaultUniforms.mouseX === undefined ||
+                    defaultUniforms.mouseY === undefined) {
+                    throw new Error("mouse uniform or location is undefined");
+                }
+                gl.uniform2f(this.mouseLoc, defaultUniforms.mouseX, defaultUniforms.mouseY);
+            }
+        }
+        for (let i = 0; i < this.loopInfo.num; i++) {
+            const newLast = i === this.loopInfo.num - 1;
+            if (this.programElement instanceof WebGLProgramLeaf) {
                 if (newLast && last && this.last) {
                     // we are on the final pass of the final loop, so draw screen by
                     // setting to the default framebuffer
@@ -3713,42 +3791,66 @@ class WebGLProgramLoop {
                     // we have to bounce between two textures
                     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
                     // use the framebuffer to write to front texture
-                    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex.front, 0);
+                    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex.front.tex, 0);
                 }
                 // allows us to read from `texBack`
                 // default sampler is 0, so `uSampler` uniform will always sample from texture 0
-                // TODO bind to the channel texture instead, if the loop has a target
                 gl.activeTexture(gl.TEXTURE0);
-                gl.bindTexture(gl.TEXTURE_2D, tex.back);
-                // TODO do we want to swap if a channel target was used?
-                // only swap back if channel target was not used
-                if (savedTexture === undefined) {
-                    [tex.back, tex.front] = [tex.front, tex.back];
-                }
+                gl.bindTexture(gl.TEXTURE_2D, tex.back.tex);
                 // use our last program as the draw program
                 gl.drawArrays(gl.TRIANGLES, 0, 6);
+                if (textureDebug) {
+                    console.log("intermediate back", tex.back.name);
+                    console.log("intermediate front", tex.front.name);
+                }
+                // swap back and front
+                [tex.back, tex.front] = [tex.front, tex.back];
+                // deactivate and unbind all the channel textures needed
+                for (const n of this.programElement.totalNeeds.extraBuffers) {
+                    gl.activeTexture(gl.TEXTURE2 + n);
+                    gl.bindTexture(gl.TEXTURE_2D, null);
+                }
+                gl.activeTexture(gl.TEXTURE1);
+                gl.bindTexture(gl.TEXTURE_2D, null);
             }
             else {
                 if (this.loopInfo.func !== undefined) {
                     this.loopInfo.func(i);
                 }
                 for (const p of this.programElement) {
-                    p.run(gl, tex, framebuffer, uniformLocs, newLast, defaultUniforms);
+                    p.run(gl, tex, framebuffer, uniformLocs, newLast, defaultUniforms, this // this is now the outer loop
+                    );
                 }
             }
         }
         // swap the textures back if we were temporarily using a channel texture
         if (savedTexture !== undefined) {
-            //[tex.front, savedTexture] = [savedTexture, tex.front];
-            const tempTexture = tex.front;
-            tex.front = savedTexture;
-            // target can't be undefined if texture was saved so cast is ok
-            tex.bufTextures[this.loopInfo.target] = tempTexture;
+            const target = this.loopInfo.target;
+            if (textureDebug) {
+                console.log("pre final back", tex.back.name);
+                console.log("pre final front", tex.front.name);
+            }
+            // back texture is really the front texture because it was just swapped
+            if (this.loopInfo.target !== -1) {
+                tex.bufTextures[target] = tex.back;
+            }
+            else {
+                if (tex.scene === undefined) {
+                    throw new Error("tried to replace -1 but scene texture was undefined");
+                }
+                tex.scene = tex.back;
+            }
+            tex.back = savedTexture;
+            if (textureDebug) {
+                console.log("post final back", tex.back.name);
+                console.log("post final front", tex.front.name);
+                console.log("channel texture", tex.bufTextures[target].name);
+            }
         }
     }
     delete(gl) {
         if (this.programElement instanceof WebGLProgramLeaf) {
-            gl.deleteProgram(this.programElement);
+            gl.deleteProgram(this.programElement.program);
         }
         else {
             for (const p of this.programElement) {
