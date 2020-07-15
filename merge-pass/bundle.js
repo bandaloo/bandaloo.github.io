@@ -177,7 +177,7 @@ class CodeBuilder {
 }
 exports.CodeBuilder = CodeBuilder;
 
-},{"./exprs/expr":13,"./webglprogramloop":46}],2:[function(require,module,exports){
+},{"./exprs/expr":13,"./webglprogramloop":47}],2:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -426,14 +426,7 @@ const demos = {
         };
     },
     bufferblend: (channels = []) => {
-        const merger = new MP.Merger([
-            MP.loop([
-                MP.setcolor(MP.op(MP.op(MP.input(), "+", MP.fcolor()), "/", 2)),
-            ]).target(0),
-            MP.channel(0),
-        ], sourceCanvas, gl, {
-            channels: [null],
-        });
+        const merger = new MP.Merger([MP.blur2d(1, 1), MP.motionblur(0)], sourceCanvas, gl, { channels: [null] });
         return {
             merger: merger,
             change: () => { },
@@ -1023,7 +1016,7 @@ function destroyAndCreate(str: string) {
 setTimeout(() => destroyAndCreate("redgreenswap"), 2000);
 */
 
-},{"./index":44,"dat.gui":47}],3:[function(require,module,exports){
+},{"./index":45,"dat.gui":48}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.a1 = exports.Arity1HomogenousExpr = void 0;
@@ -1154,7 +1147,7 @@ function blur2d(horizontalExpr, verticalExpr, reps, taps, samplerNum) {
 }
 exports.blur2d = blur2d;
 
-},{"../mergepass":45,"./blurexpr":6,"./expr":13,"./vecexprs":41}],6:[function(require,module,exports){
+},{"../mergepass":46,"./blurexpr":6,"./expr":13,"./vecexprs":42}],6:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.gauss = exports.BlurExpr = void 0;
@@ -1218,7 +1211,7 @@ function gauss(direction, taps = 5, samplerNum) {
 }
 exports.gauss = gauss;
 
-},{"../glslfunctions":43,"./expr":13}],7:[function(require,module,exports){
+},{"../glslfunctions":44,"./expr":13}],7:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.brightness = exports.Brightness = void 0;
@@ -1251,7 +1244,7 @@ function brightness(val, col) {
 }
 exports.brightness = brightness;
 
-},{"../glslfunctions":43,"./expr":13,"./fragcolorexpr":14}],8:[function(require,module,exports){
+},{"../glslfunctions":44,"./expr":13,"./fragcolorexpr":14}],8:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.changecomp = exports.ChangeCompExpr = void 0;
@@ -1371,7 +1364,7 @@ function channel(channel, vec) {
 }
 exports.channel = channel;
 
-},{"../codebuilder":1,"./expr":13,"./normfragcoordexpr":26}],10:[function(require,module,exports){
+},{"../codebuilder":1,"./expr":13,"./normfragcoordexpr":27}],10:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.contrast = exports.ContrastExpr = void 0;
@@ -1403,7 +1396,7 @@ function contrast(val, col) {
 }
 exports.contrast = contrast;
 
-},{"../glslfunctions":43,"./expr":13,"./fragcolorexpr":14}],11:[function(require,module,exports){
+},{"../glslfunctions":44,"./expr":13,"./fragcolorexpr":14}],11:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.depth2occlusion = exports.DepthToOcclusionExpr = void 0;
@@ -1451,7 +1444,7 @@ function depth2occlusion(depthCol, newCol, threshold) {
 }
 exports.depth2occlusion = depth2occlusion;
 
-},{"./channelsampleexpr":9,"./expr":13,"./vecexprs":41}],12:[function(require,module,exports){
+},{"./channelsampleexpr":9,"./expr":13,"./vecexprs":42}],12:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.dof = exports.DoFLoop = void 0;
@@ -1497,7 +1490,7 @@ function dof(depth, rad, depthInfo, reps) {
 }
 exports.dof = dof;
 
-},{"../mergepass":45,"./arity2":4,"./blurexpr":6,"./channelsampleexpr":9,"./expr":13,"./gaussianexpr":17,"./getcompexpr":18,"./opexpr":28,"./vecexprs":41}],13:[function(require,module,exports){
+},{"../mergepass":46,"./arity2":4,"./blurexpr":6,"./channelsampleexpr":9,"./expr":13,"./gaussianexpr":17,"./getcompexpr":18,"./opexpr":29,"./vecexprs":42}],13:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.tag = exports.wrapInValue = exports.pfloat = exports.n2p = exports.n2e = exports.Operator = exports.ExprVec4 = exports.ExprVec3 = exports.ExprVec2 = exports.float = exports.ExprFloat = exports.BasicFloat = exports.ExprVec = exports.BasicVec4 = exports.BasicVec3 = exports.BasicVec2 = exports.BasicVec = exports.PrimitiveVec4 = exports.PrimitiveVec3 = exports.PrimitiveVec2 = exports.PrimitiveVec = exports.PrimitiveFloat = exports.Primitive = exports.mut = exports.Mutable = exports.Expr = void 0;
@@ -1888,7 +1881,7 @@ function tag(strings, ...values) {
 }
 exports.tag = tag;
 
-},{"../mergepass":45,"../webglprogramloop":46}],14:[function(require,module,exports){
+},{"../mergepass":46,"../webglprogramloop":47}],14:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fcolor = exports.FragColorExpr = void 0;
@@ -1948,7 +1941,7 @@ function fxaa() {
 }
 exports.fxaa = fxaa;
 
-},{"../glslfunctions":43,"./expr":13}],17:[function(require,module,exports){
+},{"../glslfunctions":44,"./expr":13}],17:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.gaussian = exports.GaussianExpr = void 0;
@@ -1988,7 +1981,7 @@ function gaussian(x, a = 0, b = 1) {
 }
 exports.gaussian = gaussian;
 
-},{"../glslfunctions":43,"./expr":13}],18:[function(require,module,exports){
+},{"../glslfunctions":44,"./expr":13}],18:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.get4comp = exports.get3comp = exports.get2comp = exports.getcomp = exports.Get4CompExpr = exports.Get3CompExpr = exports.Get2CompExpr = exports.GetCompExpr = exports.checkLegalComponents = exports.typeStringToLength = void 0;
@@ -2246,7 +2239,7 @@ function godrays(options = {}) {
 }
 exports.godrays = godrays;
 
-},{"../glslfunctions":43,"./expr":13,"./fragcolorexpr":14,"./vecexprs":41}],20:[function(require,module,exports){
+},{"../glslfunctions":44,"./expr":13,"./fragcolorexpr":14,"./vecexprs":42}],20:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.grain = exports.GrainExpr = void 0;
@@ -2275,7 +2268,7 @@ function grain(val) {
 }
 exports.grain = grain;
 
-},{"../glslfunctions":43,"./expr":13}],21:[function(require,module,exports){
+},{"../glslfunctions":44,"./expr":13}],21:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.hsv2rgb = exports.HSVToRGBExpr = void 0;
@@ -2303,7 +2296,7 @@ function hsv2rgb(col) {
 }
 exports.hsv2rgb = hsv2rgb;
 
-},{"../glslfunctions":43,"./expr":13}],22:[function(require,module,exports){
+},{"../glslfunctions":44,"./expr":13}],22:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.len = exports.LenExpr = void 0;
@@ -2329,6 +2322,31 @@ exports.len = len;
 },{"./expr":13}],23:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.motionblur = exports.MotionBlurLoop = void 0;
+const mergepass_1 = require("../mergepass");
+const setcolorexpr_1 = require("./setcolorexpr");
+const opexpr_1 = require("./opexpr");
+const channelsampleexpr_1 = require("./channelsampleexpr");
+const fragcolorexpr_1 = require("./fragcolorexpr");
+class MotionBlurLoop extends mergepass_1.EffectLoop {
+    constructor(target) {
+        // TODO be able to change the divisor
+        const effects = [
+            mergepass_1.loop([setcolorexpr_1.setcolor(opexpr_1.op(opexpr_1.op(channelsampleexpr_1.channel(target), "+", fragcolorexpr_1.fcolor()), "/", 2))]).target(target),
+            channelsampleexpr_1.channel(target),
+        ];
+        super(effects, { num: 1 });
+    }
+}
+exports.MotionBlurLoop = MotionBlurLoop;
+function motionblur(target) {
+    return new MotionBlurLoop(target);
+}
+exports.motionblur = motionblur;
+
+},{"../mergepass":46,"./channelsampleexpr":9,"./fragcolorexpr":14,"./opexpr":29,"./setcolorexpr":37}],24:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 exports.mouse = exports.MouseExpr = void 0;
 const expr_1 = require("./expr");
 /** mouse position expression */
@@ -2348,7 +2366,7 @@ function mouse() {
 }
 exports.mouse = mouse;
 
-},{"./expr":13}],24:[function(require,module,exports){
+},{"./expr":13}],25:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.center = exports.NormCenterFragCoordExpr = void 0;
@@ -2369,7 +2387,7 @@ function center() {
 }
 exports.center = center;
 
-},{"./expr":13}],25:[function(require,module,exports){
+},{"./expr":13}],26:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.norm = exports.NormExpr = void 0;
@@ -2392,7 +2410,7 @@ function norm(vec) {
 }
 exports.norm = norm;
 
-},{"./expr":13}],26:[function(require,module,exports){
+},{"./expr":13}],27:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pos = exports.NormFragCoordExpr = void 0;
@@ -2413,7 +2431,7 @@ function pos() {
 }
 exports.pos = pos;
 
-},{"./expr":13}],27:[function(require,module,exports){
+},{"./expr":13}],28:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.nmouse = exports.NormMouseExpr = void 0;
@@ -2435,7 +2453,7 @@ function nmouse() {
 }
 exports.nmouse = nmouse;
 
-},{"./expr":13}],28:[function(require,module,exports){
+},{"./expr":13}],29:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.op = exports.OpExpr = void 0;
@@ -2474,7 +2492,7 @@ function op(left, op, right) {
 }
 exports.op = op;
 
-},{"./expr":13}],29:[function(require,module,exports){
+},{"./expr":13}],30:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fractalize = exports.perlin = exports.PerlinExpr = void 0;
@@ -2523,7 +2541,7 @@ function fractalize(pos, octaves, func) {
 }
 exports.fractalize = fractalize;
 
-},{"../glslfunctions":43,"./expr":13,"./opexpr":28}],30:[function(require,module,exports){
+},{"../glslfunctions":44,"./expr":13,"./opexpr":29}],31:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pblur = exports.PowerBlurLoop = void 0;
@@ -2564,7 +2582,7 @@ function pblur(size) {
 }
 exports.pblur = pblur;
 
-},{"../mergepass":45,"./blurexpr":6,"./expr":13,"./vecexprs":41}],31:[function(require,module,exports){
+},{"../mergepass":46,"./blurexpr":6,"./expr":13,"./vecexprs":42}],32:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.random = exports.RandomExpr = void 0;
@@ -2593,7 +2611,7 @@ function random(seed) {
 }
 exports.random = random;
 
-},{"../glslfunctions":43,"./expr":13,"./normfragcoordexpr":26}],32:[function(require,module,exports){
+},{"../glslfunctions":44,"./expr":13,"./normfragcoordexpr":27}],33:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resolution = exports.ResolutionExpr = void 0;
@@ -2611,7 +2629,7 @@ function resolution() {
 }
 exports.resolution = resolution;
 
-},{"./expr":13}],33:[function(require,module,exports){
+},{"./expr":13}],34:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.rgb2hsv = exports.RGBToHSVExpr = void 0;
@@ -2640,7 +2658,7 @@ function rgb2hsv(col) {
 }
 exports.rgb2hsv = rgb2hsv;
 
-},{"../glslfunctions":43,"./expr":13}],34:[function(require,module,exports){
+},{"../glslfunctions":44,"./expr":13}],35:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.rotate = exports.RotateExpr = void 0;
@@ -2674,7 +2692,7 @@ function rotate(vec, angle) {
 }
 exports.rotate = rotate;
 
-},{"../glslfunctions":43,"./expr":13}],35:[function(require,module,exports){
+},{"../glslfunctions":44,"./expr":13}],36:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.input = exports.SceneSampleExpr = void 0;
@@ -2705,7 +2723,7 @@ function input(vec) {
 }
 exports.input = input;
 
-},{"./expr":13,"./normfragcoordexpr":26}],36:[function(require,module,exports){
+},{"./expr":13,"./normfragcoordexpr":27}],37:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setcolor = exports.SetColorExpr = void 0;
@@ -2734,7 +2752,7 @@ function setcolor(val) {
 }
 exports.setcolor = setcolor;
 
-},{"./expr":13}],37:[function(require,module,exports){
+},{"./expr":13}],38:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.simplex = exports.SimplexNoise = void 0;
@@ -2762,7 +2780,7 @@ function simplex(pos) {
 }
 exports.simplex = simplex;
 
-},{"../glslfunctions":43,"./expr":13}],38:[function(require,module,exports){
+},{"../glslfunctions":44,"./expr":13}],39:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.time = exports.TimeExpr = void 0;
@@ -2781,7 +2799,7 @@ function time() {
 }
 exports.time = time;
 
-},{"./expr":13}],39:[function(require,module,exports){
+},{"./expr":13}],40:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.translate = exports.TranslateExpr = void 0;
@@ -2814,7 +2832,7 @@ function translate(vec, pos) {
 }
 exports.translate = translate;
 
-},{"./expr":13}],40:[function(require,module,exports){
+},{"./expr":13}],41:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.truedepth = exports.TrueDepthExpr = void 0;
@@ -2840,7 +2858,7 @@ function truedepth(depth) {
 }
 exports.truedepth = truedepth;
 
-},{"../glslfunctions":43,"./expr":13}],41:[function(require,module,exports){
+},{"../glslfunctions":44,"./expr":13}],42:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pvec4 = exports.pvec3 = exports.pvec2 = exports.vec4 = exports.vec3 = exports.vec2 = void 0;
@@ -2891,11 +2909,11 @@ function pvec4(comp1, comp2, comp3, comp4) {
 }
 exports.pvec4 = pvec4;
 
-},{"./expr":13}],42:[function(require,module,exports){
+},{"./expr":13}],43:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 
-},{}],43:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.replaceSampler = exports.captureAndAppend = exports.glslFuncs = void 0;
@@ -3181,7 +3199,7 @@ function replaceSampler(fullString, funcRegExp, samplerNum, extra) {
 }
 exports.replaceSampler = replaceSampler;
 
-},{}],44:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -3234,10 +3252,11 @@ __exportStar(require("./exprs/translateexpr"), exports);
 __exportStar(require("./exprs/normmouseexpr"), exports);
 __exportStar(require("./exprs/perlinexpr"), exports);
 __exportStar(require("./exprs/simplexexpr"), exports);
+__exportStar(require("./exprs/motionblurloop"), exports);
 // TODO move this out of expressions
 __exportStar(require("./exprs/expr"), exports);
 
-},{"./exprs/arity1":3,"./exprs/arity2":4,"./exprs/blur2dloop":5,"./exprs/blurexpr":6,"./exprs/brightnessexpr":7,"./exprs/changecompexpr":8,"./exprs/channelsampleexpr":9,"./exprs/contrastexpr":10,"./exprs/depthtoocclusionexpr":11,"./exprs/dofloop":12,"./exprs/expr":13,"./exprs/fragcolorexpr":14,"./exprs/fragcoordexpr":15,"./exprs/fxaaexpr":16,"./exprs/getcompexpr":18,"./exprs/godraysexpr":19,"./exprs/grainexpr":20,"./exprs/hsvtorgbexpr":21,"./exprs/lenexpr":22,"./exprs/mouseexpr":23,"./exprs/normcenterfragcoordexpr":24,"./exprs/normexpr":25,"./exprs/normfragcoordexpr":26,"./exprs/normmouseexpr":27,"./exprs/opexpr":28,"./exprs/perlinexpr":29,"./exprs/powerblur":30,"./exprs/randomexpr":31,"./exprs/resolutionexpr":32,"./exprs/rgbtohsvexpr":33,"./exprs/rotateexpr":34,"./exprs/scenesampleexpr":35,"./exprs/setcolorexpr":36,"./exprs/simplexexpr":37,"./exprs/timeexpr":38,"./exprs/translateexpr":39,"./exprs/truedepthexpr":40,"./exprs/vecexprs":41,"./exprtypes":42,"./glslfunctions":43,"./mergepass":45}],45:[function(require,module,exports){
+},{"./exprs/arity1":3,"./exprs/arity2":4,"./exprs/blur2dloop":5,"./exprs/blurexpr":6,"./exprs/brightnessexpr":7,"./exprs/changecompexpr":8,"./exprs/channelsampleexpr":9,"./exprs/contrastexpr":10,"./exprs/depthtoocclusionexpr":11,"./exprs/dofloop":12,"./exprs/expr":13,"./exprs/fragcolorexpr":14,"./exprs/fragcoordexpr":15,"./exprs/fxaaexpr":16,"./exprs/getcompexpr":18,"./exprs/godraysexpr":19,"./exprs/grainexpr":20,"./exprs/hsvtorgbexpr":21,"./exprs/lenexpr":22,"./exprs/motionblurloop":23,"./exprs/mouseexpr":24,"./exprs/normcenterfragcoordexpr":25,"./exprs/normexpr":26,"./exprs/normfragcoordexpr":27,"./exprs/normmouseexpr":28,"./exprs/opexpr":29,"./exprs/perlinexpr":30,"./exprs/powerblur":31,"./exprs/randomexpr":32,"./exprs/resolutionexpr":33,"./exprs/rgbtohsvexpr":34,"./exprs/rotateexpr":35,"./exprs/scenesampleexpr":36,"./exprs/setcolorexpr":37,"./exprs/simplexexpr":38,"./exprs/timeexpr":39,"./exprs/translateexpr":40,"./exprs/truedepthexpr":41,"./exprs/vecexprs":42,"./exprtypes":43,"./glslfunctions":44,"./mergepass":46}],46:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendTexture = exports.makeTexture = exports.Merger = exports.loop = exports.EffectLoop = exports.EffectDictionary = void 0;
@@ -3634,7 +3653,7 @@ function sendTexture(gl, src) {
 }
 exports.sendTexture = sendTexture;
 
-},{".":44,"./codebuilder":1,"./webglprogramloop":46}],46:[function(require,module,exports){
+},{".":45,"./codebuilder":1,"./webglprogramloop":47}],47:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WebGLProgramLoop = exports.WebGLProgramLeaf = exports.updateNeeds = void 0;
@@ -3861,7 +3880,7 @@ class WebGLProgramLoop {
 }
 exports.WebGLProgramLoop = WebGLProgramLoop;
 
-},{}],47:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
