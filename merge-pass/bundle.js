@@ -426,7 +426,7 @@ const demos = {
         };
     },
     bufferblend: (channels = []) => {
-        const merger = new MP.Merger([MP.blur2d(1, 1), MP.motionblur(0)], sourceCanvas, gl, { channels: [null] });
+        const merger = new MP.Merger([MP.blur2d(1, 1), MP.motionblur(0), MP.brightness(0.3)], sourceCanvas, gl, { channels: [null] });
         return {
             merger: merger,
             change: () => { },
@@ -3335,7 +3335,9 @@ class EffectLoop {
         const regroupedEffects = [];
         let prevTarget;
         let currTarget;
+        let mustBreakCounter = 0;
         const breakOff = () => {
+            mustBreakCounter--;
             if (prevEffects.length > 0) {
                 // break off all previous effects into their own loop
                 if (prevEffects.length === 1) {
@@ -3355,12 +3357,17 @@ class EffectLoop {
             sampleCount += sampleNum;
             if (e instanceof EffectLoop) {
                 currTarget = e.loopInfo.target;
+                if (e.hasTargetSwitch()) {
+                    mustBreakCounter = 2;
+                }
             }
             else {
                 // if it's not a loop it's assumed the target is that of outer loop
                 currTarget = this.loopInfo.target;
             }
-            if (sampleCount > 0 || currTarget !== prevTarget) {
+            if (sampleCount > 0 ||
+                currTarget !== prevTarget ||
+                mustBreakCounter > 0) {
                 breakOff();
             }
             prevEffects.push(e);
@@ -3381,6 +3388,16 @@ class EffectLoop {
             const program = codeBuilder.compileProgram(gl, vShader, uniformLocs, shaders);
             return program;
         }
+        // TODO get rid of this
+        /*
+        console.log("!has target switch", !this.hasTargetSwitch());
+        console.log(
+          "samples",
+          fullSampleNum === 0 || (firstSampleNum === 1 && restSampleNum === 0)
+        );
+        console.log("effects", this.effects);
+        */
+        //console.log("not valid");
         // otherwise, regroup and try again on regrouped loops
         this.effects = this.regroup();
         return new webglprogramloop_1.WebGLProgramLoop(this.effects.map((e) => e.genPrograms(gl, vShader, uniformLocs, shaders)), this.loopInfo, gl);
