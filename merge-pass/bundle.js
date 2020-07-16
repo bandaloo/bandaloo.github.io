@@ -425,11 +425,23 @@ const demos = {
             change: () => { },
         };
     },
-    bufferblend: (channels = []) => {
-        const merger = new MP.Merger([MP.blur2d(1, 1), MP.motionblur(0), MP.brightness(0.3)], sourceCanvas, gl, { channels: [null] });
+    motionblur: (channels = []) => {
+        const grainy = MP.brightness(MP.op(MP.random(MP.op(MP.pixel(), "+", MP.time())), "/", 4));
+        class MotionControls {
+            constructor() {
+                this.persistence = 0.3;
+            }
+        }
+        const controls = new MotionControls();
+        const gui = new dat.GUI();
+        gui.add(controls, "persistence", 0.1, 0.9, 0.01);
+        let m;
+        const merger = new MP.Merger([MP.blur2d(1, 1), (m = MP.motionblur(0)), grainy], sourceCanvas, gl, { channels: [null] });
         return {
             merger: merger,
-            change: () => { },
+            change: () => {
+                m.setPersistence(controls.persistence);
+            },
         };
     },
     basicdof: (channels = []) => {
@@ -805,7 +817,7 @@ const draws = {
         higherOrderWaves(false),
         bitwiseGrid(),
     ],
-    bufferblend: [redSpiral],
+    motionblur: [redSpiral],
     basicdof: [higherOrderPerspective(true), higherOrderPerspective(false)],
     lineardof: [
         higherOrderPerspective(true),
@@ -835,8 +847,11 @@ const notes = {
         "demonstrates how you can optionally pass a list of images (which can " +
         "be canvases or videos) into the merger constructor and sample from them",
     buffereyesore: "you can use <code>target</code> to do effect loops on specific channels",
-    bufferblend: "if you want to use one of the channels as an empty buffer you can <code>target</code>, then " +
-        "make that element in the <code>channels</code> array <code>null</code>",
+    motionblur: "if you want to use one of the channels as an acccumulation buffer you can <code>target</code>, " +
+        "then make that element in the <code>channels</code> array <code>null</code>. " +
+        "the <code>motionblur</code> effect will blend the current frame with the previous frames " +
+        "to create a simple motion blur effect. effects placed after <code>motionblur</code> will " +
+        "will not be copied over to the accumulation buffer",
     fxaa: "fxaa stands for fast approximate anti-aliasing. amazingly, it only needs " +
         "the scene buffer info. it's not perfect, but it does the job in many cases. you " +
         "can see how it eliminates jaggies by looking at the unprocessed image",
@@ -1117,7 +1132,7 @@ class Blur2dLoop extends mergepass_1.EffectLoop {
      */
     setHorizontal(float) {
         if (!(this.horizontal instanceof expr_1.BasicFloat))
-            throw new Error("horizontal expression not primitive float");
+            throw new Error("horizontal expression not basic float");
         this.horizontal.setVal(float);
     }
     /**
@@ -1126,7 +1141,7 @@ class Blur2dLoop extends mergepass_1.EffectLoop {
      */
     setVertical(float) {
         if (!(this.vertical instanceof expr_1.BasicFloat))
-            throw new Error("vertical expression not primitive float");
+            throw new Error("vertical expression not basic float");
         this.vertical.setVal(float);
     }
 }
@@ -2324,27 +2339,45 @@ exports.len = len;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.motionblur = exports.MotionBlurLoop = void 0;
 const mergepass_1 = require("../mergepass");
-const setcolorexpr_1 = require("./setcolorexpr");
-const opexpr_1 = require("./opexpr");
 const channelsampleexpr_1 = require("./channelsampleexpr");
+const expr_1 = require("./expr");
 const fragcolorexpr_1 = require("./fragcolorexpr");
+const opexpr_1 = require("./opexpr");
+const setcolorexpr_1 = require("./setcolorexpr");
+/** frame averaging motion blur loop */
 class MotionBlurLoop extends mergepass_1.EffectLoop {
-    constructor(target) {
-        // TODO be able to change the divisor
+    constructor(target = 0, persistence = expr_1.float(expr_1.mut(0.3))) {
+        const col1 = opexpr_1.op(channelsampleexpr_1.channel(target), "*", persistence);
+        const col2 = opexpr_1.op(fragcolorexpr_1.fcolor(), "*", opexpr_1.op(1, "-", persistence));
         const effects = [
-            mergepass_1.loop([setcolorexpr_1.setcolor(opexpr_1.op(opexpr_1.op(channelsampleexpr_1.channel(target), "+", fragcolorexpr_1.fcolor()), "/", 2))]).target(target),
+            mergepass_1.loop([setcolorexpr_1.setcolor(opexpr_1.op(col1, "+", col2))]).target(target),
             channelsampleexpr_1.channel(target),
         ];
         super(effects, { num: 1 });
+        this.persistence = persistence;
+    }
+    /** set the persistence (keep between 0 and 1) */
+    setPersistence(float) {
+        if (!(this.persistence instanceof expr_1.BasicFloat))
+            throw new Error("persistence expression not basic float");
+        this.persistence.setVal(float);
     }
 }
 exports.MotionBlurLoop = MotionBlurLoop;
-function motionblur(target) {
-    return new MotionBlurLoop(target);
+/**
+ * creates a frame averaging motion blur effect
+ * @param target the channel where your accumulation buffer is (defaults to 0,
+ * which you might be using for something like the depth texture, so be sure to
+ * change this to suit your needs)
+ * @param persistence close to 0 is more ghostly, and close to 1 is nearly no
+ * motion blur at all (defaults to 0.3)
+ */
+function motionblur(target, persistence) {
+    return new MotionBlurLoop(target, expr_1.n2e(persistence));
 }
 exports.motionblur = motionblur;
 
-},{"../mergepass":46,"./channelsampleexpr":9,"./fragcolorexpr":14,"./opexpr":29,"./setcolorexpr":37}],24:[function(require,module,exports){
+},{"../mergepass":46,"./channelsampleexpr":9,"./expr":13,"./fragcolorexpr":14,"./opexpr":29,"./setcolorexpr":37}],24:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.mouse = exports.MouseExpr = void 0;
@@ -2589,7 +2622,7 @@ exports.random = exports.RandomExpr = void 0;
 const glslfunctions_1 = require("../glslfunctions");
 const expr_1 = require("./expr");
 const normfragcoordexpr_1 = require("./normfragcoordexpr");
-class RandomExpr extends expr_1.ExprVec4 {
+class RandomExpr extends expr_1.ExprFloat {
     constructor(seed = normfragcoordexpr_1.pos()) {
         super(expr_1.tag `random(${seed})`, ["uSeed"]);
         this.seed = seed;
@@ -3216,7 +3249,6 @@ __exportStar(require("./mergepass"), exports);
 __exportStar(require("./exprtypes"), exports);
 __exportStar(require("./glslfunctions"), exports);
 __exportStar(require("./exprs/blurexpr"), exports);
-__exportStar(require("./exprs/randomexpr"), exports);
 __exportStar(require("./exprs/fragcolorexpr"), exports);
 __exportStar(require("./exprs/vecexprs"), exports);
 __exportStar(require("./exprs/opexpr"), exports);
@@ -3253,6 +3285,7 @@ __exportStar(require("./exprs/normmouseexpr"), exports);
 __exportStar(require("./exprs/perlinexpr"), exports);
 __exportStar(require("./exprs/simplexexpr"), exports);
 __exportStar(require("./exprs/motionblurloop"), exports);
+__exportStar(require("./exprs/randomexpr"), exports);
 // TODO move this out of expressions
 __exportStar(require("./exprs/expr"), exports);
 
