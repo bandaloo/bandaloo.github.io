@@ -91,13 +91,13 @@
 					<a name="blur2d" class="tsd-anchor"></a>
 					<h3>blur2d</h3>
 					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
-						<li class="tsd-signature tsd-kind-icon">blur2d<span class="tsd-signature-symbol">(</span>horizontalExpr<span class="tsd-signature-symbol">?: </span><a href="_exprtypes_.html#float" class="tsd-signature-type">Float</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span>, verticalExpr<span class="tsd-signature-symbol">?: </span><a href="_exprtypes_.html#float" class="tsd-signature-type">Float</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span>, reps<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span>, taps<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">5</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">9</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">13</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../classes/_exprs_blur2dloop_.blur2dloop.html" class="tsd-signature-type">Blur2dLoop</a></li>
+						<li class="tsd-signature tsd-kind-icon">blur2d<span class="tsd-signature-symbol">(</span>horizontalExpr<span class="tsd-signature-symbol">?: </span><a href="_exprtypes_.html#float" class="tsd-signature-type">Float</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span>, verticalExpr<span class="tsd-signature-symbol">?: </span><a href="_exprtypes_.html#float" class="tsd-signature-type">Float</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span>, reps<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span>, taps<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">5</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">9</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">13</span>, samplerNum<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../classes/_exprs_blur2dloop_.blur2dloop.html" class="tsd-signature-type">Blur2dLoop</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/exprs/blur2dloop.ts#L55">exprs/blur2dloop.ts:55</a></li>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/exprs/blur2dloop.ts#L58">exprs/blur2dloop.ts:58</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -130,7 +130,14 @@
 								<li>
 									<h5><span class="tsd-flag ts-flagOptional">Optional</span> taps: <span class="tsd-signature-type">5</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">9</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">13</span></h5>
 									<div class="tsd-comment tsd-typography">
-										<p>how many taps (5, 9, or 13, defaults to 5)</p>
+										<p>how many taps (defaults to 5)</p>
+									</div>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> samplerNum: <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>change if you want to sample from a different channel and
+										the outer loop has a different target</p>
 									</div>
 								</li>
 							</ul>

@@ -104,16 +104,16 @@
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_exprs_dofloop_.dofloop.html#effects" class="tsd-kind-icon">effects</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_exprs_dofloop_.dofloop.html#gaussian" class="tsd-kind-icon">gaussian</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_exprs_dofloop_.dofloop.html#repeat" class="tsd-kind-icon">repeat</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_exprs_dofloop_.dofloop.html#loopinfo" class="tsd-kind-icon">loop<wbr>Info</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_exprs_dofloop_.dofloop.html#genprograms" class="tsd-kind-icon">gen<wbr>Programs</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_exprs_dofloop_.dofloop.html#getsamplenum" class="tsd-kind-icon">get<wbr>Sample<wbr>Num</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_exprs_dofloop_.dofloop.html#setdepth" class="tsd-kind-icon">set<wbr>Depth</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_exprs_dofloop_.dofloop.html#setradius" class="tsd-kind-icon">set<wbr>Radius</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_exprs_dofloop_.dofloop.html#target" class="tsd-kind-icon">target</a></li>
 							</ul>
 						</section>
 					</div>
@@ -125,14 +125,14 @@
 					<a name="constructor" class="tsd-anchor"></a>
 					<h3>constructor</h3>
 					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite">
-						<li class="tsd-signature tsd-kind-icon">new <wbr>DoFLoop<span class="tsd-signature-symbol">(</span>depth<span class="tsd-signature-symbol">?: </span><a href="../modules/_exprtypes_.html#float" class="tsd-signature-type">Float</a>, rad<span class="tsd-signature-symbol">?: </span><a href="../modules/_exprtypes_.html#float" class="tsd-signature-type">Float</a>, depthInfo<span class="tsd-signature-symbol">?: </span><a href="../modules/_exprtypes_.html#float" class="tsd-signature-type">Float</a>, reps<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_exprs_dofloop_.dofloop.html" class="tsd-signature-type">DoFLoop</a></li>
+						<li class="tsd-signature tsd-kind-icon">new <wbr>DoFLoop<span class="tsd-signature-symbol">(</span>depth<span class="tsd-signature-symbol">?: </span><a href="../modules/_exprtypes_.html#float" class="tsd-signature-type">Float</a>, rad<span class="tsd-signature-symbol">?: </span><a href="../modules/_exprtypes_.html#float" class="tsd-signature-type">Float</a>, depthInfo<span class="tsd-signature-symbol">?: </span><a href="../modules/_exprtypes_.html#float" class="tsd-signature-type">Float</a>, reps<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span>, taps<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">5</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">9</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">13</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_exprs_dofloop_.dofloop.html" class="tsd-signature-type">DoFLoop</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Overrides <a href="_mergepass_.effectloop.html">EffectLoop</a>.<a href="_mergepass_.effectloop.html#constructor">constructor</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/exprs/dofloop.ts#L13">exprs/dofloop.ts:13</a></li>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/exprs/dofloop.ts#L13">exprs/dofloop.ts:13</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -149,6 +149,9 @@
 								<li>
 									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> reps: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> = 2</span></h5>
 								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> taps: <span class="tsd-signature-type">5</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">9</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">13</span><span class="tsd-signature-symbol"> = 13</span></h5>
+								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <a href="_exprs_dofloop_.dofloop.html" class="tsd-signature-type">DoFLoop</a></h4>
 						</li>
@@ -162,9 +165,9 @@
 					<h3>effects</h3>
 					<div class="tsd-signature tsd-kind-icon">effects<span class="tsd-signature-symbol">:</span> <a href="../modules/_mergepass_.html#effectelement" class="tsd-signature-type">EffectElement</a><span class="tsd-signature-symbol">[]</span></div>
 					<aside class="tsd-sources">
-						<p>Inherited from <a href="_mergepass_.effectloop.html">EffectLoop</a>.<a href="_mergepass_.effectloop.html#effects">effects</a></p>
+						<p>Inherited from <a href="_exprs_powerblur_.powerblurloop.html">PowerBlurLoop</a>.<a href="_exprs_powerblur_.powerblurloop.html#effects">effects</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/mergepass.ts#L41">mergepass.ts:41</a></li>
+							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L115">mergepass.ts:115</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -174,18 +177,18 @@
 					<div class="tsd-signature tsd-kind-icon">gaussian<span class="tsd-signature-symbol">:</span> <a href="_exprs_gaussianexpr_.gaussianexpr.html" class="tsd-signature-type">GaussianExpr</a></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/exprs/dofloop.ts#L13">exprs/dofloop.ts:13</a></li>
+							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/exprs/dofloop.ts#L13">exprs/dofloop.ts:13</a></li>
 						</ul>
 					</aside>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-					<a name="repeat" class="tsd-anchor"></a>
-					<h3>repeat</h3>
-					<div class="tsd-signature tsd-kind-icon">repeat<span class="tsd-signature-symbol">:</span> <a href="../interfaces/_mergepass_.loopinfo.html" class="tsd-signature-type">LoopInfo</a></div>
+					<a name="loopinfo" class="tsd-anchor"></a>
+					<h3>loop<wbr>Info</h3>
+					<div class="tsd-signature tsd-kind-icon">loop<wbr>Info<span class="tsd-signature-symbol">:</span> <a href="../interfaces/_mergepass_.loopinfo.html" class="tsd-signature-type">LoopInfo</a></div>
 					<aside class="tsd-sources">
-						<p>Inherited from <a href="_mergepass_.effectloop.html">EffectLoop</a>.<a href="_mergepass_.effectloop.html#repeat">repeat</a></p>
+						<p>Inherited from <a href="_exprs_powerblur_.powerblurloop.html">PowerBlurLoop</a>.<a href="_exprs_powerblur_.powerblurloop.html#loopinfo">loopInfo</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/mergepass.ts#L42">mergepass.ts:42</a></li>
+							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L116">mergepass.ts:116</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -202,9 +205,9 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Implementation of <a href="../interfaces/_mergepass_.generable.html">Generable</a>.<a href="../interfaces/_mergepass_.generable.html#genprograms">genPrograms</a></p>
-								<p>Inherited from <a href="_mergepass_.effectloop.html">EffectLoop</a>.<a href="_mergepass_.effectloop.html#genprograms">genPrograms</a></p>
+								<p>Inherited from <a href="_exprs_powerblur_.powerblurloop.html">PowerBlurLoop</a>.<a href="_exprs_powerblur_.powerblurloop.html#genprograms">genPrograms</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/mergepass.ts#L94">mergepass.ts:94</a></li>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L189">mergepass.ts:189</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -226,53 +229,23 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-					<a name="getsamplenum" class="tsd-anchor"></a>
-					<h3>get<wbr>Sample<wbr>Num</h3>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">get<wbr>Sample<wbr>Num<span class="tsd-signature-symbol">(</span>mult<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span>, sliceStart<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span>, sliceEnd<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<p>Inherited from <a href="_mergepass_.effectloop.html">EffectLoop</a>.<a href="_mergepass_.effectloop.html#getsamplenum">getSampleNum</a></p>
-								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/mergepass.ts#L49">mergepass.ts:49</a></li>
-								</ul>
-							</aside>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> mult: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> = 1</span></h5>
-								</li>
-								<li>
-									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> sliceStart: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> = 0</span></h5>
-								</li>
-								<li>
-									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> sliceEnd: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> = this.effects.length</span></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">number</span></h4>
-						</li>
-					</ul>
-				</section>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="setdepth" class="tsd-anchor"></a>
 					<h3>set<wbr>Depth</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">set<wbr>Depth<span class="tsd-signature-symbol">(</span>depth<span class="tsd-signature-symbol">: </span><a href="../modules/_exprtypes_.html#float" class="tsd-signature-type">Float</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+						<li class="tsd-signature tsd-kind-icon">set<wbr>Depth<span class="tsd-signature-symbol">(</span>depth<span class="tsd-signature-symbol">: </span><a href="_exprs_expr_.primitivefloat.html" class="tsd-signature-type">PrimitiveFloat</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/exprs/dofloop.ts#L29">exprs/dofloop.ts:29</a></li>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/exprs/dofloop.ts#L29">exprs/dofloop.ts:29</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>depth: <a href="../modules/_exprtypes_.html#float" class="tsd-signature-type">Float</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span></h5>
+									<h5>depth: <a href="_exprs_expr_.primitivefloat.html" class="tsd-signature-type">PrimitiveFloat</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
@@ -283,22 +256,52 @@
 					<a name="setradius" class="tsd-anchor"></a>
 					<h3>set<wbr>Radius</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">set<wbr>Radius<span class="tsd-signature-symbol">(</span>radius<span class="tsd-signature-symbol">: </span><a href="../modules/_exprtypes_.html#float" class="tsd-signature-type">Float</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+						<li class="tsd-signature tsd-kind-icon">set<wbr>Radius<span class="tsd-signature-symbol">(</span>radius<span class="tsd-signature-symbol">: </span><a href="_exprs_expr_.primitivefloat.html" class="tsd-signature-type">PrimitiveFloat</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/exprs/dofloop.ts#L34">exprs/dofloop.ts:34</a></li>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/exprs/dofloop.ts#L34">exprs/dofloop.ts:34</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>radius: <a href="../modules/_exprtypes_.html#float" class="tsd-signature-type">Float</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span></h5>
+									<h5>radius: <a href="_exprs_expr_.primitivefloat.html" class="tsd-signature-type">PrimitiveFloat</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+					<a name="target" class="tsd-anchor"></a>
+					<h3>target</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+						<li class="tsd-signature tsd-kind-icon">target<span class="tsd-signature-symbol">(</span>num<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">this</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<p>Inherited from <a href="_exprs_powerblur_.powerblurloop.html">PowerBlurLoop</a>.<a href="_exprs_powerblur_.powerblurloop.html#target">target</a></p>
+								<ul>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L226">mergepass.ts:226</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>changes the render target of an effect loop (-1 targest the scene texture;
+									this is used internally)</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>num: <span class="tsd-signature-type">number</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">this</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -332,19 +335,19 @@
 								<a href="_exprs_dofloop_.dofloop.html#gaussian" class="tsd-kind-icon">gaussian</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-								<a href="_exprs_dofloop_.dofloop.html#repeat" class="tsd-kind-icon">repeat</a>
+								<a href="_exprs_dofloop_.dofloop.html#loopinfo" class="tsd-kind-icon">loop<wbr>Info</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 								<a href="_exprs_dofloop_.dofloop.html#genprograms" class="tsd-kind-icon">gen<wbr>Programs</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_exprs_dofloop_.dofloop.html#getsamplenum" class="tsd-kind-icon">get<wbr>Sample<wbr>Num</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_exprs_dofloop_.dofloop.html#setdepth" class="tsd-kind-icon">set<wbr>Depth</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_exprs_dofloop_.dofloop.html#setradius" class="tsd-kind-icon">set<wbr>Radius</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+								<a href="_exprs_dofloop_.dofloop.html#target" class="tsd-kind-icon">target</a>
 							</li>
 						</ul>
 					</li>

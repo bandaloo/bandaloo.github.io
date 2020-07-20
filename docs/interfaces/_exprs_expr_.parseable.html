@@ -93,6 +93,8 @@
 					<li><a href="../classes/_exprs_channelsampleexpr_.channelsampleexpr.html" class="tsd-signature-type">ChannelSampleExpr</a></li>
 					<li><a href="../classes/_exprs_contrastexpr_.contrastexpr.html" class="tsd-signature-type">ContrastExpr</a></li>
 					<li><a href="../classes/_exprs_depthtoocclusionexpr_.depthtoocclusionexpr.html" class="tsd-signature-type">DepthToOcclusionExpr</a></li>
+					<li><a href="../classes/_exprs_edgecolorexpr_.edgecolorexpr.html" class="tsd-signature-type">EdgeColorExpr</a></li>
+					<li><a href="../classes/_exprs_edgeexpr_.edgeexpr.html" class="tsd-signature-type">EdgeExpr</a></li>
 					<li><a href="../classes/_exprs_expr_.expr.html" class="tsd-signature-type">Expr</a></li>
 					<li><a href="../classes/_exprs_expr_.exprfloat.html" class="tsd-signature-type">ExprFloat</a></li>
 					<li><a href="../classes/_exprs_expr_.exprvec.html" class="tsd-signature-type">ExprVec</a></li>
@@ -110,14 +112,18 @@
 					<li><a href="../classes/_exprs_godraysexpr_.godraysexpr.html" class="tsd-signature-type">GodRaysExpr</a></li>
 					<li><a href="../classes/_exprs_grainexpr_.grainexpr.html" class="tsd-signature-type">GrainExpr</a></li>
 					<li><a href="../classes/_exprs_hsvtorgbexpr_.hsvtorgbexpr.html" class="tsd-signature-type">HSVToRGBExpr</a></li>
+					<li><a href="../classes/_exprs_invertexpr_.invertexpr.html" class="tsd-signature-type">InvertExpr</a></li>
 					<li><a href="../classes/_exprs_lenexpr_.lenexpr.html" class="tsd-signature-type">LenExpr</a></li>
+					<li><a href="../classes/_exprs_monochromeexpr_.monochromeexpr.html" class="tsd-signature-type">MonochromeExpr</a></li>
 					<li><a href="../classes/_exprs_mouseexpr_.mouseexpr.html" class="tsd-signature-type">MouseExpr</a></li>
 					<li><a href="../classes/_exprs_expr_.mutable.html" class="tsd-signature-type">Mutable</a></li>
 					<li><a href="../classes/_exprs_normcenterfragcoordexpr_.normcenterfragcoordexpr.html" class="tsd-signature-type">NormCenterFragCoordExpr</a></li>
+					<li><a href="../classes/_exprs_normexpr_.normexpr.html" class="tsd-signature-type">NormExpr</a></li>
 					<li><a href="../classes/_exprs_normfragcoordexpr_.normfragcoordexpr.html" class="tsd-signature-type">NormFragCoordExpr</a></li>
-					<li><a href="../classes/_exprs_normmouseepxr_.normmouseexpr.html" class="tsd-signature-type">NormMouseExpr</a></li>
+					<li><a href="../classes/_exprs_normmouseexpr_.normmouseexpr.html" class="tsd-signature-type">NormMouseExpr</a></li>
 					<li><a href="../classes/_exprs_opexpr_.opexpr.html" class="tsd-signature-type">OpExpr</a></li>
 					<li><a href="../classes/_exprs_expr_.operator.html" class="tsd-signature-type">Operator</a></li>
+					<li><a href="../classes/_exprs_perlinexpr_.perlinexpr.html" class="tsd-signature-type">PerlinExpr</a></li>
 					<li><a href="../classes/_exprs_expr_.primitive.html" class="tsd-signature-type">Primitive</a></li>
 					<li><a href="../classes/_exprs_expr_.primitivefloat.html" class="tsd-signature-type">PrimitiveFloat</a></li>
 					<li><a href="../classes/_exprs_expr_.primitivevec.html" class="tsd-signature-type">PrimitiveVec</a></li>
@@ -130,9 +136,12 @@
 					<li><a href="../classes/_exprs_rotateexpr_.rotateexpr.html" class="tsd-signature-type">RotateExpr</a></li>
 					<li><a href="../classes/_exprs_scenesampleexpr_.scenesampleexpr.html" class="tsd-signature-type">SceneSampleExpr</a></li>
 					<li><a href="../classes/_exprs_setcolorexpr_.setcolorexpr.html" class="tsd-signature-type">SetColorExpr</a></li>
+					<li><a href="../classes/_exprs_simplexexpr_.simplexnoise.html" class="tsd-signature-type">SimplexNoise</a></li>
+					<li><a href="../classes/_exprs_sobelexpr_.sobelexpr.html" class="tsd-signature-type">SobelExpr</a></li>
 					<li><a href="../classes/_exprs_timeexpr_.timeexpr.html" class="tsd-signature-type">TimeExpr</a></li>
 					<li><a href="../classes/_exprs_translateexpr_.translateexpr.html" class="tsd-signature-type">TranslateExpr</a></li>
 					<li><a href="../classes/_exprs_truedepthexpr_.truedepthexpr.html" class="tsd-signature-type">TrueDepthExpr</a></li>
+					<li><a href="../classes/_exprs_expr_.wrappedexpr.html" class="tsd-signature-type">WrappedExpr</a></li>
 				</ul>
 			</section>
 			<section class="tsd-panel-group tsd-index-group">
@@ -162,7 +171,7 @@
 					<div class="tsd-signature tsd-kind-icon">parse<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">(</span>buildInfo<span class="tsd-signature-symbol">: </span><a href="_exprs_expr_.buildinfo.html" class="tsd-signature-type">BuildInfo</a>, defaultName<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, enc<span class="tsd-signature-symbol">: </span><a href="../classes/_exprs_expr_.expr.html" class="tsd-signature-type">Expr</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/exprs/expr.ts#L52">exprs/expr.ts:52</a></li>
+							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/exprs/expr.ts#L51">exprs/expr.ts:51</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-type-declaration">
@@ -206,7 +215,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/exprs/expr.ts#L59">exprs/expr.ts:59</a></li>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/exprs/expr.ts#L58">exprs/expr.ts:58</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -290,6 +299,9 @@
 					<li class=" tsd-kind-class tsd-parent-kind-module">
 						<a href="../classes/_exprs_expr_.primitivevec4.html" class="tsd-kind-icon">Primitive<wbr>Vec4</a>
 					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter">
+						<a href="../classes/_exprs_expr_.wrappedexpr.html" class="tsd-kind-icon">Wrapped<wbr>Expr</a>
+					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-module">
 						<a href="_exprs_expr_.applicable.html" class="tsd-kind-icon">Applicable</a>
 					</li>
@@ -327,7 +339,22 @@
 						<a href="_exprs_expr_.uniformvalchangemap.html" class="tsd-kind-icon">Uniform<wbr>Val<wbr>Change<wbr>Map</a>
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-module">
+						<a href="../modules/_exprs_expr_.html#cfloat" class="tsd-kind-icon">cfloat</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-module">
+						<a href="../modules/_exprs_expr_.html#cvec2" class="tsd-kind-icon">cvec2</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-module">
+						<a href="../modules/_exprs_expr_.html#cvec3" class="tsd-kind-icon">cvec3</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-module">
+						<a href="../modules/_exprs_expr_.html#cvec4" class="tsd-kind-icon">cvec4</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-module">
 						<a href="../modules/_exprs_expr_.html#float" class="tsd-kind-icon">float</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-module tsd-is-not-exported">
+						<a href="../modules/_exprs_expr_.html#gencustomnames" class="tsd-kind-icon">gen<wbr>Custom<wbr>Names</a>
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-module tsd-has-type-parameter">
 						<a href="../modules/_exprs_expr_.html#mut" class="tsd-kind-icon">mut</a>
@@ -340,6 +367,9 @@
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-module">
 						<a href="../modules/_exprs_expr_.html#pfloat" class="tsd-kind-icon">pfloat</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-module">
+						<a href="../modules/_exprs_expr_.html#tag" class="tsd-kind-icon">tag</a>
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-module tsd-is-not-exported">
 						<a href="../modules/_exprs_expr_.html#toglslfloatstring" class="tsd-kind-icon">toGLSLFloat<wbr>String</a>

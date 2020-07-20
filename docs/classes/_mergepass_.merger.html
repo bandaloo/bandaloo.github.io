@@ -98,14 +98,15 @@
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><a href="_mergepass_.merger.html#channels" class="tsd-kind-icon">channels</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><a href="_mergepass_.merger.html#effectloop" class="tsd-kind-icon">effect<wbr>Loop</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><a href="_mergepass_.merger.html#fshaders" class="tsd-kind-icon">f<wbr>Shaders</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><a href="_mergepass_.merger.html#framebuffer" class="tsd-kind-icon">framebuffer</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_mergepass_.merger.html#gl" class="tsd-kind-icon">gl</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><a href="_mergepass_.merger.html#options" class="tsd-kind-icon">options</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><a href="_mergepass_.merger.html#programloop" class="tsd-kind-icon">program<wbr>Loop</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><a href="_mergepass_.merger.html#programmap" class="tsd-kind-icon">program<wbr>Map</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><a href="_mergepass_.merger.html#source" class="tsd-kind-icon">source</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><a href="_mergepass_.merger.html#tex" class="tsd-kind-icon">tex</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_mergepass_.merger.html#tex" class="tsd-kind-icon">tex</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_mergepass_.merger.html#texturemode" class="tsd-kind-icon">texture<wbr>Mode</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><a href="_mergepass_.merger.html#uniformlocs" class="tsd-kind-icon">uniform<wbr>Locs</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><a href="_mergepass_.merger.html#vshader" class="tsd-kind-icon">v<wbr>Shader</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><a href="_mergepass_.merger.html#vertexbuffer" class="tsd-kind-icon">vertex<wbr>Buffer</a></li>
@@ -114,6 +115,7 @@
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
 							<ul class="tsd-index-list">
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_mergepass_.merger.html#changeprogram" class="tsd-kind-icon">change<wbr>Program</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_mergepass_.merger.html#delete" class="tsd-kind-icon">delete</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_mergepass_.merger.html#draw" class="tsd-kind-icon">draw</a></li>
 							</ul>
@@ -127,21 +129,24 @@
 					<a name="constructor" class="tsd-anchor"></a>
 					<h3>constructor</h3>
 					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">new <wbr>Merger<span class="tsd-signature-symbol">(</span>effects<span class="tsd-signature-symbol">: </span><span class="tsd-signature-symbol">(</span><a href="_exprs_expr_.exprvec4.html" class="tsd-signature-type">ExprVec4</a><span class="tsd-signature-symbol"> | </span><a href="_mergepass_.effectloop.html" class="tsd-signature-type">EffectLoop</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> | </span><a href="_mergepass_.effectloop.html" class="tsd-signature-type">EffectLoop</a>, source<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">TexImageSource</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">WebGLTexture</span>, gl<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">WebGL2RenderingContext</span>, options<span class="tsd-signature-symbol">?: </span><a href="../interfaces/_mergepass_.mergeroptions.html" class="tsd-signature-type">MergerOptions</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_mergepass_.merger.html" class="tsd-signature-type">Merger</a></li>
+						<li class="tsd-signature tsd-kind-icon">new <wbr>Merger<span class="tsd-signature-symbol">(</span>effects<span class="tsd-signature-symbol">: </span><span class="tsd-signature-symbol">(</span><a href="_exprs_expr_.exprvec4.html" class="tsd-signature-type">ExprVec4</a><span class="tsd-signature-symbol"> | </span><a href="_mergepass_.effectloop.html" class="tsd-signature-type">EffectLoop</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> | </span><a href="_mergepass_.effectdictionary.html" class="tsd-signature-type">EffectDictionary</a>, source<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">TexImageSource</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">WebGLTexture</span>, gl<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">WebGL2RenderingContext</span>, options<span class="tsd-signature-symbol">?: </span><a href="../interfaces/_mergepass_.mergeroptions.html" class="tsd-signature-type">MergerOptions</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_mergepass_.merger.html" class="tsd-signature-type">Merger</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/mergepass.ts#L192">mergepass.ts:192</a></li>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L317">mergepass.ts:317</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>constructs the object that runs the effects</p>
+								</div>
 							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>effects: <span class="tsd-signature-symbol">(</span><a href="_exprs_expr_.exprvec4.html" class="tsd-signature-type">ExprVec4</a><span class="tsd-signature-symbol"> | </span><a href="_mergepass_.effectloop.html" class="tsd-signature-type">EffectLoop</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> | </span><a href="_mergepass_.effectloop.html" class="tsd-signature-type">EffectLoop</a></h5>
+									<h5>effects: <span class="tsd-signature-symbol">(</span><a href="_exprs_expr_.exprvec4.html" class="tsd-signature-type">ExprVec4</a><span class="tsd-signature-symbol"> | </span><a href="_mergepass_.effectloop.html" class="tsd-signature-type">EffectLoop</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> | </span><a href="_mergepass_.effectdictionary.html" class="tsd-signature-type">EffectDictionary</a></h5>
 									<div class="tsd-comment tsd-typography">
 										<div class="lead">
 											<p>list of effects that define the final effect</p>
@@ -183,10 +188,10 @@
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-private">
 					<a name="channels" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagPrivate">Private</span> channels</h3>
-					<div class="tsd-signature tsd-kind-icon">channels<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-signature-type">ImageBitmap</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">ImageData</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">HTMLImageElement</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">HTMLCanvasElement</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">HTMLVideoElement</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">OffscreenCanvas</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">WebGLTexture</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> = []</span></div>
+					<div class="tsd-signature tsd-kind-icon">channels<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">ImageBitmap</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">ImageData</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">HTMLImageElement</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">HTMLCanvasElement</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">HTMLVideoElement</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">OffscreenCanvas</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">WebGLTexture</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> = []</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/mergepass.ts#L188">mergepass.ts:188</a></li>
+							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L312">mergepass.ts:312</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -196,22 +201,12 @@
 					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-private">
-					<a name="effectloop" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagPrivate">Private</span> effect<wbr>Loop</h3>
-					<div class="tsd-signature tsd-kind-icon">effect<wbr>Loop<span class="tsd-signature-symbol">:</span> <a href="_mergepass_.effectloop.html" class="tsd-signature-type">EffectLoop</a></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/mergepass.ts#L185">mergepass.ts:185</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-private">
 					<a name="fshaders" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagPrivate">Private</span> f<wbr>Shaders</h3>
 					<div class="tsd-signature tsd-kind-icon">f<wbr>Shaders<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">WebGLShader</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> = []</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/mergepass.ts#L192">mergepass.ts:192</a></li>
+							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L316">mergepass.ts:316</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -221,7 +216,7 @@
 					<div class="tsd-signature tsd-kind-icon">framebuffer<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">WebGLFramebuffer</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/mergepass.ts#L183">mergepass.ts:183</a></li>
+							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L306">mergepass.ts:306</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -231,7 +226,7 @@
 					<div class="tsd-signature tsd-kind-icon">gl<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">WebGL2RenderingContext</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/mergepass.ts#L179">mergepass.ts:179</a></li>
+							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L302">mergepass.ts:302</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -246,7 +241,7 @@
 					<div class="tsd-signature tsd-kind-icon">options<span class="tsd-signature-symbol">:</span> <a href="../interfaces/_mergepass_.mergeroptions.html" class="tsd-signature-type">MergerOptions</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/mergepass.ts#L189">mergepass.ts:189</a></li>
+							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L313">mergepass.ts:313</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -256,7 +251,17 @@
 					<div class="tsd-signature tsd-kind-icon">program<wbr>Loop<span class="tsd-signature-symbol">:</span> <a href="_webglprogramloop_.webglprogramloop.html" class="tsd-signature-type">WebGLProgramLoop</a></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/mergepass.ts#L186">mergepass.ts:186</a></li>
+							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L310">mergepass.ts:310</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-private">
+					<a name="programmap" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> program<wbr>Map</h3>
+					<div class="tsd-signature tsd-kind-icon">program<wbr>Map<span class="tsd-signature-symbol">:</span> <a href="../interfaces/_mergepass_.programmap.html" class="tsd-signature-type">ProgramMap</a></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L309">mergepass.ts:309</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -266,7 +271,7 @@
 					<div class="tsd-signature tsd-kind-icon">source<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">TexImageSource</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">WebGLTexture</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/mergepass.ts#L181">mergepass.ts:181</a></li>
+							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L304">mergepass.ts:304</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -275,13 +280,23 @@
 						</div>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-private">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="tex" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagPrivate">Private</span> tex</h3>
+					<h3>tex</h3>
 					<div class="tsd-signature tsd-kind-icon">tex<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">TexInfo</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/mergepass.ts#L182">mergepass.ts:182</a></li>
+							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L305">mergepass.ts:305</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="texturemode" class="tsd-anchor"></a>
+					<h3>texture<wbr>Mode</h3>
+					<div class="tsd-signature tsd-kind-icon">texture<wbr>Mode<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L317">mergepass.ts:317</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -291,7 +306,7 @@
 					<div class="tsd-signature tsd-kind-icon">uniform<wbr>Locs<span class="tsd-signature-symbol">:</span> <a href="../interfaces/_mergepass_.uniformlocs.html" class="tsd-signature-type">UniformLocs</a></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/mergepass.ts#L184">mergepass.ts:184</a></li>
+							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L307">mergepass.ts:307</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -301,7 +316,7 @@
 					<div class="tsd-signature tsd-kind-icon">v<wbr>Shader<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">WebGLShader</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/mergepass.ts#L191">mergepass.ts:191</a></li>
+							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L315">mergepass.ts:315</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -311,13 +326,44 @@
 					<div class="tsd-signature tsd-kind-icon">vertex<wbr>Buffer<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">WebGLBuffer</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/mergepass.ts#L190">mergepass.ts:190</a></li>
+							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L314">mergepass.ts:314</a></li>
 						</ul>
 					</aside>
 				</section>
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="changeprogram" class="tsd-anchor"></a>
+					<h3>change<wbr>Program</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">change<wbr>Program<span class="tsd-signature-symbol">(</span>str<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L556">mergepass.ts:556</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>changes the current program loop</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>str: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>key in the program map</p>
+									</div>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="delete" class="tsd-anchor"></a>
 					<h3>delete</h3>
@@ -328,7 +374,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/mergepass.ts#L390">mergepass.ts:390</a></li>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L520">mergepass.ts:520</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -352,7 +398,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/mergepass.ts#L341">mergepass.ts:341</a></li>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L463">mergepass.ts:463</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -375,14 +421,14 @@
 									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> mouseX: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> = 0</span></h5>
 									<div class="tsd-comment tsd-typography">
 										<p>the x position of the mouse (supply this if you plan to use
-										<a href="../modules/_exprs_mouseexpr_.html#mouse">mouse</a> or <a href="../modules/_exprs_normmouseepxr_.html#nmouse">nmouse</a>)</p>
+										<a href="../modules/_exprs_mouseexpr_.html#mouse">mouse</a> or <a href="../modules/_exprs_normmouseexpr_.html#nmouse">nmouse</a>)</p>
 									</div>
 								</li>
 								<li>
 									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> mouseY: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> = 0</span></h5>
 									<div class="tsd-comment tsd-typography">
 										<p>the y position of the mouse (supply this if you plan to use
-										<a href="../modules/_exprs_mouseexpr_.html#mouse">mouse</a> or <a href="../modules/_exprs_normmouseepxr_.html#nmouse">nmouse</a>)</p>
+										<a href="../modules/_exprs_mouseexpr_.html#mouse">mouse</a> or <a href="../modules/_exprs_normmouseexpr_.html#nmouse">nmouse</a>)</p>
 									</div>
 								</li>
 							</ul>
@@ -406,6 +452,9 @@
 			<nav class="tsd-navigation secondary menu-sticky">
 				<ul class="before-current">
 					<li class=" tsd-kind-class tsd-parent-kind-module">
+						<a href="_mergepass_.effectdictionary.html" class="tsd-kind-icon">Effect<wbr>Dictionary</a>
+					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-module">
 						<a href="_mergepass_.effectloop.html" class="tsd-kind-icon">Effect<wbr>Loop</a>
 					</li>
 				</ul>
@@ -418,9 +467,6 @@
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-private">
 								<a href="_mergepass_.merger.html#channels" class="tsd-kind-icon">channels</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-private">
-								<a href="_mergepass_.merger.html#effectloop" class="tsd-kind-icon">effect<wbr>Loop</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-private">
 								<a href="_mergepass_.merger.html#fshaders" class="tsd-kind-icon">f<wbr>Shaders</a>
@@ -438,10 +484,16 @@
 								<a href="_mergepass_.merger.html#programloop" class="tsd-kind-icon">program<wbr>Loop</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-private">
-								<a href="_mergepass_.merger.html#source" class="tsd-kind-icon">source</a>
+								<a href="_mergepass_.merger.html#programmap" class="tsd-kind-icon">program<wbr>Map</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-private">
+								<a href="_mergepass_.merger.html#source" class="tsd-kind-icon">source</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="_mergepass_.merger.html#tex" class="tsd-kind-icon">tex</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="_mergepass_.merger.html#texturemode" class="tsd-kind-icon">texture<wbr>Mode</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-private">
 								<a href="_mergepass_.merger.html#uniformlocs" class="tsd-kind-icon">uniform<wbr>Locs</a>
@@ -451,6 +503,9 @@
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-private">
 								<a href="_mergepass_.merger.html#vertexbuffer" class="tsd-kind-icon">vertex<wbr>Buffer</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="_mergepass_.merger.html#changeprogram" class="tsd-kind-icon">change<wbr>Program</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_mergepass_.merger.html#delete" class="tsd-kind-icon">delete</a>
@@ -465,6 +520,9 @@
 					<li class=" tsd-kind-interface tsd-parent-kind-module">
 						<a href="../interfaces/_mergepass_.effectlike.html" class="tsd-kind-icon">Effect<wbr>Like</a>
 					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module tsd-is-not-exported">
+						<a href="../interfaces/_mergepass_.effectmap.html" class="tsd-kind-icon">Effect<wbr>Map</a>
+					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-module">
 						<a href="../interfaces/_mergepass_.generable.html" class="tsd-kind-icon">Generable</a>
 					</li>
@@ -473,6 +531,12 @@
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-module tsd-is-not-exported">
 						<a href="../interfaces/_mergepass_.mergeroptions.html" class="tsd-kind-icon">Merger<wbr>Options</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module tsd-is-not-exported">
+						<a href="../interfaces/_mergepass_.programmap.html" class="tsd-kind-icon">Program<wbr>Map</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module">
+						<a href="../interfaces/_mergepass_.texwrapper.html" class="tsd-kind-icon">Tex<wbr>Wrapper</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-module">
 						<a href="../interfaces/_mergepass_.uniformlocs.html" class="tsd-kind-icon">Uniform<wbr>Locs</a>

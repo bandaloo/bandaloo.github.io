@@ -68,16 +68,19 @@
 					<h1>merge-pass</h1>
 				</a>
 				<p>This library allows you to easily run a combination of post-processing
-					effects on an image or canvas. It does so by generating shaders to apply the
-				effect in as few passes as possible.</p>
-				<p>Right now, this package is in pre-alpha. If you have tried using this library
-				and have an idea of how to improve it, let me know!</p>
+					effects on an image, canvas or existing texture. It does so by generating
+					shaders to apply the effect in as few passes as possible. It is also flexible
+					enough to allow you to build your own custom effects and update their
+				uniforms at runtime.</p>
 				<a href="#live-example" id="live-example" style="color: inherit; text-decoration: none;">
 					<h2>Live Example</h2>
 				</a>
-				<p>This <a href="https://www.bandaloo.fun/merge-pass/example.html">live example</a> shows multiple
-					demos that with code samples. This shows off the variety of effects you can create
-				with this library.</p>
+				<p>This <a href="https://www.bandaloo.fun/merge-pass/example.html">live example</a> shows
+				multiple demos with code samples.</p>
+				<a href="#docs" id="docs" style="color: inherit; text-decoration: none;">
+					<h2>Docs</h2>
+				</a>
+				<p>The docs are available <a href="https://www.bandaloo.fun/docs/">here</a>.</p>
 				<a href="#usage-example" id="usage-example" style="color: inherit; text-decoration: none;">
 					<h2>Usage Example</h2>
 				</a>
@@ -98,6 +101,12 @@
 					<code>npm run bundlewatch</code> in separate sessions to get live updates. To build the
 					docs, run <code>npm run docs</code> and run a local server that serves everything in the
 				<code>docs</code> folder.</p>
+				<a href="#acknowledgements" id="acknowledgements" style="color: inherit; text-decoration: none;">
+					<h2>Acknowledgements</h2>
+				</a>
+				<p>Special thanks to Charlie Roberts for offering feedback on the design of
+					this API and by helping bug test by integrating this library into the
+				<a href="https://github.com/charlieroberts/marching">marching.js</a> online playground.</p>
 			</div>
 		</div>
 		<div class="col-4 col-menu menu-sticky-wrap menu-highlight">
@@ -114,6 +123,9 @@
 					</li>
 					<li class=" tsd-kind-module">
 						<a href="modules/_exprs_arity2_.html">&quot;exprs/arity2&quot;</a>
+					</li>
+					<li class=" tsd-kind-module">
+						<a href="modules/_exprs_bloomloop_.html">&quot;exprs/bloomloop&quot;</a>
 					</li>
 					<li class=" tsd-kind-module">
 						<a href="modules/_exprs_blur2dloop_.html">&quot;exprs/blur2dloop&quot;</a>
@@ -138,6 +150,12 @@
 					</li>
 					<li class=" tsd-kind-module">
 						<a href="modules/_exprs_dofloop_.html">&quot;exprs/dofloop&quot;</a>
+					</li>
+					<li class=" tsd-kind-module">
+						<a href="modules/_exprs_edgecolorexpr_.html">&quot;exprs/edgecolorexpr&quot;</a>
+					</li>
+					<li class=" tsd-kind-module">
+						<a href="modules/_exprs_edgeexpr_.html">&quot;exprs/edgeexpr&quot;</a>
 					</li>
 					<li class=" tsd-kind-module">
 						<a href="modules/_exprs_expr_.html">&quot;exprs/expr&quot;</a>
@@ -167,7 +185,16 @@
 						<a href="modules/_exprs_hsvtorgbexpr_.html">&quot;exprs/hsvtorgbexpr&quot;</a>
 					</li>
 					<li class=" tsd-kind-module">
+						<a href="modules/_exprs_invertexpr_.html">&quot;exprs/invertexpr&quot;</a>
+					</li>
+					<li class=" tsd-kind-module">
 						<a href="modules/_exprs_lenexpr_.html">&quot;exprs/lenexpr&quot;</a>
+					</li>
+					<li class=" tsd-kind-module">
+						<a href="modules/_exprs_monochromeexpr_.html">&quot;exprs/monochromeexpr&quot;</a>
+					</li>
+					<li class=" tsd-kind-module">
+						<a href="modules/_exprs_motionblurloop_.html">&quot;exprs/motionblurloop&quot;</a>
 					</li>
 					<li class=" tsd-kind-module">
 						<a href="modules/_exprs_mouseexpr_.html">&quot;exprs/mouseexpr&quot;</a>
@@ -176,13 +203,19 @@
 						<a href="modules/_exprs_normcenterfragcoordexpr_.html">&quot;exprs/normcenterfragcoordexpr&quot;</a>
 					</li>
 					<li class=" tsd-kind-module">
+						<a href="modules/_exprs_normexpr_.html">&quot;exprs/normexpr&quot;</a>
+					</li>
+					<li class=" tsd-kind-module">
 						<a href="modules/_exprs_normfragcoordexpr_.html">&quot;exprs/normfragcoordexpr&quot;</a>
 					</li>
 					<li class=" tsd-kind-module">
-						<a href="modules/_exprs_normmouseepxr_.html">&quot;exprs/normmouseepxr&quot;</a>
+						<a href="modules/_exprs_normmouseexpr_.html">&quot;exprs/normmouseexpr&quot;</a>
 					</li>
 					<li class=" tsd-kind-module">
 						<a href="modules/_exprs_opexpr_.html">&quot;exprs/opexpr&quot;</a>
+					</li>
+					<li class=" tsd-kind-module">
+						<a href="modules/_exprs_perlinexpr_.html">&quot;exprs/perlinexpr&quot;</a>
 					</li>
 					<li class=" tsd-kind-module">
 						<a href="modules/_exprs_powerblur_.html">&quot;exprs/powerblur&quot;</a>
@@ -204,6 +237,12 @@
 					</li>
 					<li class=" tsd-kind-module">
 						<a href="modules/_exprs_setcolorexpr_.html">&quot;exprs/setcolorexpr&quot;</a>
+					</li>
+					<li class=" tsd-kind-module">
+						<a href="modules/_exprs_simplexexpr_.html">&quot;exprs/simplexexpr&quot;</a>
+					</li>
+					<li class=" tsd-kind-module">
+						<a href="modules/_exprs_sobelexpr_.html">&quot;exprs/sobelexpr&quot;</a>
 					</li>
 					<li class=" tsd-kind-module">
 						<a href="modules/_exprs_timeexpr_.html">&quot;exprs/timeexpr&quot;</a>
@@ -228,6 +267,9 @@
 					</li>
 					<li class=" tsd-kind-module">
 						<a href="modules/_mergepass_.html">&quot;mergepass&quot;</a>
+					</li>
+					<li class=" tsd-kind-module">
+						<a href="modules/_settings_.html">&quot;settings&quot;</a>
 					</li>
 					<li class=" tsd-kind-module">
 						<a href="modules/_webglprogramloop_.html">&quot;webglprogramloop&quot;</a>

@@ -92,6 +92,7 @@
 								<li class="tsd-kind-class tsd-parent-kind-module"><a href="../classes/_exprs_expr_.primitivevec2.html" class="tsd-kind-icon">Primitive<wbr>Vec2</a></li>
 								<li class="tsd-kind-class tsd-parent-kind-module"><a href="../classes/_exprs_expr_.primitivevec3.html" class="tsd-kind-icon">Primitive<wbr>Vec3</a></li>
 								<li class="tsd-kind-class tsd-parent-kind-module"><a href="../classes/_exprs_expr_.primitivevec4.html" class="tsd-kind-icon">Primitive<wbr>Vec4</a></li>
+								<li class="tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter"><a href="../classes/_exprs_expr_.wrappedexpr.html" class="tsd-kind-icon">Wrapped<wbr>Expr</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
@@ -110,11 +111,17 @@
 						<section class="tsd-index-section ">
 							<h3>Functions</h3>
 							<ul class="tsd-index-list">
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="_exprs_expr_.html#cfloat" class="tsd-kind-icon">cfloat</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="_exprs_expr_.html#cvec2" class="tsd-kind-icon">cvec2</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="_exprs_expr_.html#cvec3" class="tsd-kind-icon">cvec3</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="_exprs_expr_.html#cvec4" class="tsd-kind-icon">cvec4</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-module"><a href="_exprs_expr_.html#float" class="tsd-kind-icon">float</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module tsd-is-not-exported"><a href="_exprs_expr_.html#gencustomnames" class="tsd-kind-icon">gen<wbr>Custom<wbr>Names</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-module tsd-has-type-parameter"><a href="_exprs_expr_.html#mut" class="tsd-kind-icon">mut</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-module"><a href="_exprs_expr_.html#n2e" class="tsd-kind-icon">n2e</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-module"><a href="_exprs_expr_.html#n2p" class="tsd-kind-icon">n2p</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-module"><a href="_exprs_expr_.html#pfloat" class="tsd-kind-icon">pfloat</a></li>
+								<li class="tsd-kind-function tsd-parent-kind-module"><a href="_exprs_expr_.html#tag" class="tsd-kind-icon">tag</a></li>
 								<li class="tsd-kind-function tsd-parent-kind-module tsd-is-not-exported"><a href="_exprs_expr_.html#toglslfloatstring" class="tsd-kind-icon">toGLSLFloat<wbr>String</a></li>
 							</ul>
 						</section>
@@ -123,6 +130,130 @@
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Functions</h2>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="cfloat" class="tsd-anchor"></a>
+					<h3>cfloat</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
+						<li class="tsd-signature tsd-kind-icon">cfloat<span class="tsd-signature-symbol">(</span>sourceLists<span class="tsd-signature-symbol">: </span><a href="../interfaces/_exprs_expr_.sourcelists.html" class="tsd-signature-type">SourceLists</a>, externalFuncs<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../classes/_exprs_expr_.exprfloat.html" class="tsd-signature-type">ExprFloat</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/exprs/expr.ts#L204">exprs/expr.ts:204</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>create a custom float function (use with <a href="_exprs_expr_.html#tag">tag</a>)</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>sourceLists: <a href="../interfaces/_exprs_expr_.sourcelists.html" class="tsd-signature-type">SourceLists</a></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> externalFuncs: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> = []</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="../classes/_exprs_expr_.exprfloat.html" class="tsd-signature-type">ExprFloat</a></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="cvec2" class="tsd-anchor"></a>
+					<h3>cvec2</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
+						<li class="tsd-signature tsd-kind-icon">cvec2<span class="tsd-signature-symbol">(</span>sourceLists<span class="tsd-signature-symbol">: </span><a href="../interfaces/_exprs_expr_.sourcelists.html" class="tsd-signature-type">SourceLists</a>, externalFuncs<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../classes/_exprs_expr_.exprvec2.html" class="tsd-signature-type">ExprVec2</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/exprs/expr.ts#L211">exprs/expr.ts:211</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>create a custom vec2 function (use with <a href="_exprs_expr_.html#tag">tag</a>)</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>sourceLists: <a href="../interfaces/_exprs_expr_.sourcelists.html" class="tsd-signature-type">SourceLists</a></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> externalFuncs: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> = []</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="../classes/_exprs_expr_.exprvec2.html" class="tsd-signature-type">ExprVec2</a></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="cvec3" class="tsd-anchor"></a>
+					<h3>cvec3</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
+						<li class="tsd-signature tsd-kind-icon">cvec3<span class="tsd-signature-symbol">(</span>sourceLists<span class="tsd-signature-symbol">: </span><a href="../interfaces/_exprs_expr_.sourcelists.html" class="tsd-signature-type">SourceLists</a>, externalFuncs<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../classes/_exprs_expr_.exprvec3.html" class="tsd-signature-type">ExprVec3</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/exprs/expr.ts#L218">exprs/expr.ts:218</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>create a custom vec3 function (use with <a href="_exprs_expr_.html#tag">tag</a>)</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>sourceLists: <a href="../interfaces/_exprs_expr_.sourcelists.html" class="tsd-signature-type">SourceLists</a></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> externalFuncs: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> = []</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="../classes/_exprs_expr_.exprvec3.html" class="tsd-signature-type">ExprVec3</a></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="cvec4" class="tsd-anchor"></a>
+					<h3>cvec4</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
+						<li class="tsd-signature tsd-kind-icon">cvec4<span class="tsd-signature-symbol">(</span>sourceLists<span class="tsd-signature-symbol">: </span><a href="../interfaces/_exprs_expr_.sourcelists.html" class="tsd-signature-type">SourceLists</a>, externalFuncs<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../classes/_exprs_expr_.exprvec4.html" class="tsd-signature-type">ExprVec4</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/exprs/expr.ts#L225">exprs/expr.ts:225</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>create a custom vec4 function (use with <a href="_exprs_expr_.html#tag">tag</a>)</p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>sourceLists: <a href="../interfaces/_exprs_expr_.sourcelists.html" class="tsd-signature-type">SourceLists</a></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> externalFuncs: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> = []</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="../classes/_exprs_expr_.exprvec4.html" class="tsd-signature-type">ExprVec4</a></h4>
+						</li>
+					</ul>
+				</section>
 				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
 					<a name="float" class="tsd-anchor"></a>
 					<h3>float</h3>
@@ -133,7 +264,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/exprs/expr.ts#L409">exprs/expr.ts:409</a></li>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/exprs/expr.ts#L448">exprs/expr.ts:448</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -143,6 +274,29 @@
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <a href="../classes/_exprs_expr_.basicfloat.html" class="tsd-signature-type">BasicFloat</a></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module tsd-is-not-exported">
+					<a name="gencustomnames" class="tsd-anchor"></a>
+					<h3>gen<wbr>Custom<wbr>Names</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module tsd-is-not-exported">
+						<li class="tsd-signature tsd-kind-icon">gen<wbr>Custom<wbr>Names<span class="tsd-signature-symbol">(</span>sourceLists<span class="tsd-signature-symbol">: </span><a href="../interfaces/_exprs_expr_.sourcelists.html" class="tsd-signature-type">SourceLists</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/exprs/expr.ts#L195">exprs/expr.ts:195</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>sourceLists: <a href="../interfaces/_exprs_expr_.sourcelists.html" class="tsd-signature-type">SourceLists</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -157,7 +311,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/exprs/expr.ts#L227">exprs/expr.ts:227</a></li>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/exprs/expr.ts#L267">exprs/expr.ts:267</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -198,7 +352,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/exprs/expr.ts#L229">exprs/expr.ts:229</a></li>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/exprs/expr.ts#L269">exprs/expr.ts:269</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -234,7 +388,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/exprs/expr.ts#L469">exprs/expr.ts:469</a></li>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/exprs/expr.ts#L524">exprs/expr.ts:524</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -248,7 +402,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/exprs/expr.ts#L470">exprs/expr.ts:470</a></li>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/exprs/expr.ts#L525">exprs/expr.ts:525</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -262,7 +416,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/exprs/expr.ts#L471">exprs/expr.ts:471</a></li>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/exprs/expr.ts#L526">exprs/expr.ts:526</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -285,7 +439,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/exprs/expr.ts#L489">exprs/expr.ts:489</a></li>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/exprs/expr.ts#L545">exprs/expr.ts:545</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -313,7 +467,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/exprs/expr.ts#L495">exprs/expr.ts:495</a></li>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/exprs/expr.ts#L551">exprs/expr.ts:551</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -331,6 +485,38 @@
 						</li>
 					</ul>
 				</section>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module">
+					<a name="tag" class="tsd-anchor"></a>
+					<h3>tag</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-module">
+						<li class="tsd-signature tsd-kind-icon">tag<span class="tsd-signature-symbol">(</span>strings<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">TemplateStringsArray</span>, <span class="tsd-signature-symbol">...</span>values<span class="tsd-signature-symbol">: </span><a href="_exprtypes_.html#allvals" class="tsd-signature-type">AllVals</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/_exprs_expr_.sourcelists.html" class="tsd-signature-type">SourceLists</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/exprs/expr.ts#L565">exprs/expr.ts:565</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>takes a template strings array and converts it to a source list; very useful
+									for <a href="_exprs_expr_.html#cfloat">cfloat</a>, <a href="_exprs_expr_.html#cvec2">cvec2</a>, <a href="_exprs_expr_.html#cvec3">cvec3</a> and <a href="_exprs_expr_.html#cvec4">cvec4</a></p>
+								</div>
+							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>strings: <span class="tsd-signature-type">TemplateStringsArray</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagRest">Rest</span> <span class="tsd-signature-symbol">...</span>values: <a href="_exprtypes_.html#allvals" class="tsd-signature-type">AllVals</a><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="../interfaces/_exprs_expr_.sourcelists.html" class="tsd-signature-type">SourceLists</a></h4>
+						</li>
+					</ul>
+				</section>
 				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-module tsd-is-not-exported">
 					<a name="toglslfloatstring" class="tsd-anchor"></a>
 					<h3>toGLSLFloat<wbr>String</h3>
@@ -341,7 +527,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/exprs/expr.ts#L23">exprs/expr.ts:23</a></li>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/exprs/expr.ts#L22">exprs/expr.ts:22</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -435,6 +621,9 @@
 					<li class=" tsd-kind-class tsd-parent-kind-module">
 						<a href="../classes/_exprs_expr_.primitivevec4.html" class="tsd-kind-icon">Primitive<wbr>Vec4</a>
 					</li>
+					<li class=" tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter">
+						<a href="../classes/_exprs_expr_.wrappedexpr.html" class="tsd-kind-icon">Wrapped<wbr>Expr</a>
+					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-module">
 						<a href="../interfaces/_exprs_expr_.applicable.html" class="tsd-kind-icon">Applicable</a>
 					</li>
@@ -460,7 +649,22 @@
 						<a href="../interfaces/_exprs_expr_.uniformvalchangemap.html" class="tsd-kind-icon">Uniform<wbr>Val<wbr>Change<wbr>Map</a>
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-module">
+						<a href="_exprs_expr_.html#cfloat" class="tsd-kind-icon">cfloat</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-module">
+						<a href="_exprs_expr_.html#cvec2" class="tsd-kind-icon">cvec2</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-module">
+						<a href="_exprs_expr_.html#cvec3" class="tsd-kind-icon">cvec3</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-module">
+						<a href="_exprs_expr_.html#cvec4" class="tsd-kind-icon">cvec4</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-module">
 						<a href="_exprs_expr_.html#float" class="tsd-kind-icon">float</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-module tsd-is-not-exported">
+						<a href="_exprs_expr_.html#gencustomnames" class="tsd-kind-icon">gen<wbr>Custom<wbr>Names</a>
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-module tsd-has-type-parameter">
 						<a href="_exprs_expr_.html#mut" class="tsd-kind-icon">mut</a>
@@ -473,6 +677,9 @@
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-module">
 						<a href="_exprs_expr_.html#pfloat" class="tsd-kind-icon">pfloat</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-module">
+						<a href="_exprs_expr_.html#tag" class="tsd-kind-icon">tag</a>
 					</li>
 					<li class=" tsd-kind-function tsd-parent-kind-module tsd-is-not-exported">
 						<a href="_exprs_expr_.html#toglslfloatstring" class="tsd-kind-icon">toGLSLFloat<wbr>String</a>

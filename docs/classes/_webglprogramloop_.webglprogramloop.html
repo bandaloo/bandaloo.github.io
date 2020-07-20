@@ -97,13 +97,11 @@
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webglprogramloop_.webglprogramloop.html#effects" class="tsd-kind-icon">effects</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webglprogramloop_.webglprogramloop.html#last" class="tsd-kind-icon">last</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webglprogramloop_.webglprogramloop.html#loopinfo" class="tsd-kind-icon">loop<wbr>Info</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webglprogramloop_.webglprogramloop.html#mouseloc" class="tsd-kind-icon">mouse<wbr>Loc</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webglprogramloop_.webglprogramloop.html#programelement" class="tsd-kind-icon">program<wbr>Element</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webglprogramloop_.webglprogramloop.html#repeat" class="tsd-kind-icon">repeat</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webglprogramloop_.webglprogramloop.html#timeloc" class="tsd-kind-icon">time<wbr>Loc</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_webglprogramloop_.webglprogramloop.html#totalneeds" class="tsd-kind-icon">total<wbr>Needs</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
@@ -123,13 +121,13 @@
 					<a name="constructor" class="tsd-anchor"></a>
 					<h3>constructor</h3>
 					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">new <wbr>WebGLProgram<wbr>Loop<span class="tsd-signature-symbol">(</span>programElement<span class="tsd-signature-symbol">: </span><a href="../modules/_webglprogramloop_.html#webglprogramelement" class="tsd-signature-type">WebGLProgramElement</a>, repeat<span class="tsd-signature-symbol">: </span><a href="../interfaces/_mergepass_.loopinfo.html" class="tsd-signature-type">LoopInfo</a>, gl<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">WebGL2RenderingContext</span>, totalNeeds<span class="tsd-signature-symbol">?: </span><a href="../interfaces/_exprs_expr_.needs.html" class="tsd-signature-type">Needs</a>, effects<span class="tsd-signature-symbol">?: </span><a href="_exprs_expr_.expr.html" class="tsd-signature-type">Expr</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webglprogramloop_.webglprogramloop.html" class="tsd-signature-type">WebGLProgramLoop</a></li>
+						<li class="tsd-signature tsd-kind-icon">new <wbr>WebGLProgram<wbr>Loop<span class="tsd-signature-symbol">(</span>programElement<span class="tsd-signature-symbol">: </span><a href="../modules/_webglprogramloop_.html#webglprogramelement" class="tsd-signature-type">WebGLProgramElement</a>, loopInfo<span class="tsd-signature-symbol">: </span><a href="../interfaces/_mergepass_.loopinfo.html" class="tsd-signature-type">LoopInfo</a>, gl<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">WebGL2RenderingContext</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_webglprogramloop_.webglprogramloop.html" class="tsd-signature-type">WebGLProgramLoop</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/webglprogramloop.ts#L37">webglprogramloop.ts:37</a></li>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/webglprogramloop.ts#L49">webglprogramloop.ts:49</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -138,16 +136,10 @@
 									<h5>programElement: <a href="../modules/_webglprogramloop_.html#webglprogramelement" class="tsd-signature-type">WebGLProgramElement</a></h5>
 								</li>
 								<li>
-									<h5>repeat: <a href="../interfaces/_mergepass_.loopinfo.html" class="tsd-signature-type">LoopInfo</a></h5>
+									<h5>loopInfo: <a href="../interfaces/_mergepass_.loopinfo.html" class="tsd-signature-type">LoopInfo</a></h5>
 								</li>
 								<li>
 									<h5>gl: <span class="tsd-signature-type">WebGL2RenderingContext</span></h5>
-								</li>
-								<li>
-									<h5><span class="tsd-flag ts-flagOptional">Optional</span> totalNeeds: <a href="../interfaces/_exprs_expr_.needs.html" class="tsd-signature-type">Needs</a></h5>
-								</li>
-								<li>
-									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> effects: <a href="_exprs_expr_.expr.html" class="tsd-signature-type">Expr</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> = []</span></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <a href="_webglprogramloop_.webglprogramloop.html" class="tsd-signature-type">WebGLProgramLoop</a></h4>
@@ -158,22 +150,22 @@
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="effects" class="tsd-anchor"></a>
-					<h3>effects</h3>
-					<div class="tsd-signature tsd-kind-icon">effects<span class="tsd-signature-symbol">:</span> <a href="_exprs_expr_.expr.html" class="tsd-signature-type">Expr</a><span class="tsd-signature-symbol">[]</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/webglprogramloop.ts#L33">webglprogramloop.ts:33</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="last" class="tsd-anchor"></a>
 					<h3>last</h3>
 					<div class="tsd-signature tsd-kind-icon">last<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> = false</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/webglprogramloop.ts#L34">webglprogramloop.ts:34</a></li>
+							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/webglprogramloop.ts#L46">webglprogramloop.ts:46</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="loopinfo" class="tsd-anchor"></a>
+					<h3>loop<wbr>Info</h3>
+					<div class="tsd-signature tsd-kind-icon">loop<wbr>Info<span class="tsd-signature-symbol">:</span> <a href="../interfaces/_mergepass_.loopinfo.html" class="tsd-signature-type">LoopInfo</a></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/webglprogramloop.ts#L44">webglprogramloop.ts:44</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -183,7 +175,7 @@
 					<div class="tsd-signature tsd-kind-icon">mouse<wbr>Loc<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">WebGLUniformLocation</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/webglprogramloop.ts#L37">webglprogramloop.ts:37</a></li>
+							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/webglprogramloop.ts#L49">webglprogramloop.ts:49</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -193,17 +185,7 @@
 					<div class="tsd-signature tsd-kind-icon">program<wbr>Element<span class="tsd-signature-symbol">:</span> <a href="../modules/_webglprogramloop_.html#webglprogramelement" class="tsd-signature-type">WebGLProgramElement</a></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/webglprogramloop.ts#L31">webglprogramloop.ts:31</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="repeat" class="tsd-anchor"></a>
-					<h3>repeat</h3>
-					<div class="tsd-signature tsd-kind-icon">repeat<span class="tsd-signature-symbol">:</span> <a href="../interfaces/_mergepass_.loopinfo.html" class="tsd-signature-type">LoopInfo</a></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/webglprogramloop.ts#L32">webglprogramloop.ts:32</a></li>
+							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/webglprogramloop.ts#L43">webglprogramloop.ts:43</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -213,17 +195,7 @@
 					<div class="tsd-signature tsd-kind-icon">time<wbr>Loc<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">WebGLUniformLocation</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/webglprogramloop.ts#L36">webglprogramloop.ts:36</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="totalneeds" class="tsd-anchor"></a>
-					<h3>total<wbr>Needs</h3>
-					<div class="tsd-signature tsd-kind-icon">total<wbr>Needs<span class="tsd-signature-symbol">:</span> <a href="../interfaces/_exprs_expr_.needs.html" class="tsd-signature-type">Needs</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/webglprogramloop.ts#L35">webglprogramloop.ts:35</a></li>
+							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/webglprogramloop.ts#L48">webglprogramloop.ts:48</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -240,7 +212,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/webglprogramloop.ts#L189">webglprogramloop.ts:189</a></li>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/webglprogramloop.ts#L290">webglprogramloop.ts:290</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -263,7 +235,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/webglprogramloop.ts#L80">webglprogramloop.ts:80</a></li>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/webglprogramloop.ts#L94">webglprogramloop.ts:94</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -279,20 +251,20 @@
 					<a name="run" class="tsd-anchor"></a>
 					<h3>run</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">run<span class="tsd-signature-symbol">(</span>gl<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">WebGL2RenderingContext</span>, tex<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">TexInfo</span>, framebuffer<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">WebGLFramebuffer</span>, uniformLocs<span class="tsd-signature-symbol">: </span><a href="../interfaces/_mergepass_.uniformlocs.html" class="tsd-signature-type">UniformLocs</a>, last<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span>, defaultUniforms<span class="tsd-signature-symbol">: </span><a href="../interfaces/_webglprogramloop_.defaultuniforms.html" class="tsd-signature-type">DefaultUniforms</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+						<li class="tsd-signature tsd-kind-icon">run<span class="tsd-signature-symbol">(</span>gl<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">WebGL2RenderingContext</span>, tex<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">TexInfo</span>, framebuffer<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">WebGLFramebuffer</span>, uniformLocs<span class="tsd-signature-symbol">: </span><a href="../interfaces/_mergepass_.uniformlocs.html" class="tsd-signature-type">UniformLocs</a>, last<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span>, defaultUniforms<span class="tsd-signature-symbol">: </span><a href="../interfaces/_webglprogramloop_.defaultuniforms.html" class="tsd-signature-type">DefaultUniforms</a>, outerLoop<span class="tsd-signature-symbol">?: </span><a href="_webglprogramloop_.webglprogramloop.html" class="tsd-signature-type">WebGLProgramLoop</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/webglprogramloop.ts#L101">webglprogramloop.ts:101</a></li>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/webglprogramloop.ts#L111">webglprogramloop.ts:111</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
 								<div class="lead">
 									<p>recursively uses all programs in the loop, binding the appropriate
 										textures and setting the appropriate uniforms; the user should only have
-									to call <a href="_mergepass_.merger.html#draw">draw</a> on <a href="_mergepass_.merger.html">Merger</a> and never this function directly</p>
+									to call <a href="_mergepass_.merger.html#draw">draw</a> on <a href="../modules/_index_.html#merger">Merger</a> and never this function directly</p>
 								</div>
 							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -315,6 +287,9 @@
 								<li>
 									<h5>defaultUniforms: <a href="../interfaces/_webglprogramloop_.defaultuniforms.html" class="tsd-signature-type">DefaultUniforms</a></h5>
 								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> outerLoop: <a href="_webglprogramloop_.webglprogramloop.html" class="tsd-signature-type">WebGLProgramLoop</a></h5>
+								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 						</li>
@@ -335,6 +310,9 @@
 			</nav>
 			<nav class="tsd-navigation secondary menu-sticky">
 				<ul class="before-current">
+					<li class=" tsd-kind-class tsd-parent-kind-module">
+						<a href="_webglprogramloop_.webglprogramleaf.html" class="tsd-kind-icon">WebGLProgram<wbr>Leaf</a>
+					</li>
 				</ul>
 				<ul class="current">
 					<li class="current tsd-kind-class tsd-parent-kind-module">
@@ -344,10 +322,10 @@
 								<a href="_webglprogramloop_.webglprogramloop.html#constructor" class="tsd-kind-icon">constructor</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class">
-								<a href="_webglprogramloop_.webglprogramloop.html#effects" class="tsd-kind-icon">effects</a>
+								<a href="_webglprogramloop_.webglprogramloop.html#last" class="tsd-kind-icon">last</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class">
-								<a href="_webglprogramloop_.webglprogramloop.html#last" class="tsd-kind-icon">last</a>
+								<a href="_webglprogramloop_.webglprogramloop.html#loopinfo" class="tsd-kind-icon">loop<wbr>Info</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="_webglprogramloop_.webglprogramloop.html#mouseloc" class="tsd-kind-icon">mouse<wbr>Loc</a>
@@ -356,13 +334,7 @@
 								<a href="_webglprogramloop_.webglprogramloop.html#programelement" class="tsd-kind-icon">program<wbr>Element</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class">
-								<a href="_webglprogramloop_.webglprogramloop.html#repeat" class="tsd-kind-icon">repeat</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="_webglprogramloop_.webglprogramloop.html#timeloc" class="tsd-kind-icon">time<wbr>Loc</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class">
-								<a href="_webglprogramloop_.webglprogramloop.html#totalneeds" class="tsd-kind-icon">total<wbr>Needs</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_webglprogramloop_.webglprogramloop.html#delete" class="tsd-kind-icon">delete</a>

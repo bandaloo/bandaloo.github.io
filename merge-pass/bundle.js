@@ -4,6 +4,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CodeBuilder = exports.channelSamplerName = void 0;
 const expr_1 = require("./exprs/expr");
 const webglprogramloop_1 = require("./webglprogramloop");
+const settings_1 = require("./settings");
 /** @ignore */
 const FRAG_SET = `  gl_FragColor = texture2D(uSampler, gl_FragCoord.xy / uResolution);\n`;
 /** @ignore */
@@ -114,7 +115,8 @@ class CodeBuilder {
             (this.totalNeeds.centerSample ? FRAG_SET : "") +
             this.calls.join("\n") +
             "\n}";
-        console.log(fullCode);
+        if (settings_1.settings.verbosity > 0)
+            console.log(fullCode);
         gl.shaderSource(fShader, fullCode);
         gl.compileShader(fShader);
         // set up the program
@@ -177,7 +179,7 @@ class CodeBuilder {
 }
 exports.CodeBuilder = CodeBuilder;
 
-},{"./exprs/expr":13,"./webglprogramloop":47}],2:[function(require,module,exports){
+},{"./exprs/expr":16,"./settings":53,"./webglprogramloop":54}],2:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -387,7 +389,7 @@ const demos = {
         };
     },
     fxaa: () => {
-        const merger = new MP.Merger([MP.fxaa()], sourceCanvas, gl);
+        const merger = new MP.Merger([MP.loop([MP.fxaa()], 3)], sourceCanvas, gl);
         return {
             merger: merger,
             change: () => { },
@@ -508,7 +510,7 @@ const demos = {
             (godrays = MP.godrays({
                 convertDepth: {
                     threshold: 0.1,
-                    newColor: MP.hsv2rgb(MP.vec4(MP.op(MP.time(), "/", 4), 0.5, 0.5, 1)),
+                    newColor: MP.mut(MP.pvec4(1, 1, 1, 1)),
                 },
             })),
         ], sourceCanvas, gl, {
@@ -521,6 +523,9 @@ const demos = {
                 this.decay = 1.0;
                 this.density = 1.0;
                 this.weight = 0.01;
+                this.red = 1;
+                this.green = 1;
+                this.blue = 1;
             }
         }
         const controls = new LocationControls();
@@ -530,6 +535,9 @@ const demos = {
         gui.add(controls, "decay", 0.9, 1, 0.001);
         gui.add(controls, "density", 0, 1, 0.01);
         gui.add(controls, "weight", 0, 0.02, 0.001);
+        gui.add(controls, "red", 0, 1, 0.01);
+        gui.add(controls, "green", 0, 1, 0.01);
+        gui.add(controls, "blue", 0, 1, 0.01);
         return {
             merger: merger,
             change: () => {
@@ -538,6 +546,7 @@ const demos = {
                 godrays.setDecay(controls.decay);
                 godrays.setDensity(controls.density);
                 godrays.setWeight(controls.weight);
+                godrays.setNewColor(MP.pvec4(controls.red, controls.green, controls.blue, 1));
             },
         };
     },
@@ -621,7 +630,6 @@ const demos = {
         const merger = new MP.Merger([
             MP.godrays({
                 lightPos: MP.op(MP.mouse(), "/", MP.resolution()),
-                //color: MP.brightness(fog, MP.fcolor()),
                 weight: 0.009,
                 density: MP.op(0.2, "+", MP.op(fog, "*", 0.5)),
             }),
@@ -631,6 +639,110 @@ const demos = {
         return {
             merger: merger,
             change: () => { },
+        };
+    },
+    custom: (channels = []) => {
+        const c = MP.cfloat(MP.tag `${MP.mut(0.2, "uScalar")} * -(${MP.channel(1)}.r * ${MP.channel(0)}.r)`);
+        const merger = new MP.Merger([MP.brightness(c)], sourceCanvas, gl, {
+            channels: channels,
+        });
+        class ScalarControls {
+            constructor() {
+                this.scalar = 0.3;
+            }
+        }
+        const controls = new ScalarControls();
+        const gui = new dat.GUI();
+        gui.add(controls, "scalar", 0, 1.0, 0.01);
+        return {
+            merger: merger,
+            change: () => {
+                c.setUniform("uScalar", controls.scalar);
+            },
+        };
+    },
+    bloom: (channels = []) => {
+        const bloom = MP.bloom();
+        const merger = new MP.Merger([bloom], sourceCanvas, gl, {
+            channels: channels,
+        });
+        class BloomControls {
+            constructor() {
+                this.threshold = 0.4;
+                this.boost = 1.3;
+                this.horizontal = 1;
+                this.vertical = 1;
+            }
+        }
+        const controls = new BloomControls();
+        const gui = new dat.GUI();
+        gui.add(controls, "threshold", 0, 1.0, 0.01);
+        gui.add(controls, "boost", 1.0, 2.0, 0.01);
+        gui.add(controls, "horizontal", 0, 2, 0.01);
+        gui.add(controls, "vertical", 0, 2, 0.01);
+        return {
+            merger: merger,
+            change: () => {
+                bloom.setThreshold(controls.threshold);
+                bloom.setBoost(controls.boost);
+                bloom.setHorizontal(controls.horizontal);
+                bloom.setVertical(controls.vertical);
+            },
+        };
+    },
+    sobel: (channels = []) => {
+        const merger = new MP.Merger([
+            MP.sobel(),
+        ], sourceCanvas, gl, { channels: [null] });
+        return {
+            merger: merger,
+            change: () => { },
+        };
+    },
+    /*
+    MP.cvec4(
+      // adapted from shadertoy default
+      MP.tag`vec4(0.5 + 0.5 * cos(${MP.time()} + ${MP.pos()}.xyx + vec3(0,2,4)), 1.)`
+    )
+    */
+    edgecolor: (channels = []) => {
+        let a;
+        const merger = new MP.Merger([MP.setcolor((a = MP.edgecolor(MP.mut(MP.pvec4(1.0, 1.0, 1.0, 1.0)))))], sourceCanvas, gl, { channels: [null] });
+        class EdgeControls {
+            constructor() {
+                this.red = 1.0;
+                this.green = 0.0;
+                this.blue = 1.0;
+            }
+        }
+        const controls = new EdgeControls();
+        const gui = new dat.GUI();
+        gui.add(controls, "red", 0.0, 1.0, 0.01);
+        gui.add(controls, "green", 0.0, 1.0, 0.01);
+        gui.add(controls, "blue", 0.0, 1.0, 0.01);
+        return {
+            merger: merger,
+            change: () => {
+                a.setColor(MP.pvec4(controls.red, controls.green, controls.blue, 1));
+            },
+        };
+    },
+    depthedge: (channels = []) => {
+        const edge = MP.edge(MP.mut(1.0), 0);
+        const merger = new MP.Merger([MP.blur2d(1, 1, 13), MP.setcolor(edge)], sourceCanvas, gl, { channels: channels });
+        class EdgeControls {
+            constructor() {
+                this.color = 1.0;
+            }
+        }
+        const controls = new EdgeControls();
+        const gui = new dat.GUI();
+        gui.add(controls, "color", -1.0, 1.0, 0.01);
+        return {
+            merger: merger,
+            change: () => {
+                edge.setMult(controls.color);
+            },
         };
     },
 };
@@ -793,6 +905,19 @@ const higherOrderDonuts = (color = true, extra = 0) => {
         x.drawImage(c, 0, 1);
     };
 };
+const bloomTest = (t, frames) => {
+    const hsize = 32;
+    const spacing = 100;
+    x.fillStyle = "black";
+    x.fillRect(0, 0, 960, 540);
+    const num = 8;
+    for (let i = 0; i < num; i++) {
+        const c = 255 / (i + 1);
+        const position = spacing * i - (spacing * (num - 1)) / 2;
+        x.fillStyle = R(c, c, c);
+        x.fillRect(960 / 2 - hsize + position, 540 / 2 - hsize, hsize * 2, hsize * 2);
+    }
+};
 const draws = {
     edgeblur: [redSpiral],
     bluramount: [movingGrid],
@@ -832,6 +957,11 @@ const draws = {
     fractalize: [stripes],
     dictionary: [movingGrid],
     noisegodrays: [higherOrderDonuts(true, 150), higherOrderDonuts(false, 10)],
+    custom: [higherOrderWaves(true), higherOrderWaves(false), bitwiseGrid()],
+    bloom: [bloomTest],
+    sobel: [redSpiral],
+    edgecolor: [redSpiral],
+    depthedge: [higherOrderPerspective(true), higherOrderPerspective(false)],
 };
 const notes = {
     edgeblur: "the blur radius is a function of distance from the center coordinate." +
@@ -915,8 +1045,13 @@ const notes = {
         "prevents it from looking like the noise is scaling from the corner",
     dictionary: "you can pass in an <code>EffectDictionary</code> to create multiple compiled program loops " +
         'which you can switch between with <code>merger.changeProgram("effectName")</code>. ' +
-        'you must have one with the name <code>"default"</code>, which will be the currently enabled' +
+        'you must have one with the name <code>"default"</code>, which will be the currently enabled ' +
         "program loop",
+    depthedge: "you can sample from the depth buffer with <code>edge</code> by " +
+        "passing in a different sampler number. you can create a pretty intereesting " +
+        "effect by blurring the scene buffer and then tracing edges from the depth buffer. " +
+        "with this method, the outlines naturally get thinner in the distance. " +
+        "you can also shift from light edges to dark edges at runtime with <code>setMult</code>",
 };
 const canvases = [sourceCanvas];
 const contexts = [source];
@@ -924,6 +1059,7 @@ let demo;
 let key;
 window.addEventListener("load", () => {
     var _a, _b;
+    MP.settings.verbosity = 1;
     let mstr = getVariable("m");
     let dstr = getVariable("d");
     if (mstr === undefined || demos[mstr] === undefined)
@@ -1031,7 +1167,7 @@ function destroyAndCreate(str: string) {
 setTimeout(() => destroyAndCreate("redgreenswap"), 2000);
 */
 
-},{"./index":45,"dat.gui":48}],3:[function(require,module,exports){
+},{"./index":51,"dat.gui":55}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.a1 = exports.Arity1HomogenousExpr = void 0;
@@ -1066,7 +1202,7 @@ function a1(name, val) {
 }
 exports.a1 = a1;
 
-},{"./expr":13}],4:[function(require,module,exports){
+},{"./expr":16}],4:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.a2 = exports.Arity2HomogenousExpr = void 0;
@@ -1109,7 +1245,92 @@ function a2(name, val1, val2) {
 }
 exports.a2 = a2;
 
-},{"./expr":13}],5:[function(require,module,exports){
+},{"./expr":16}],5:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.bloom = exports.BloomLoop = void 0;
+const mergepass_1 = require("../mergepass");
+const arity2_1 = require("./arity2");
+const blurexpr_1 = require("./blurexpr");
+const brightnessexpr_1 = require("./brightnessexpr");
+const contrastexpr_1 = require("./contrastexpr");
+const expr_1 = require("./expr");
+const fragcolorexpr_1 = require("./fragcolorexpr");
+const opexpr_1 = require("./opexpr");
+const scenesampleexpr_1 = require("./scenesampleexpr");
+const setcolorexpr_1 = require("./setcolorexpr");
+const vecexprs_1 = require("./vecexprs");
+// TODO bloom uses `input` so it has to be the first
+// TODO maybe a way to update the scene buffer?
+/** bloom loop */
+class BloomLoop extends mergepass_1.EffectLoop {
+    constructor(threshold = expr_1.float(expr_1.mut(0.4)), horizontal = expr_1.float(expr_1.mut(1)), vertical = expr_1.float(expr_1.mut(1)), boost = expr_1.float(expr_1.mut(1.3)), taps = 9, reps = 3) {
+        const bright = expr_1.cfloat(expr_1.tag `((${fragcolorexpr_1.fcolor()}.r + ${fragcolorexpr_1.fcolor()}.g + ${fragcolorexpr_1.fcolor()}.b) / 3.)`);
+        const step = arity2_1.a2("step", bright, threshold);
+        const col = expr_1.cvec4(expr_1.tag `vec4(${fragcolorexpr_1.fcolor()}.rgb * (1. - ${step}), 1.)`);
+        const list = [
+            setcolorexpr_1.setcolor(col),
+            mergepass_1.loop([
+                blurexpr_1.gauss(vecexprs_1.vec2(horizontal, 0), taps),
+                blurexpr_1.gauss(vecexprs_1.vec2(0, vertical), taps),
+                brightnessexpr_1.brightness(0.1),
+                contrastexpr_1.contrast(boost),
+            ], reps),
+            setcolorexpr_1.setcolor(opexpr_1.op(fragcolorexpr_1.fcolor(), "+", scenesampleexpr_1.input())),
+        ];
+        super(list, { num: 1 });
+        this.threshold = threshold;
+        this.horizontal = horizontal;
+        this.vertical = vertical;
+        this.boost = boost;
+    }
+    /**
+     * set the horizontal stretch of the blur effect (no greater than 1 for best
+     * effect)
+     */
+    setHorizontal(num) {
+        if (!(this.horizontal instanceof expr_1.BasicFloat))
+            throw new Error("horizontal expression not basic float");
+        this.horizontal.setVal(num);
+    }
+    /**
+     * set the vertical stretch of the blur effect (no greater than 1 for best
+     * effect)
+     */
+    setVertical(num) {
+        if (!(this.vertical instanceof expr_1.BasicFloat))
+            throw new Error("vertical expression not basic float");
+        this.vertical.setVal(num);
+    }
+    /** set the treshold */
+    setThreshold(num) {
+        if (!(this.threshold instanceof expr_1.BasicFloat))
+            throw new Error("threshold expression not basic float");
+        this.threshold.setVal(num);
+    }
+    /** set the contrast boost */
+    setBoost(num) {
+        if (!(this.boost instanceof expr_1.BasicFloat))
+            throw new Error("boost expression not basic float");
+        this.boost.setVal(num);
+    }
+}
+exports.BloomLoop = BloomLoop;
+/**
+ * creates a bloom loop
+ * @param threshold values below this brightness don't get blurred (0.4 is
+ * about reasonable, which is also the default)
+ * @param horizontal how much to blur vertically (defaults to 1 pixel)
+ * @param vertical how much to blur horizontally (defaults to 1 pixel)
+ * @param taps how many taps for the blur (defaults to 9)
+ * @param reps how many times to loop the blur (defaults to 3)
+ */
+function bloom(threshold, horizontal, vertical, boost, taps, reps) {
+    return new BloomLoop(expr_1.n2e(threshold), expr_1.n2e(horizontal), expr_1.n2e(vertical), expr_1.n2e(boost), taps, reps);
+}
+exports.bloom = bloom;
+
+},{"../mergepass":52,"./arity2":4,"./blurexpr":7,"./brightnessexpr":8,"./contrastexpr":11,"./expr":16,"./fragcolorexpr":17,"./opexpr":34,"./scenesampleexpr":41,"./setcolorexpr":42,"./vecexprs":48}],6:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.blur2d = exports.Blur2dLoop = void 0;
@@ -1130,19 +1351,19 @@ class Blur2dLoop extends mergepass_1.EffectLoop {
      * set the horizontal stretch of the blur effect (no greater than 1 for best
      * effect)
      */
-    setHorizontal(float) {
+    setHorizontal(num) {
         if (!(this.horizontal instanceof expr_1.BasicFloat))
             throw new Error("horizontal expression not basic float");
-        this.horizontal.setVal(float);
+        this.horizontal.setVal(num);
     }
     /**
      * set the vertical stretch of the blur effect (no greater than 1 for best
      * effect)
      */
-    setVertical(float) {
+    setVertical(num) {
         if (!(this.vertical instanceof expr_1.BasicFloat))
             throw new Error("vertical expression not basic float");
-        this.vertical.setVal(float);
+        this.vertical.setVal(num);
     }
 }
 exports.Blur2dLoop = Blur2dLoop;
@@ -1162,7 +1383,7 @@ function blur2d(horizontalExpr, verticalExpr, reps, taps, samplerNum) {
 }
 exports.blur2d = blur2d;
 
-},{"../mergepass":46,"./blurexpr":6,"./expr":13,"./vecexprs":42}],6:[function(require,module,exports){
+},{"../mergepass":52,"./blurexpr":7,"./expr":16,"./vecexprs":48}],7:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.gauss = exports.BlurExpr = void 0;
@@ -1194,6 +1415,7 @@ class BlurExpr extends expr_1.ExprVec4 {
         if (![5, 9, 13].includes(taps)) {
             throw new Error("taps for gauss blur can only be 5, 9 or 13");
         }
+        // TODO make this more generic
         super(genBlurSource(direction, taps, samplerNum), ["uDirection"]);
         this.direction = direction;
         if (samplerNum === undefined) {
@@ -1226,7 +1448,7 @@ function gauss(direction, taps = 5, samplerNum) {
 }
 exports.gauss = gauss;
 
-},{"../glslfunctions":44,"./expr":13}],7:[function(require,module,exports){
+},{"../glslfunctions":50,"./expr":16}],8:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.brightness = exports.Brightness = void 0;
@@ -1259,7 +1481,7 @@ function brightness(val, col) {
 }
 exports.brightness = brightness;
 
-},{"../glslfunctions":44,"./expr":13,"./fragcolorexpr":14}],8:[function(require,module,exports){
+},{"../glslfunctions":50,"./expr":16,"./fragcolorexpr":17}],9:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.changecomp = exports.ChangeCompExpr = void 0;
@@ -1339,7 +1561,7 @@ function changecomp(vec, setter, comps, op) {
 }
 exports.changecomp = changecomp;
 
-},{"./expr":13,"./getcompexpr":18}],9:[function(require,module,exports){
+},{"./expr":16,"./getcompexpr":21}],10:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.channel = exports.ChannelSampleExpr = void 0;
@@ -1379,7 +1601,7 @@ function channel(channel, vec) {
 }
 exports.channel = channel;
 
-},{"../codebuilder":1,"./expr":13,"./normfragcoordexpr":27}],10:[function(require,module,exports){
+},{"../codebuilder":1,"./expr":16,"./normfragcoordexpr":32}],11:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.contrast = exports.ContrastExpr = void 0;
@@ -1395,7 +1617,7 @@ class ContrastExpr extends expr_1.ExprVec4 {
     /** sets the contrast */
     setContrast(contrast) {
         this.setUniform("uContrast" + this.id, contrast);
-        this.contrast = contrast;
+        this.contrast = expr_1.n2p(contrast);
     }
 }
 exports.ContrastExpr = ContrastExpr;
@@ -1411,7 +1633,7 @@ function contrast(val, col) {
 }
 exports.contrast = contrast;
 
-},{"../glslfunctions":44,"./expr":13,"./fragcolorexpr":14}],11:[function(require,module,exports){
+},{"../glslfunctions":50,"./expr":16,"./fragcolorexpr":17}],12:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.depth2occlusion = exports.DepthToOcclusionExpr = void 0;
@@ -1440,7 +1662,7 @@ class DepthToOcclusionExpr extends expr_1.ExprVec4 {
     }
     setThreshold(threshold) {
         this.setUniform("uThreshold" + this.id, threshold);
-        this.threshold = threshold;
+        this.threshold = expr_1.n2p(threshold);
     }
 }
 exports.DepthToOcclusionExpr = DepthToOcclusionExpr;
@@ -1459,7 +1681,7 @@ function depth2occlusion(depthCol, newCol, threshold) {
 }
 exports.depth2occlusion = depth2occlusion;
 
-},{"./channelsampleexpr":9,"./expr":13,"./vecexprs":42}],12:[function(require,module,exports){
+},{"./channelsampleexpr":10,"./expr":16,"./vecexprs":48}],13:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.dof = exports.DoFLoop = void 0;
@@ -1505,10 +1727,84 @@ function dof(depth, rad, depthInfo, reps) {
 }
 exports.dof = dof;
 
-},{"../mergepass":46,"./arity2":4,"./blurexpr":6,"./channelsampleexpr":9,"./expr":13,"./gaussianexpr":17,"./getcompexpr":18,"./opexpr":29,"./vecexprs":42}],13:[function(require,module,exports){
+},{"../mergepass":52,"./arity2":4,"./blurexpr":7,"./channelsampleexpr":10,"./expr":16,"./gaussianexpr":20,"./getcompexpr":21,"./opexpr":34,"./vecexprs":48}],14:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.tag = exports.wrapInValue = exports.pfloat = exports.n2p = exports.n2e = exports.Operator = exports.ExprVec4 = exports.ExprVec3 = exports.ExprVec2 = exports.float = exports.ExprFloat = exports.BasicFloat = exports.ExprVec = exports.BasicVec4 = exports.BasicVec3 = exports.BasicVec2 = exports.BasicVec = exports.PrimitiveVec4 = exports.PrimitiveVec3 = exports.PrimitiveVec2 = exports.PrimitiveVec = exports.PrimitiveFloat = exports.Primitive = exports.mut = exports.Mutable = exports.Expr = void 0;
+exports.edgecolor = exports.EdgeColorExpr = void 0;
+const arity2_1 = require("./arity2");
+const expr_1 = require("./expr");
+const fragcolorexpr_1 = require("./fragcolorexpr");
+const monochromeexpr_1 = require("./monochromeexpr");
+const sobelexpr_1 = require("./sobelexpr");
+const vecexprs_1 = require("./vecexprs");
+/** edge color expression */
+class EdgeColorExpr extends expr_1.WrappedExpr {
+    constructor(color, samplerNum, stepped = true) {
+        const expr = stepped
+            ? expr_1.cvec4(expr_1.tag `mix(${color}, ${fragcolorexpr_1.fcolor()}, ${monochromeexpr_1.monochrome(arity2_1.a2("step", vecexprs_1.vec4(0.5, 0.5, 0.5, 0.0), sobelexpr_1.sobel(samplerNum)))})`)
+            : expr_1.cvec4(expr_1.tag `mix(${color}, ${fragcolorexpr_1.fcolor()}, ${monochromeexpr_1.monochrome(sobelexpr_1.sobel(samplerNum))})`);
+        super(expr);
+        this.color = color;
+        this.expr = expr;
+    }
+    setColor(color) {
+        this.expr.setUniform("uCustomName0" + this.expr.id, color);
+        this.color = color;
+    }
+}
+exports.EdgeColorExpr = EdgeColorExpr;
+/**
+ * creates a colored edge detection expression
+ * @param color what color to make the edge
+ * @param samplerNum where to sample from
+ * @param stepped whether to round the result of sobel edge detection (defaults
+ * to true)
+ */
+function edgecolor(color, samplerNum, stepped) {
+    return new EdgeColorExpr(color, samplerNum, stepped);
+}
+exports.edgecolor = edgecolor;
+
+},{"./arity2":4,"./expr":16,"./fragcolorexpr":17,"./monochromeexpr":27,"./sobelexpr":44,"./vecexprs":48}],15:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.edge = exports.EdgeExpr = void 0;
+const brightnessexpr_1 = require("./brightnessexpr");
+const expr_1 = require("./expr");
+const getcompexpr_1 = require("./getcompexpr");
+const invertexpr_1 = require("./invertexpr");
+const monochromeexpr_1 = require("./monochromeexpr");
+const opexpr_1 = require("./opexpr");
+const sobelexpr_1 = require("./sobelexpr");
+class EdgeExpr extends expr_1.WrappedExpr {
+    constructor(mult = expr_1.mut(-1.0), samplerNum) {
+        const operator = opexpr_1.op(getcompexpr_1.getcomp(invertexpr_1.invert(monochromeexpr_1.monochrome(sobelexpr_1.sobel(samplerNum))), "r"), "*", mult);
+        super(brightnessexpr_1.brightness(operator));
+        this.mult = mult;
+        this.operator = operator;
+    }
+    setMult(mult) {
+        this.operator.setRight(mult);
+        this.mult = expr_1.n2e(mult);
+    }
+}
+exports.EdgeExpr = EdgeExpr;
+/**
+ * returns an expression highlights edges where they appear
+ * @param style `"dark"` for dark edges and `"light"` for light edges, or a
+ * custom number or expression (between -1 and 1) for a more gray style of edge
+ * @param samplerNum where to sample from
+ */
+function edge(style, samplerNum) {
+    const mult = style === "dark" ? -1 : style === "light" ? 1 : style;
+    return new EdgeExpr(expr_1.n2e(mult), samplerNum);
+}
+exports.edge = edge;
+
+},{"./brightnessexpr":8,"./expr":16,"./getcompexpr":21,"./invertexpr":25,"./monochromeexpr":27,"./opexpr":34,"./sobelexpr":44}],16:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.tag = exports.wrapInValue = exports.pfloat = exports.n2p = exports.n2e = exports.Operator = exports.WrappedExpr = exports.ExprVec4 = exports.ExprVec3 = exports.ExprVec2 = exports.float = exports.ExprFloat = exports.BasicFloat = exports.ExprVec = exports.BasicVec4 = exports.BasicVec3 = exports.BasicVec2 = exports.BasicVec = exports.PrimitiveVec4 = exports.PrimitiveVec3 = exports.PrimitiveVec2 = exports.PrimitiveVec = exports.PrimitiveFloat = exports.Primitive = exports.mut = exports.Mutable = exports.cvec4 = exports.cvec3 = exports.cvec2 = exports.cfloat = exports.Expr = void 0;
 const mergepass_1 = require("../mergepass");
 const webglprogramloop_1 = require("../webglprogramloop");
 /**
@@ -1619,12 +1915,43 @@ class Expr {
         this.sourceCode += this.sourceLists.sections[this.sourceLists.sections.length - 1];
         return this.sourceCode;
     }
+    addFuncs(funcs) {
+        this.externalFuncs.push(...funcs);
+        return this;
+    }
 }
 exports.Expr = Expr;
 /**
  * increments for each expression created; used to uniquely id each expression
  */
 Expr.count = 0;
+function genCustomNames(sourceLists) {
+    const names = [];
+    for (let i = 0; i < sourceLists.values.length; i++) {
+        names.push("uCustomName" + i);
+    }
+    return names;
+}
+/** create a custom float function (use with [[tag]]) */
+function cfloat(sourceLists, externalFuncs = []) {
+    return new ExprFloat(sourceLists, genCustomNames(sourceLists)).addFuncs(externalFuncs);
+}
+exports.cfloat = cfloat;
+/** create a custom vec2 function (use with [[tag]]) */
+function cvec2(sourceLists, externalFuncs = []) {
+    return new ExprVec2(sourceLists, genCustomNames(sourceLists)).addFuncs(externalFuncs);
+}
+exports.cvec2 = cvec2;
+/** create a custom vec3 function (use with [[tag]]) */
+function cvec3(sourceLists, externalFuncs = []) {
+    return new ExprVec3(sourceLists, genCustomNames(sourceLists)).addFuncs(externalFuncs);
+}
+exports.cvec3 = cvec3;
+/** create a custom vec4 function (use with [[tag]]) */
+function cvec4(sourceLists, externalFuncs = []) {
+    return new ExprVec4(sourceLists, genCustomNames(sourceLists)).addFuncs(externalFuncs);
+}
+exports.cvec4 = cvec4;
 class Mutable {
     constructor(primitive, name) {
         this.primitive = primitive;
@@ -1848,6 +2175,18 @@ class ExprVec4 extends ExprVec {
     }
 }
 exports.ExprVec4 = ExprVec4;
+class WrappedExpr {
+    constructor(expr) {
+        this.expr = expr;
+    }
+    typeString() {
+        return this.expr.typeString();
+    }
+    parse(buildInfo, defaultName, enc) {
+        return this.expr.parse(buildInfo, defaultName, enc);
+    }
+}
+exports.WrappedExpr = WrappedExpr;
 class Operator extends Expr {
     constructor(ret, sourceLists, defaultNames) {
         super(sourceLists, defaultNames);
@@ -1865,6 +2204,7 @@ function n2e(num) {
         num instanceof ExprFloat ||
         num instanceof Operator ||
         num instanceof Mutable ||
+        num instanceof WrappedExpr ||
         num instanceof BasicFloat)
         return num;
     return new PrimitiveFloat(num);
@@ -1890,13 +2230,16 @@ function wrapInValue(num) {
     return num;
 }
 exports.wrapInValue = wrapInValue;
-/** @ignore */
+/**
+ * takes a template strings array and converts it to a source list; very useful
+ * for [[cfloat]], [[cvec2]], [[cvec3]] and [[cvec4]]
+ */
 function tag(strings, ...values) {
     return { sections: strings.concat([]), values: values };
 }
 exports.tag = tag;
 
-},{"../mergepass":46,"../webglprogramloop":47}],14:[function(require,module,exports){
+},{"../mergepass":52,"../webglprogramloop":54}],17:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fcolor = exports.FragColorExpr = void 0;
@@ -1915,7 +2258,7 @@ function fcolor() {
 }
 exports.fcolor = fcolor;
 
-},{"./expr":13}],15:[function(require,module,exports){
+},{"./expr":16}],18:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pixel = exports.FragCoordExpr = void 0;
@@ -1936,7 +2279,7 @@ function pixel() {
 }
 exports.pixel = pixel;
 
-},{"./expr":13}],16:[function(require,module,exports){
+},{"./expr":16}],19:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fxaa = void 0;
@@ -1956,12 +2299,12 @@ function fxaa() {
 }
 exports.fxaa = fxaa;
 
-},{"../glslfunctions":44,"./expr":13}],17:[function(require,module,exports){
+},{"../glslfunctions":50,"./expr":16}],20:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.gaussian = exports.GaussianExpr = void 0;
-const expr_1 = require("./expr");
 const glslfunctions_1 = require("../glslfunctions");
+const expr_1 = require("./expr");
 /** gaussian expression */
 class GaussianExpr extends expr_1.ExprFloat {
     constructor(x, a, b) {
@@ -1973,15 +2316,15 @@ class GaussianExpr extends expr_1.ExprFloat {
     }
     setX(x) {
         this.setUniform("uFloatX" + this.id, x);
-        this.x = expr_1.n2e(x);
+        this.x = expr_1.n2p(x);
     }
     setA(a) {
         this.setUniform("uFloatA" + this.id, a);
-        this.a = expr_1.n2e(a);
+        this.a = expr_1.n2p(a);
     }
     setB(b) {
         this.setUniform("uFloatB" + this.id, b);
-        this.b = expr_1.n2e(b);
+        this.b = expr_1.n2p(b);
     }
 }
 exports.GaussianExpr = GaussianExpr;
@@ -1996,7 +2339,7 @@ function gaussian(x, a = 0, b = 1) {
 }
 exports.gaussian = gaussian;
 
-},{"../glslfunctions":44,"./expr":13}],18:[function(require,module,exports){
+},{"../glslfunctions":50,"./expr":16}],21:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.get4comp = exports.get3comp = exports.get2comp = exports.getcomp = exports.Get4CompExpr = exports.Get3CompExpr = exports.Get2CompExpr = exports.GetCompExpr = exports.checkLegalComponents = exports.typeStringToLength = void 0;
@@ -2150,7 +2493,7 @@ function get4comp(vec, comps) {
 }
 exports.get4comp = get4comp;
 
-},{"./expr":13}],19:[function(require,module,exports){
+},{"./expr":16}],22:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.godrays = exports.GodRaysExpr = void 0;
@@ -2160,10 +2503,12 @@ const fragcolorexpr_1 = require("./fragcolorexpr");
 const vecexprs_1 = require("./vecexprs");
 /** godrays expression */
 class GodRaysExpr extends expr_1.ExprVec4 {
+    // sane godray defaults from https://github.com/Erkaman/glsl-godrays/blob/master/example/index.js
     constructor(col = fragcolorexpr_1.fcolor(), exposure = expr_1.mut(1.0), decay = expr_1.mut(1.0), density = expr_1.mut(1.0), weight = expr_1.mut(0.01), lightPos = expr_1.mut(vecexprs_1.pvec2(0.5, 0.5)), samplerNum = 0, convertDepth) {
         // TODO the metaprogramming here is not so good!
         // leaving off the function call section for now
         const sourceLists = expr_1.tag `${col}, ${exposure}, ${decay}, ${density}, ${weight}, ${lightPos}, ${convertDepth !== undefined ? convertDepth.threshold : expr_1.float(0)}, ${convertDepth !== undefined ? convertDepth.newColor : vecexprs_1.vec4(0, 0, 0, 0)})`;
+        // TODO make this more generic
         // append the _<num> onto the function name
         // also add _depth if this is a version of the function that uses depth buffer
         sourceLists.sections[0] += `godrays_${samplerNum}${convertDepth !== undefined ? "_depth" : ""}(`;
@@ -2204,22 +2549,22 @@ class GodRaysExpr extends expr_1.ExprVec4 {
     /** sets the exposure */
     setExposure(exposure) {
         this.setUniform("uExposure" + this.id, exposure);
-        this.exposure = expr_1.n2e(exposure);
+        this.exposure = expr_1.n2p(exposure);
     }
     /** sets the decay */
     setDecay(decay) {
         this.setUniform("uDecay" + this.id, decay);
-        this.decay = expr_1.n2e(decay);
+        this.decay = expr_1.n2p(decay);
     }
     /** sets the density */
     setDensity(density) {
         this.setUniform("uDensity" + this.id, density);
-        this.density = expr_1.n2e(density);
+        this.density = expr_1.n2p(density);
     }
     /** sets the weight */
     setWeight(weight) {
         this.setUniform("uWeight" + this.id, weight);
-        this.weight = expr_1.n2e(weight);
+        this.weight = expr_1.n2p(weight);
     }
     /** sets the light position */
     setLightPos(lightPos) {
@@ -2230,15 +2575,14 @@ class GodRaysExpr extends expr_1.ExprVec4 {
     // buffer (although right now, you'll still be able to set them)
     setThreshold(threshold) {
         this.setUniform("uThreshold" + this.id, threshold);
-        this.threshold = expr_1.n2e(threshold);
+        this.threshold = expr_1.n2p(threshold);
     }
-    setNewcolor(newColor) {
+    setNewColor(newColor) {
         this.setUniform("uNewColor" + this.id, newColor);
         this.newColor = newColor;
     }
 }
 exports.GodRaysExpr = GodRaysExpr;
-// sane godray defaults from https://github.com/Erkaman/glsl-godrays/blob/master/example/index.js
 /**
  * create a godrays expression which requires an occlusion map; all values are
  * mutable by default
@@ -2254,12 +2598,14 @@ function godrays(options = {}) {
 }
 exports.godrays = godrays;
 
-},{"../glslfunctions":44,"./expr":13,"./fragcolorexpr":14,"./vecexprs":42}],20:[function(require,module,exports){
+},{"../glslfunctions":50,"./expr":16,"./fragcolorexpr":17,"./vecexprs":48}],23:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.grain = exports.GrainExpr = void 0;
 const glslfunctions_1 = require("../glslfunctions");
 const expr_1 = require("./expr");
+// TODO consider getting rid of this since it's easy to make your own with
+// `random` and `brightness`
 /** grain expression */
 class GrainExpr extends expr_1.ExprVec4 {
     constructor(grain) {
@@ -2268,6 +2614,7 @@ class GrainExpr extends expr_1.ExprVec4 {
         this.externalFuncs = [glslfunctions_1.glslFuncs.random];
         this.needs.centerSample = true;
     }
+    /** sets the grain level  */
     setGrain(grain) {
         this.setUniform("uGrain" + this.id, grain);
         this.grain = expr_1.n2e(grain);
@@ -2275,7 +2622,7 @@ class GrainExpr extends expr_1.ExprVec4 {
 }
 exports.GrainExpr = GrainExpr;
 /**
- * adds random grain
+ * creates an expression that adds random grain
  * @param val how much the grain should impact the image (0 to 1 is reasonable)
  */
 function grain(val) {
@@ -2283,7 +2630,7 @@ function grain(val) {
 }
 exports.grain = grain;
 
-},{"../glslfunctions":44,"./expr":13}],21:[function(require,module,exports){
+},{"../glslfunctions":50,"./expr":16}],24:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.hsv2rgb = exports.HSVToRGBExpr = void 0;
@@ -2296,6 +2643,7 @@ class HSVToRGBExpr extends expr_1.ExprVec4 {
         this.color = color;
         this.externalFuncs = [glslfunctions_1.glslFuncs.hsv2rgb];
     }
+    /** sets the color to convert */
     setColor(color) {
         this.setUniform("uHSVCol", color);
         this.color = color;
@@ -2311,7 +2659,35 @@ function hsv2rgb(col) {
 }
 exports.hsv2rgb = hsv2rgb;
 
-},{"../glslfunctions":44,"./expr":13}],22:[function(require,module,exports){
+},{"../glslfunctions":50,"./expr":16}],25:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.invert = exports.InvertExpr = void 0;
+const expr_1 = require("./expr");
+const glslfunctions_1 = require("../glslfunctions");
+/** invert expression */
+class InvertExpr extends expr_1.ExprVec4 {
+    constructor(color) {
+        super(expr_1.tag `invert(${color})`, ["uColor"]);
+        this.externalFuncs = [glslfunctions_1.glslFuncs.invert];
+        this.color = color;
+    }
+    /** sets the color */
+    setColor(color) {
+        this.setUniform("uColor", color);
+        this.color = color;
+    }
+}
+exports.InvertExpr = InvertExpr;
+/**
+ * creates an expression that inverts the color, keeping the original alpha
+ */
+function invert(col) {
+    return new InvertExpr(col);
+}
+exports.invert = invert;
+
+},{"../glslfunctions":50,"./expr":16}],26:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.len = exports.LenExpr = void 0;
@@ -2334,7 +2710,36 @@ function len(vec) {
 }
 exports.len = len;
 
-},{"./expr":13}],23:[function(require,module,exports){
+},{"./expr":16}],27:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.monochrome = exports.MonochromeExpr = void 0;
+const expr_1 = require("./expr");
+const glslfunctions_1 = require("../glslfunctions");
+/** monochrome expression */
+class MonochromeExpr extends expr_1.ExprVec4 {
+    constructor(color) {
+        super(expr_1.tag `monochrome(${color})`, ["uColor"]);
+        this.externalFuncs = [glslfunctions_1.glslFuncs.monochrome];
+        this.color = color;
+    }
+    /** sets the color */
+    setColor(color) {
+        this.setUniform("uColor", color);
+        this.color = color;
+    }
+}
+exports.MonochromeExpr = MonochromeExpr;
+/**
+ * creates an expression that converts a color into grayscale, keeping the
+ * original alpha
+ */
+function monochrome(col) {
+    return new MonochromeExpr(col);
+}
+exports.monochrome = monochrome;
+
+},{"../glslfunctions":50,"./expr":16}],28:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.motionblur = exports.MotionBlurLoop = void 0;
@@ -2377,7 +2782,7 @@ function motionblur(target, persistence) {
 }
 exports.motionblur = motionblur;
 
-},{"../mergepass":46,"./channelsampleexpr":9,"./expr":13,"./fragcolorexpr":14,"./opexpr":29,"./setcolorexpr":37}],24:[function(require,module,exports){
+},{"../mergepass":52,"./channelsampleexpr":10,"./expr":16,"./fragcolorexpr":17,"./opexpr":34,"./setcolorexpr":42}],29:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.mouse = exports.MouseExpr = void 0;
@@ -2399,7 +2804,7 @@ function mouse() {
 }
 exports.mouse = mouse;
 
-},{"./expr":13}],25:[function(require,module,exports){
+},{"./expr":16}],30:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.center = exports.NormCenterFragCoordExpr = void 0;
@@ -2420,7 +2825,7 @@ function center() {
 }
 exports.center = center;
 
-},{"./expr":13}],26:[function(require,module,exports){
+},{"./expr":16}],31:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.norm = exports.NormExpr = void 0;
@@ -2431,6 +2836,7 @@ class NormExpr extends expr_1.Operator {
         super(vec, expr_1.tag `normalize(${vec})`, ["uVec"]);
         this.vec = vec;
     }
+    /** sets the vec to normalize */
     setVec(vec) {
         this.setUniform("uVec" + this.id, vec);
         this.vec = vec;
@@ -2443,7 +2849,7 @@ function norm(vec) {
 }
 exports.norm = norm;
 
-},{"./expr":13}],27:[function(require,module,exports){
+},{"./expr":16}],32:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pos = exports.NormFragCoordExpr = void 0;
@@ -2451,20 +2857,22 @@ const expr_1 = require("./expr");
 /** normalized frag coord expression */
 class NormFragCoordExpr extends expr_1.ExprVec2 {
     constructor() {
+        // don't remove these parens! even if you think you are being clever about
+        // order of operations
         super(expr_1.tag `(gl_FragCoord.xy / uResolution)`, []);
     }
 }
 exports.NormFragCoordExpr = NormFragCoordExpr;
 /**
  * creates an expression that calculates the normalized frag coord (coordinates
- * range from 0.0 to 1.0)
+ * range from 0 to 1)
  */
 function pos() {
     return new NormFragCoordExpr();
 }
 exports.pos = pos;
 
-},{"./expr":13}],28:[function(require,module,exports){
+},{"./expr":16}],33:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.nmouse = exports.NormMouseExpr = void 0;
@@ -2486,7 +2894,7 @@ function nmouse() {
 }
 exports.nmouse = nmouse;
 
-},{"./expr":13}],29:[function(require,module,exports){
+},{"./expr":16}],34:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.op = exports.OpExpr = void 0;
@@ -2525,7 +2933,7 @@ function op(left, op, right) {
 }
 exports.op = op;
 
-},{"./expr":13}],30:[function(require,module,exports){
+},{"./expr":16}],35:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fractalize = exports.perlin = exports.PerlinExpr = void 0;
@@ -2534,11 +2942,13 @@ const expr_1 = require("./expr");
 const opexpr_1 = require("./opexpr");
 /** Perlin noise expression */
 class PerlinExpr extends expr_1.ExprFloat {
+    // TODO include a default
     constructor(pos) {
         super(expr_1.tag `gradientnoise(${pos})`, ["uPos"]);
         this.pos = pos;
         this.externalFuncs = [glslfunctions_1.glslFuncs.random2, glslfunctions_1.glslFuncs.gradientnoise];
     }
+    /** sets the position to calculate noise value of */
     setPos(pos) {
         this.setUniform("uPos", pos);
         this.pos = pos;
@@ -2574,7 +2984,7 @@ function fractalize(pos, octaves, func) {
 }
 exports.fractalize = fractalize;
 
-},{"../glslfunctions":44,"./expr":13,"./opexpr":29}],31:[function(require,module,exports){
+},{"../glslfunctions":50,"./expr":16,"./opexpr":34}],36:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pblur = exports.PowerBlurLoop = void 0;
@@ -2583,6 +2993,7 @@ const blurexpr_1 = require("./blurexpr");
 const vecexprs_1 = require("./vecexprs");
 const expr_1 = require("./expr");
 const baseLog = (x, y) => Math.log(y) / Math.log(x);
+// TODO consider getting rid of this, as it pretty much never looks good
 /** power blur loop */
 class PowerBlurLoop extends mergepass_1.EffectLoop {
     constructor(size) {
@@ -2615,13 +3026,14 @@ function pblur(size) {
 }
 exports.pblur = pblur;
 
-},{"../mergepass":46,"./blurexpr":6,"./expr":13,"./vecexprs":42}],32:[function(require,module,exports){
+},{"../mergepass":52,"./blurexpr":7,"./expr":16,"./vecexprs":48}],37:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.random = exports.RandomExpr = void 0;
 const glslfunctions_1 = require("../glslfunctions");
 const expr_1 = require("./expr");
 const normfragcoordexpr_1 = require("./normfragcoordexpr");
+/** psuedorandom number expression */
 class RandomExpr extends expr_1.ExprFloat {
     constructor(seed = normfragcoordexpr_1.pos()) {
         super(expr_1.tag `random(${seed})`, ["uSeed"]);
@@ -2636,15 +3048,16 @@ class RandomExpr extends expr_1.ExprFloat {
 }
 exports.RandomExpr = RandomExpr;
 /**
- * creates expression that evaluates to a pseudorandom number
- * @param seed vec2 to to seed the random number (defaults to the normalized frag coord)
+ * creates expression that evaluates to a pseudorandom number between 0 and 1
+ * @param seed vec2 to to seed the random number (defaults to the normalized
+ * frag coord)
  */
 function random(seed) {
     return new RandomExpr(seed);
 }
 exports.random = random;
 
-},{"../glslfunctions":44,"./expr":13,"./normfragcoordexpr":27}],33:[function(require,module,exports){
+},{"../glslfunctions":50,"./expr":16,"./normfragcoordexpr":32}],38:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resolution = exports.ResolutionExpr = void 0;
@@ -2662,7 +3075,7 @@ function resolution() {
 }
 exports.resolution = resolution;
 
-},{"./expr":13}],34:[function(require,module,exports){
+},{"./expr":16}],39:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.rgb2hsv = exports.RGBToHSVExpr = void 0;
@@ -2675,6 +3088,7 @@ class RGBToHSVExpr extends expr_1.ExprVec4 {
         this.color = color;
         this.externalFuncs = [glslfunctions_1.glslFuncs.rgb2hsv];
     }
+    /** sets the color to convert */
     setColor(color) {
         this.setUniform("uRGBCol", color);
         this.color = color;
@@ -2691,7 +3105,7 @@ function rgb2hsv(col) {
 }
 exports.rgb2hsv = rgb2hsv;
 
-},{"../glslfunctions":44,"./expr":13}],35:[function(require,module,exports){
+},{"../glslfunctions":50,"./expr":16}],40:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.rotate = exports.RotateExpr = void 0;
@@ -2705,10 +3119,12 @@ class RotateExpr extends expr_1.ExprVec2 {
         this.angle = angle;
         this.externalFuncs = [glslfunctions_1.glslFuncs.rotate2d];
     }
+    /** set the vector to rotate */
     setVec(vec) {
         this.setUniform("uVec" + this.id, vec);
         this.vec = vec;
     }
+    /** set the angle to rotate by */
     setAngle(angle) {
         this.setUniform("uAngle" + this.id, expr_1.n2e(angle));
         this.angle = expr_1.n2e(angle);
@@ -2725,7 +3141,7 @@ function rotate(vec, angle) {
 }
 exports.rotate = rotate;
 
-},{"../glslfunctions":44,"./expr":13}],36:[function(require,module,exports){
+},{"../glslfunctions":50,"./expr":16}],41:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.input = exports.SceneSampleExpr = void 0;
@@ -2756,7 +3172,7 @@ function input(vec) {
 }
 exports.input = input;
 
-},{"./expr":13,"./normfragcoordexpr":27}],37:[function(require,module,exports){
+},{"./expr":16,"./normfragcoordexpr":32}],42:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setcolor = exports.SetColorExpr = void 0;
@@ -2785,7 +3201,7 @@ function setcolor(val) {
 }
 exports.setcolor = setcolor;
 
-},{"./expr":13}],38:[function(require,module,exports){
+},{"./expr":16}],43:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.simplex = exports.SimplexNoise = void 0;
@@ -2813,7 +3229,49 @@ function simplex(pos) {
 }
 exports.simplex = simplex;
 
-},{"../glslfunctions":44,"./expr":13}],39:[function(require,module,exports){
+},{"../glslfunctions":50,"./expr":16}],44:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.sobel = exports.SobelExpr = void 0;
+const glslfunctions_1 = require("../glslfunctions");
+const expr_1 = require("./expr");
+/** @ignore */
+function genSobelSource(samplerNum) {
+    return {
+        sections: [`sobel${samplerNum === undefined ? "" : "_" + samplerNum}()`],
+        values: [],
+    };
+}
+/** Sobel edge detection expression */
+class SobelExpr extends expr_1.ExprVec4 {
+    constructor(samplerNum) {
+        super(genSobelSource(samplerNum), []);
+        if (samplerNum === undefined) {
+            this.needs.neighborSample = true;
+            this.externalFuncs = [glslfunctions_1.glslFuncs.sobel];
+        }
+        else {
+            this.needs.extraBuffers = new Set([samplerNum]);
+            this.externalFuncs = [
+                glslfunctions_1.replaceSampler(glslfunctions_1.glslFuncs.sobel, /vec4\ssobel+/, samplerNum),
+            ];
+        }
+        this.needs.neighborSample = true;
+    }
+}
+exports.SobelExpr = SobelExpr;
+/**
+ * creates a Sobel edge detection expression that outputs the raw result; for
+ * more highly processed edge detection expressions, see [[edgecolor]] or
+ * [[edge]]
+ * @param samplerNum where to sample from
+ */
+function sobel(samplerNum) {
+    return new SobelExpr(samplerNum);
+}
+exports.sobel = sobel;
+
+},{"../glslfunctions":50,"./expr":16}],45:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.time = exports.TimeExpr = void 0;
@@ -2832,7 +3290,7 @@ function time() {
 }
 exports.time = time;
 
-},{"./expr":13}],40:[function(require,module,exports){
+},{"./expr":16}],46:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.translate = exports.TranslateExpr = void 0;
@@ -2865,7 +3323,7 @@ function translate(vec, pos) {
 }
 exports.translate = translate;
 
-},{"./expr":13}],41:[function(require,module,exports){
+},{"./expr":16}],47:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.truedepth = exports.TrueDepthExpr = void 0;
@@ -2891,7 +3349,7 @@ function truedepth(depth) {
 }
 exports.truedepth = truedepth;
 
-},{"../glslfunctions":44,"./expr":13}],42:[function(require,module,exports){
+},{"../glslfunctions":50,"./expr":16}],48:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pvec4 = exports.pvec3 = exports.pvec2 = exports.vec4 = exports.vec3 = exports.vec2 = void 0;
@@ -2933,20 +3391,20 @@ function pvec2(comp1, comp2) {
 exports.pvec2 = pvec2;
 /** creates a primitive vec3 expression */
 function pvec3(comp1, comp2, comp3) {
-    return new expr_1.PrimitiveVec2([comp1, comp2, comp3]);
+    return new expr_1.PrimitiveVec3([comp1, comp2, comp3]);
 }
 exports.pvec3 = pvec3;
 /** creates a primitive vec4 expression */
 function pvec4(comp1, comp2, comp3, comp4) {
-    return new expr_1.PrimitiveVec2([comp1, comp2, comp3, comp4]);
+    return new expr_1.PrimitiveVec4([comp1, comp2, comp3, comp4]);
 }
 exports.pvec4 = pvec4;
 
-},{"./expr":13}],43:[function(require,module,exports){
+},{"./expr":16}],49:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 
-},{}],44:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.replaceSampler = exports.captureAndAppend = exports.glslFuncs = void 0;
@@ -3217,6 +3675,38 @@ exports.glslFuncs = {
     simplexhelpers: `vec3 mod289_3(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
 vec2 mod289_2(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
 vec3 permute(vec3 x) { return mod289_3(((x*34.0)+1.0)*x); }`,
+    // sobel adapted from https://gist.github.com/Hebali/6ebfc66106459aacee6a9fac029d0115
+    sobel: `vec4 sobel() {
+  vec2 uv = gl_FragCoord.xy / uResolution;
+  vec4 k[8];
+
+  float w = 1. / uResolution.x;
+  float h = 1. / uResolution.y;
+
+  k[0] = texture2D(uSampler, uv + vec2(-w, -h));
+  k[1] = texture2D(uSampler, uv + vec2(0., -h));
+  k[2] = texture2D(uSampler, uv + vec2(w, -h));
+  k[3] = texture2D(uSampler, uv + vec2(-w, 0.));
+
+  k[4] = texture2D(uSampler, uv + vec2(w, 0.));
+  k[5] = texture2D(uSampler, uv + vec2(-w, h));
+  k[6] = texture2D(uSampler, uv + vec2(0., h));
+  k[7] = texture2D(uSampler, uv + vec2(w, h));
+
+  vec4 edge_h = k[2] + (2. * k[4]) + k[7] - (k[0] + (2. * k[3]) + k[5]);
+  vec4 edge_v = k[0] + (2. * k[1]) + k[2] - (k[5] + (2. * k[6]) + k[7]);
+  vec4 sobel = sqrt(edge_h * edge_h + edge_v * edge_v);
+
+  return vec4(1. - sobel.rgb, 1.);
+}`,
+    // inlining a similar function will substitute in the full expression for
+    // every component, so it's more efficient to have a function
+    monochrome: `vec4 monochrome(vec4 col) {
+  return vec4(vec3((col.r + col.g + col.b) / 3.), col.a);
+}`,
+    invert: `vec4 invert(vec4 col) {
+  return vec4(vec3(1., 1., 1.) - col.rgb, col.a);
+}`,
 };
 /** @ignore */
 function captureAndAppend(str, reg, suffix) {
@@ -3232,7 +3722,7 @@ function replaceSampler(fullString, funcRegExp, samplerNum, extra) {
 }
 exports.replaceSampler = replaceSampler;
 
-},{}],45:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -3286,16 +3776,23 @@ __exportStar(require("./exprs/perlinexpr"), exports);
 __exportStar(require("./exprs/simplexexpr"), exports);
 __exportStar(require("./exprs/motionblurloop"), exports);
 __exportStar(require("./exprs/randomexpr"), exports);
-// TODO move this out of expressions
+__exportStar(require("./exprs/sobelexpr"), exports);
+__exportStar(require("./exprs/bloomloop"), exports);
+__exportStar(require("./exprs/monochromeexpr"), exports);
+__exportStar(require("./exprs/invertexpr"), exports);
+__exportStar(require("./exprs/edgeexpr"), exports);
+__exportStar(require("./exprs/edgecolorexpr"), exports);
+__exportStar(require("./settings"), exports);
 __exportStar(require("./exprs/expr"), exports);
 
-},{"./exprs/arity1":3,"./exprs/arity2":4,"./exprs/blur2dloop":5,"./exprs/blurexpr":6,"./exprs/brightnessexpr":7,"./exprs/changecompexpr":8,"./exprs/channelsampleexpr":9,"./exprs/contrastexpr":10,"./exprs/depthtoocclusionexpr":11,"./exprs/dofloop":12,"./exprs/expr":13,"./exprs/fragcolorexpr":14,"./exprs/fragcoordexpr":15,"./exprs/fxaaexpr":16,"./exprs/getcompexpr":18,"./exprs/godraysexpr":19,"./exprs/grainexpr":20,"./exprs/hsvtorgbexpr":21,"./exprs/lenexpr":22,"./exprs/motionblurloop":23,"./exprs/mouseexpr":24,"./exprs/normcenterfragcoordexpr":25,"./exprs/normexpr":26,"./exprs/normfragcoordexpr":27,"./exprs/normmouseexpr":28,"./exprs/opexpr":29,"./exprs/perlinexpr":30,"./exprs/powerblur":31,"./exprs/randomexpr":32,"./exprs/resolutionexpr":33,"./exprs/rgbtohsvexpr":34,"./exprs/rotateexpr":35,"./exprs/scenesampleexpr":36,"./exprs/setcolorexpr":37,"./exprs/simplexexpr":38,"./exprs/timeexpr":39,"./exprs/translateexpr":40,"./exprs/truedepthexpr":41,"./exprs/vecexprs":42,"./exprtypes":43,"./glslfunctions":44,"./mergepass":46}],46:[function(require,module,exports){
+},{"./exprs/arity1":3,"./exprs/arity2":4,"./exprs/bloomloop":5,"./exprs/blur2dloop":6,"./exprs/blurexpr":7,"./exprs/brightnessexpr":8,"./exprs/changecompexpr":9,"./exprs/channelsampleexpr":10,"./exprs/contrastexpr":11,"./exprs/depthtoocclusionexpr":12,"./exprs/dofloop":13,"./exprs/edgecolorexpr":14,"./exprs/edgeexpr":15,"./exprs/expr":16,"./exprs/fragcolorexpr":17,"./exprs/fragcoordexpr":18,"./exprs/fxaaexpr":19,"./exprs/getcompexpr":21,"./exprs/godraysexpr":22,"./exprs/grainexpr":23,"./exprs/hsvtorgbexpr":24,"./exprs/invertexpr":25,"./exprs/lenexpr":26,"./exprs/monochromeexpr":27,"./exprs/motionblurloop":28,"./exprs/mouseexpr":29,"./exprs/normcenterfragcoordexpr":30,"./exprs/normexpr":31,"./exprs/normfragcoordexpr":32,"./exprs/normmouseexpr":33,"./exprs/opexpr":34,"./exprs/perlinexpr":35,"./exprs/powerblur":36,"./exprs/randomexpr":37,"./exprs/resolutionexpr":38,"./exprs/rgbtohsvexpr":39,"./exprs/rotateexpr":40,"./exprs/scenesampleexpr":41,"./exprs/setcolorexpr":42,"./exprs/simplexexpr":43,"./exprs/sobelexpr":44,"./exprs/timeexpr":45,"./exprs/translateexpr":46,"./exprs/truedepthexpr":47,"./exprs/vecexprs":48,"./exprtypes":49,"./glslfunctions":50,"./mergepass":52,"./settings":53}],52:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendTexture = exports.makeTexture = exports.Merger = exports.loop = exports.EffectLoop = exports.EffectDictionary = void 0;
 const codebuilder_1 = require("./codebuilder");
 const webglprogramloop_1 = require("./webglprogramloop");
 const _1 = require(".");
+const settings_1 = require("./settings");
 class EffectDictionary {
     constructor(effectMap) {
         this.effectMap = effectMap;
@@ -3421,16 +3918,6 @@ class EffectLoop {
             const program = codeBuilder.compileProgram(gl, vShader, uniformLocs, shaders);
             return program;
         }
-        // TODO get rid of this
-        /*
-        console.log("!has target switch", !this.hasTargetSwitch());
-        console.log(
-          "samples",
-          fullSampleNum === 0 || (firstSampleNum === 1 && restSampleNum === 0)
-        );
-        console.log("effects", this.effects);
-        */
-        //console.log("not valid");
         // otherwise, regroup and try again on regrouped loops
         this.effects = this.regroup();
         return new webglprogramloop_1.WebGLProgramLoop(this.effects.map((e) => e.genPrograms(gl, vShader, uniformLocs, shaders)), this.loopInfo, gl);
@@ -3488,10 +3975,9 @@ class Merger {
         }
         // add the copy to scene texture if in texture mode
         if (this.textureMode) {
-            // TODO get rid of this
-            console.log("we are in texture mode!");
-            // TODO see if it needs scene texture before doing this
-            // can we even do this? maybe just always make the scene texture
+            if (settings_1.settings.verbosity > 1) {
+                console.log("we are in texture mode!");
+            }
             for (const name in effects.effectMap) {
                 const list = effects.effectMap[name];
                 list.unshift(loop([_1.input()]).target(-1));
@@ -3576,7 +4062,8 @@ class Merger {
                 });
             }
         }
-        console.log(this.programMap);
+        if (settings_1.settings.verbosity > 0)
+            console.log(this.programMap);
     }
     /**
      * use the source and channels to draw effect to target context; mouse
@@ -3703,11 +4190,25 @@ function sendTexture(gl, src) {
 }
 exports.sendTexture = sendTexture;
 
-},{".":45,"./codebuilder":1,"./webglprogramloop":47}],47:[function(require,module,exports){
+},{".":51,"./codebuilder":1,"./settings":53,"./webglprogramloop":54}],53:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.settings = void 0;
+exports.settings = {
+    /**
+     * set to 1 if you want reasonable logging for debugging, such as the
+     * generated GLSL code and program tree. set to 100 if you want texture debug
+     * info (you probably don't want to do this, as it logs many lines every
+     * frame!)
+     */
+    verbosity: 0,
+};
+
+},{}],54:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WebGLProgramLoop = exports.WebGLProgramLeaf = exports.updateNeeds = void 0;
-let textureDebug = false;
+const settings_1 = require("./settings");
 // update me on change to needs
 function updateNeeds(acc, curr) {
     return {
@@ -3792,15 +4293,9 @@ class WebGLProgramLoop {
                     throw new Error("tried to target -1 but scene texture was undefined");
                 }
                 tex.back = tex.scene;
-                // TODO get rid of this
-                /*
-                console.log("render target is -1");
-                console.log("tex.back", tex.back);
-                console.log("saved texture", savedTexture);
-                */
             }
             tex.bufTextures[this.loopInfo.target] = savedTexture;
-            if (textureDebug)
+            if (settings_1.settings.verbosity > 99)
                 console.log("saved texture: " + savedTexture.name);
         }
         // setup for program leaf
@@ -3868,7 +4363,7 @@ class WebGLProgramLoop {
                 gl.bindTexture(gl.TEXTURE_2D, tex.back.tex);
                 // use our last program as the draw program
                 gl.drawArrays(gl.TRIANGLES, 0, 6);
-                if (textureDebug) {
+                if (settings_1.settings.verbosity > 99) {
                     console.log("intermediate back", tex.back.name);
                     console.log("intermediate front", tex.front.name);
                 }
@@ -3895,7 +4390,7 @@ class WebGLProgramLoop {
         // swap the textures back if we were temporarily using a channel texture
         if (savedTexture !== undefined) {
             const target = this.loopInfo.target;
-            if (textureDebug) {
+            if (settings_1.settings.verbosity > 99) {
                 console.log("pre final back", tex.back.name);
                 console.log("pre final front", tex.front.name);
             }
@@ -3910,7 +4405,7 @@ class WebGLProgramLoop {
                 tex.scene = tex.back;
             }
             tex.back = savedTexture;
-            if (textureDebug) {
+            if (settings_1.settings.verbosity > 99) {
                 console.log("post final back", tex.back.name);
                 console.log("post final front", tex.front.name);
                 console.log("channel texture", tex.bufTextures[target].name);
@@ -3930,7 +4425,7 @@ class WebGLProgramLoop {
 }
 exports.WebGLProgramLoop = WebGLProgramLoop;
 
-},{}],48:[function(require,module,exports){
+},{"./settings":53}],55:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui

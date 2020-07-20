@@ -87,7 +87,7 @@
 					<div class="tsd-signature tsd-kind-icon">glsl<wbr>Funcs<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/glslfunctions.ts#L3">glslfunctions.ts:3</a></li>
+							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/glslfunctions.ts#L3">glslfunctions.ts:3</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -101,7 +101,7 @@
 						<div class="tsd-signature tsd-kind-icon">brightness<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#x60;vec4 brightness(float val, vec4 col) {col.rgb /&#x3D; col.a;col.rgb +&#x3D; val;col.rgb *&#x3D; col.a;return col;}&#x60;</span></div>
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/glslfunctions.ts#L78">glslfunctions.ts:78</a></li>
+								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/glslfunctions.ts#L82">glslfunctions.ts:82</a></li>
 							</ul>
 						</aside>
 					</section>
@@ -111,7 +111,7 @@
 						<div class="tsd-signature tsd-kind-icon">contrast<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#x60;vec4 contrast(float val, vec4 col) {col.rgb /&#x3D; col.a;col.rgb &#x3D; ((col.rgb - 0.5) * val) + 0.5;col.rgb *&#x3D; col.a;return col;}&#x60;</span></div>
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/glslfunctions.ts#L72">glslfunctions.ts:72</a></li>
+								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/glslfunctions.ts#L76">glslfunctions.ts:76</a></li>
 							</ul>
 						</aside>
 					</section>
@@ -121,7 +121,7 @@
 						<div class="tsd-signature tsd-kind-icon">depth2occlusion<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#x60;vec4 depth2occlusion(vec4 depthCol, vec4 newCol, float threshold) {float red &#x3D; 1. - ceil(depthCol.r - threshold);return vec4(newCol.rgb * red, 1.0);}&#x60;</span></div>
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/glslfunctions.ts#L180">glslfunctions.ts:180</a></li>
+								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/glslfunctions.ts#L185">glslfunctions.ts:185</a></li>
 							</ul>
 						</aside>
 					</section>
@@ -131,7 +131,7 @@
 						<div class="tsd-signature tsd-kind-icon">fxaa<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#x60;vec4 fxaa() {float FXAA_SPAN_MAX &#x3D; 8.0;float FXAA_REDUCE_MUL &#x3D; 1.0 / FXAA_SPAN_MAX;float FXAA_REDUCE_MIN &#x3D; 1.0 / 128.0;float FXAA_SUBPIX_SHIFT &#x3D; 1.0 / 4.0;vec2 rcpFrame &#x3D; 1. / uResolution.xy;vec2 t_uv &#x3D; gl_FragCoord.xy / uResolution.xy;vec4 uv &#x3D; vec4(t_uv, t_uv - (rcpFrame * (0.5 + FXAA_SUBPIX_SHIFT)));vec3 rgbNW &#x3D; texture2D(uSampler, uv.zw).xyz;vec3 rgbNE &#x3D; texture2D(uSampler, uv.zw + vec2(1,0) * rcpFrame.xy).xyz;vec3 rgbSW &#x3D; texture2D(uSampler, uv.zw + vec2(0,1) * rcpFrame.xy).xyz;vec3 rgbSE &#x3D; texture2D(uSampler, uv.zw + vec2(1,1) * rcpFrame.xy).xyz;vec4 rgbMfull &#x3D; texture2D(uSampler, uv.xy);vec3 rgbM &#x3D; rgbMfull.xyz;float alpha &#x3D; rgbMfull.a;vec3 luma &#x3D; vec3(0.299, 0.587, 0.114);float lumaNW &#x3D; dot(rgbNW, luma);float lumaNE &#x3D; dot(rgbNE, luma);float lumaSW &#x3D; dot(rgbSW, luma);float lumaSE &#x3D; dot(rgbSE, luma);float lumaM &#x3D; dot(rgbM,  luma);float lumaMin &#x3D; min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));float lumaMax &#x3D; max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));vec2 dir;dir.x &#x3D; -((lumaNW + lumaNE) - (lumaSW + lumaSE));dir.y &#x3D; ((lumaNW + lumaSW) - (lumaNE + lumaSE));float dirReduce &#x3D; max((lumaNW + lumaNE + lumaSW + lumaSE) * (0.25 * FXAA_REDUCE_MUL), FXAA_REDUCE_MIN);float rcpDirMin &#x3D; 1.0/(min(abs(dir.x), abs(dir.y)) + dirReduce);dir &#x3D; min(vec2(FXAA_SPAN_MAX,  FXAA_SPAN_MAX),max(vec2(-FXAA_SPAN_MAX, -FXAA_SPAN_MAX),dir * rcpDirMin)) * rcpFrame.xy;vec3 rgbA &#x3D; (1.0 / 2.0) * (texture2D(uSampler, uv.xy + dir * (1.0 / 3.0 - 0.5)).xyz +texture2D(uSampler, uv.xy + dir * (2.0 / 3.0 - 0.5)).xyz);vec3 rgbB &#x3D; rgbA * (1.0 / 2.0) + (1.0 / 4.0) * (texture2D(uSampler, uv.xy + dir * (0.0 / 3.0 - 0.5)).xyz +texture2D(uSampler, uv.xy + dir * (3.0 / 3.0 - 0.5)).xyz);float lumaB &#x3D; dot(rgbB, luma);if(lumaB &lt; lumaMin || lumaB &gt; lumaMax) {return vec4(rgbA.r, rgbA.g, rgbA.b, alpha);}return vec4(rgbB.r, rgbB.g, rgbB.b, alpha);}&#x60;</span></div>
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/glslfunctions.ts#L87">glslfunctions.ts:87</a></li>
+								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/glslfunctions.ts#L91">glslfunctions.ts:91</a></li>
 							</ul>
 						</aside>
 					</section>
@@ -141,7 +141,7 @@
 						<div class="tsd-signature tsd-kind-icon">gauss13<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#x60;vec4 gauss13(vec2 dir) {vec2 uv &#x3D; gl_FragCoord.xy / uResolution;vec4 col &#x3D; vec4(0.0);vec2 off1 &#x3D; vec2(1.411764705882353) * dir;vec2 off2 &#x3D; vec2(3.2941176470588234) * dir;vec2 off3 &#x3D; vec2(5.176470588235294) * dir;col +&#x3D; texture2D(uSampler, uv) * 0.1964825501511404;col +&#x3D; texture2D(uSampler, uv + (off1 / uResolution)) * 0.2969069646728344;col +&#x3D; texture2D(uSampler, uv - (off1 / uResolution)) * 0.2969069646728344;col +&#x3D; texture2D(uSampler, uv + (off2 / uResolution)) * 0.09447039785044732;col +&#x3D; texture2D(uSampler, uv - (off2 / uResolution)) * 0.09447039785044732;col +&#x3D; texture2D(uSampler, uv + (off3 / uResolution)) * 0.010381362401148057;col +&#x3D; texture2D(uSampler, uv - (off3 / uResolution)) * 0.010381362401148057;return col;}&#x60;</span></div>
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/glslfunctions.ts#L57">glslfunctions.ts:57</a></li>
+								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/glslfunctions.ts#L61">glslfunctions.ts:61</a></li>
 							</ul>
 						</aside>
 					</section>
@@ -151,7 +151,7 @@
 						<div class="tsd-signature tsd-kind-icon">gauss5<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#x60;vec4 gauss5(vec2 dir) {vec2 uv &#x3D; gl_FragCoord.xy / uResolution;vec4 col &#x3D; vec4(0.0);vec2 off1 &#x3D; vec2(1.3333333333333333) * dir;col +&#x3D; texture2D(uSampler, uv) * 0.29411764705882354;col +&#x3D; texture2D(uSampler, uv + (off1 / uResolution)) * 0.35294117647058826;col +&#x3D; texture2D(uSampler, uv - (off1 / uResolution)) * 0.35294117647058826;return col;}&#x60;</span></div>
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/glslfunctions.ts#L36">glslfunctions.ts:36</a></li>
+								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/glslfunctions.ts#L40">glslfunctions.ts:40</a></li>
 							</ul>
 						</aside>
 					</section>
@@ -161,7 +161,7 @@
 						<div class="tsd-signature tsd-kind-icon">gauss9<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#x60;vec4 gauss9(vec2 dir) {vec2 uv &#x3D; gl_FragCoord.xy / uResolution;vec4 col &#x3D; vec4(0.0);vec2 off1 &#x3D; vec2(1.3846153846) * dir;vec2 off2 &#x3D; vec2(3.2307692308) * dir;col +&#x3D; texture2D(uSampler, uv) * 0.2270270270;col +&#x3D; texture2D(uSampler, uv + (off1 / uResolution)) * 0.3162162162;col +&#x3D; texture2D(uSampler, uv - (off1 / uResolution)) * 0.3162162162;col +&#x3D; texture2D(uSampler, uv + (off2 / uResolution)) * 0.0702702703;col +&#x3D; texture2D(uSampler, uv - (off2 / uResolution)) * 0.0702702703;return col;}&#x60;</span></div>
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/glslfunctions.ts#L45">glslfunctions.ts:45</a></li>
+								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/glslfunctions.ts#L49">glslfunctions.ts:49</a></li>
 							</ul>
 						</aside>
 					</section>
@@ -171,7 +171,7 @@
 						<div class="tsd-signature tsd-kind-icon">gaussian<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#x60;float gaussian(float x, float a, float b) {float e &#x3D; 2.71828;return pow(e, -pow(x - a, 2.) / b);}&#x60;</span></div>
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/glslfunctions.ts#L143">glslfunctions.ts:143</a></li>
+								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/glslfunctions.ts#L147">glslfunctions.ts:147</a></li>
 							</ul>
 						</aside>
 					</section>
@@ -181,7 +181,17 @@
 						<div class="tsd-signature tsd-kind-icon">godrays<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#x60;vec4 godrays(vec4 col,float exposure,float decay,float density,float weight,vec2 lightPos,float threshold,vec4 newColor) {vec2 texCoord &#x3D; gl_FragCoord.xy / uResolution;vec2 deltaTexCoord &#x3D; texCoord - lightPos;const int NUM_SAMPLES &#x3D; 100;deltaTexCoord *&#x3D; 1. / float(NUM_SAMPLES) * density;float illuminationDecay &#x3D; 1.0;for (int i&#x3D;0; i &lt; NUM_SAMPLES; i++) {texCoord -&#x3D; deltaTexCoord;vec4 sample &#x3D; texture2D(uSampler, texCoord);//uncomment sample &#x3D; depth2occlusion(sample, newColor, threshold);sample *&#x3D; illuminationDecay * weight;col +&#x3D; sample;illuminationDecay *&#x3D; decay;}return col * exposure;}&#x60;</span></div>
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/glslfunctions.ts#L153">glslfunctions.ts:153</a></li>
+								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/glslfunctions.ts#L158">glslfunctions.ts:158</a></li>
+							</ul>
+						</aside>
+					</section>
+					<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-object-literal">
+						<a name="glslfuncs.gradientnoise" class="tsd-anchor"></a>
+						<h3>gradientnoise</h3>
+						<div class="tsd-signature tsd-kind-icon">gradientnoise<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#x60;float gradientnoise(vec2 st) {vec2 i &#x3D; floor(st);vec2 f &#x3D; fract(st);vec2 u &#x3D; f * f * (3.0 - 2.0 * f);return mix(mix(dot(random2(i + vec2(0.0,0.0)), f - vec2(0.0, 0.0)),dot(random2(i + vec2(1.0,0.0)), f - vec2(1.0, 0.0)), u.x),mix(dot(random2(i + vec2(0.0,1.0)), f - vec2(0.0, 1.0)),dot(random2(i + vec2(1.0,1.0)), f - vec2(1.0, 1.0)), u.x), u.y);}&#x60;</span></div>
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/glslfunctions.ts#L191">glslfunctions.ts:191</a></li>
 							</ul>
 						</aside>
 					</section>
@@ -191,7 +201,27 @@
 						<div class="tsd-signature tsd-kind-icon">hsv2rgb<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#x60;vec4 hsv2rgb(vec4 co){vec3 c &#x3D; co.xyz;vec3 rgb &#x3D; clamp(abs(mod(c.x * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);rgb &#x3D; rgb * rgb * (3.0 - 2.0 * rgb);vec3 hsv &#x3D; c.z * mix(vec3(1.0), rgb, c.y);return vec4(hsv.x, hsv.y, hsv.z, co.a);}&#x60;</span></div>
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/glslfunctions.ts#L11">glslfunctions.ts:11</a></li>
+								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/glslfunctions.ts#L18">glslfunctions.ts:18</a></li>
+							</ul>
+						</aside>
+					</section>
+					<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-object-literal">
+						<a name="glslfuncs.invert" class="tsd-anchor"></a>
+						<h3>invert</h3>
+						<div class="tsd-signature tsd-kind-icon">invert<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#x60;vec4 invert(vec4 col) {return vec4(vec3(1., 1., 1.) - col.rgb, col.a);}&#x60;</span></div>
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/glslfunctions.ts#L297">glslfunctions.ts:297</a></li>
+							</ul>
+						</aside>
+					</section>
+					<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-object-literal">
+						<a name="glslfuncs.monochrome" class="tsd-anchor"></a>
+						<h3>monochrome</h3>
+						<div class="tsd-signature tsd-kind-icon">monochrome<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#x60;vec4 monochrome(vec4 col) {return vec4(vec3((col.r + col.g + col.b) / 3.), col.a);}&#x60;</span></div>
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/glslfunctions.ts#L294">glslfunctions.ts:294</a></li>
 							</ul>
 						</aside>
 					</section>
@@ -201,17 +231,27 @@
 						<div class="tsd-signature tsd-kind-icon">random<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#x60;float random(vec2 st) {return fract(sin(dot(st.xy / 99., vec2(12.9898, 78.233))) * 43758.5453123);}&#x60;</span></div>
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/glslfunctions.ts#L5">glslfunctions.ts:5</a></li>
+								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/glslfunctions.ts#L6">glslfunctions.ts:6</a></li>
+							</ul>
+						</aside>
+					</section>
+					<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-object-literal">
+						<a name="glslfuncs.random2" class="tsd-anchor"></a>
+						<h3>random2</h3>
+						<div class="tsd-signature tsd-kind-icon">random2<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#x60;vec2 random2(vec2 st) {st &#x3D; vec2(dot(st,vec2(127.1,311.7)), dot(st,vec2(269.5,183.3)));return -1.0 + 2.0*fract(sin(st)*43758.5453123);}&#x60;</span></div>
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/glslfunctions.ts#L10">glslfunctions.ts:10</a></li>
 							</ul>
 						</aside>
 					</section>
 					<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-object-literal">
 						<a name="glslfuncs.rgb2hsv" class="tsd-anchor"></a>
 						<h3>rgb2hsv</h3>
-						<div class="tsd-signature tsd-kind-icon">rgb2hsv<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#x60;vec4 rgb2hsv(vec4 co){vec3 c &#x3D; co.rgb;vec4 K &#x3D; vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);vec4 p &#x3D; mix(vec4(c.bg, K.wz),vec4(c.gb, K.xy),step(c.b, c.g));vec4 q &#x3D; mix(vec4(p.xyw, c.r),vec4(c.r, p.yzx),step(p.x, c.r));float d &#x3D; q.x - min(q.w, q.y);float e &#x3D; 1.0e-10;return vec4(abs(q.z + (q.w - q.y) / (6.0 * d + e)),d / (q.x + e),q.x, co.a);}&#x60;</span></div>
+						<div class="tsd-signature tsd-kind-icon">rgb2hsv<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#x60;vec4 rgb2hsv(vec4 co){vec3 c &#x3D; co.rgb;vec4 K &#x3D; vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);vec4 p &#x3D; mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));vec4 q &#x3D; mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));float d &#x3D; q.x - min(q.w, q.y);float e &#x3D; 1.0e-10;return vec4(abs(q.z + (q.w - q.y) / (6.0 * d + e)),d / (q.x + e),q.x, co.a);}&#x60;</span></div>
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/glslfunctions.ts#L19">glslfunctions.ts:19</a></li>
+								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/glslfunctions.ts#L27">glslfunctions.ts:27</a></li>
 							</ul>
 						</aside>
 					</section>
@@ -221,7 +261,37 @@
 						<div class="tsd-signature tsd-kind-icon">rotate2d<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#x60;vec2 rotate2d(vec2 v, float angle) {return mat2(cos(angle), -sin(angle), sin(angle), cos(angle)) * v;}&#x60;</span></div>
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/glslfunctions.ts#L8">glslfunctions.ts:8</a></li>
+								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/glslfunctions.ts#L14">glslfunctions.ts:14</a></li>
+							</ul>
+						</aside>
+					</section>
+					<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-object-literal">
+						<a name="glslfuncs.simplexhelpers" class="tsd-anchor"></a>
+						<h3>simplexhelpers</h3>
+						<div class="tsd-signature tsd-kind-icon">simplexhelpers<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#x60;vec3 mod289_3(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }vec2 mod289_2(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }vec3 permute(vec3 x) { return mod289_3(((x*34.0)+1.0)*x); }&#x60;</span></div>
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/glslfunctions.ts#L265">glslfunctions.ts:265</a></li>
+							</ul>
+						</aside>
+					</section>
+					<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-object-literal">
+						<a name="glslfuncs.simplexnoise" class="tsd-anchor"></a>
+						<h3>simplexnoise</h3>
+						<div class="tsd-signature tsd-kind-icon">simplexnoise<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#x60;float simplexnoise(vec2 v) {// Precompute values for skewed triangular gridconst vec4 C &#x3D; vec4(0.211324865405187,// (3.0-sqrt(3.0))/6.00.366025403784439,// 0.5*(sqrt(3.0)-1.0)-0.577350269189626,// -1.0 + 2.0 * C.x0.024390243902439);// 1.0 / 41.0// First corner (x0)vec2 i  &#x3D; floor(v + dot(v, C.yy));vec2 x0 &#x3D; v - i + dot(i, C.xx);// Other two corners (x1, x2)vec2 i1 &#x3D; vec2(0.0);i1 &#x3D; (x0.x &gt; x0.y)? vec2(1.0, 0.0):vec2(0.0, 1.0);vec2 x1 &#x3D; x0.xy + C.xx - i1;vec2 x2 &#x3D; x0.xy + C.zz;// Do some permutations to avoid// truncation effects in permutationi &#x3D; mod289_2(i);vec3 p &#x3D; permute(permute( i.y + vec3(0.0, i1.y, 1.0))+ i.x + vec3(0.0, i1.x, 1.0 ));vec3 m &#x3D; max(0.5 - vec3(dot(x0,x0),dot(x1,x1),dot(x2,x2)), 0.0);m &#x3D; m*m ;m &#x3D; m*m ;// Gradients://  41 pts uniformly over a line, mapped onto a diamond//  The ring size 17*17 &#x3D; 289 is close to a multiple//      of 41 (41*7 &#x3D; 287)vec3 x &#x3D; 2.0 * fract(p * C.www) - 1.0;vec3 h &#x3D; abs(x) - 0.5;vec3 ox &#x3D; floor(x + 0.5);vec3 a0 &#x3D; x - ox;// Normalise gradients implicitly by scaling m// Approximation of: m *&#x3D; inversesqrt(a0*a0 + h*h);m *&#x3D; 1.79284291400159 - 0.85373472095314 * (a0*a0+h*h);// Compute final noise value at Pvec3 g &#x3D; vec3(0.0);g.x  &#x3D; a0.x  * x0.x  + h.x  * x0.y;g.yz &#x3D; a0.yz * vec2(x1.x,x2.x) + h.yz * vec2(x1.y,x2.y);return 130.0 * dot(m, g);}&#x60;</span></div>
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/glslfunctions.ts#L207">glslfunctions.ts:207</a></li>
+							</ul>
+						</aside>
+					</section>
+					<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-object-literal">
+						<a name="glslfuncs.sobel" class="tsd-anchor"></a>
+						<h3>sobel</h3>
+						<div class="tsd-signature tsd-kind-icon">sobel<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#x60;vec4 sobel() {vec2 uv &#x3D; gl_FragCoord.xy / uResolution;vec4 k[8];float w &#x3D; 1. / uResolution.x;float h &#x3D; 1. / uResolution.y;k[0] &#x3D; texture2D(uSampler, uv + vec2(-w, -h));k[1] &#x3D; texture2D(uSampler, uv + vec2(0., -h));k[2] &#x3D; texture2D(uSampler, uv + vec2(w, -h));k[3] &#x3D; texture2D(uSampler, uv + vec2(-w, 0.));k[4] &#x3D; texture2D(uSampler, uv + vec2(w, 0.));k[5] &#x3D; texture2D(uSampler, uv + vec2(-w, h));k[6] &#x3D; texture2D(uSampler, uv + vec2(0., h));k[7] &#x3D; texture2D(uSampler, uv + vec2(w, h));vec4 edge_h &#x3D; k[2] + (2. * k[4]) + k[7] - (k[0] + (2. * k[3]) + k[5]);vec4 edge_v &#x3D; k[0] + (2. * k[1]) + k[2] - (k[5] + (2. * k[6]) + k[7]);vec4 sobel &#x3D; sqrt(edge_h * edge_h + edge_v * edge_v);return vec4(1. - sobel.rgb, 1.);}&#x60;</span></div>
+						<aside class="tsd-sources">
+							<ul>
+								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/glslfunctions.ts#L269">glslfunctions.ts:269</a></li>
 							</ul>
 						</aside>
 					</section>
@@ -231,7 +301,7 @@
 						<div class="tsd-signature tsd-kind-icon">truedepth<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> = &#x60;float truedepth(float i) {i &#x3D; max(i, 0.00000001);return (1. - i) / i;}&#x60;</span></div>
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/glslfunctions.ts#L148">glslfunctions.ts:148</a></li>
+								<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/glslfunctions.ts#L153">glslfunctions.ts:153</a></li>
 							</ul>
 						</aside>
 					</section>

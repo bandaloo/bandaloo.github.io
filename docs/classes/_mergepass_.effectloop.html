@@ -91,6 +91,12 @@
 							<li>
 								<a href="_exprs_dofloop_.dofloop.html" class="tsd-signature-type">DoFLoop</a>
 							</li>
+							<li>
+								<a href="_exprs_motionblurloop_.motionblurloop.html" class="tsd-signature-type">MotionBlurLoop</a>
+							</li>
+							<li>
+								<a href="_exprs_bloomloop_.bloomloop.html" class="tsd-signature-type">BloomLoop</a>
+							</li>
 						</ul>
 					</li>
 				</ul>
@@ -116,14 +122,14 @@
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_mergepass_.effectloop.html#effects" class="tsd-kind-icon">effects</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_mergepass_.effectloop.html#repeat" class="tsd-kind-icon">repeat</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_mergepass_.effectloop.html#loopinfo" class="tsd-kind-icon">loop<wbr>Info</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_mergepass_.effectloop.html#genprograms" class="tsd-kind-icon">gen<wbr>Programs</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_mergepass_.effectloop.html#getsamplenum" class="tsd-kind-icon">get<wbr>Sample<wbr>Num</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_mergepass_.effectloop.html#target" class="tsd-kind-icon">target</a></li>
 							</ul>
 						</section>
 					</div>
@@ -135,13 +141,13 @@
 					<a name="constructor" class="tsd-anchor"></a>
 					<h3>constructor</h3>
 					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">new <wbr>Effect<wbr>Loop<span class="tsd-signature-symbol">(</span>effects<span class="tsd-signature-symbol">: </span><a href="../modules/_mergepass_.html#effectelement" class="tsd-signature-type">EffectElement</a><span class="tsd-signature-symbol">[]</span>, repeat<span class="tsd-signature-symbol">: </span><a href="../interfaces/_mergepass_.loopinfo.html" class="tsd-signature-type">LoopInfo</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_mergepass_.effectloop.html" class="tsd-signature-type">EffectLoop</a></li>
+						<li class="tsd-signature tsd-kind-icon">new <wbr>Effect<wbr>Loop<span class="tsd-signature-symbol">(</span>effects<span class="tsd-signature-symbol">: </span><a href="../modules/_mergepass_.html#effectelement" class="tsd-signature-type">EffectElement</a><span class="tsd-signature-symbol">[]</span>, loopInfo<span class="tsd-signature-symbol">: </span><a href="../interfaces/_mergepass_.loopinfo.html" class="tsd-signature-type">LoopInfo</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_mergepass_.effectloop.html" class="tsd-signature-type">EffectLoop</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/mergepass.ts#L42">mergepass.ts:42</a></li>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L116">mergepass.ts:116</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -150,7 +156,7 @@
 									<h5>effects: <a href="../modules/_mergepass_.html#effectelement" class="tsd-signature-type">EffectElement</a><span class="tsd-signature-symbol">[]</span></h5>
 								</li>
 								<li>
-									<h5>repeat: <a href="../interfaces/_mergepass_.loopinfo.html" class="tsd-signature-type">LoopInfo</a></h5>
+									<h5>loopInfo: <a href="../interfaces/_mergepass_.loopinfo.html" class="tsd-signature-type">LoopInfo</a></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <a href="_mergepass_.effectloop.html" class="tsd-signature-type">EffectLoop</a></h4>
@@ -166,17 +172,17 @@
 					<div class="tsd-signature tsd-kind-icon">effects<span class="tsd-signature-symbol">:</span> <a href="../modules/_mergepass_.html#effectelement" class="tsd-signature-type">EffectElement</a><span class="tsd-signature-symbol">[]</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/mergepass.ts#L41">mergepass.ts:41</a></li>
+							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L115">mergepass.ts:115</a></li>
 						</ul>
 					</aside>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="repeat" class="tsd-anchor"></a>
-					<h3>repeat</h3>
-					<div class="tsd-signature tsd-kind-icon">repeat<span class="tsd-signature-symbol">:</span> <a href="../interfaces/_mergepass_.loopinfo.html" class="tsd-signature-type">LoopInfo</a></div>
+					<a name="loopinfo" class="tsd-anchor"></a>
+					<h3>loop<wbr>Info</h3>
+					<div class="tsd-signature tsd-kind-icon">loop<wbr>Info<span class="tsd-signature-symbol">:</span> <a href="../interfaces/_mergepass_.loopinfo.html" class="tsd-signature-type">LoopInfo</a></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/mergepass.ts#L42">mergepass.ts:42</a></li>
+							<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L116">mergepass.ts:116</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -194,7 +200,7 @@
 							<aside class="tsd-sources">
 								<p>Implementation of <a href="../interfaces/_mergepass_.generable.html">Generable</a>.<a href="../interfaces/_mergepass_.generable.html#genprograms">genPrograms</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/mergepass.ts#L94">mergepass.ts:94</a></li>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L189">mergepass.ts:189</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -217,31 +223,31 @@
 					</ul>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="getsamplenum" class="tsd-anchor"></a>
-					<h3>get<wbr>Sample<wbr>Num</h3>
+					<a name="target" class="tsd-anchor"></a>
+					<h3>target</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">get<wbr>Sample<wbr>Num<span class="tsd-signature-symbol">(</span>mult<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span>, sliceStart<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span>, sliceEnd<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></li>
+						<li class="tsd-signature tsd-kind-icon">target<span class="tsd-signature-symbol">(</span>num<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">this</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/63e3408/src/mergepass.ts#L49">mergepass.ts:49</a></li>
+									<li>Defined in <a href="https://github.com/bandaloo/merge-pass/blob/259f2fb/src/mergepass.ts#L226">mergepass.ts:226</a></li>
 								</ul>
 							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>changes the render target of an effect loop (-1 targest the scene texture;
+									this is used internally)</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> mult: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> = 1</span></h5>
-								</li>
-								<li>
-									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> sliceStart: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> = 0</span></h5>
-								</li>
-								<li>
-									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> sliceEnd: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> = this.effects.length</span></h5>
+									<h5>num: <span class="tsd-signature-type">number</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">number</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">this</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -260,6 +266,9 @@
 			</nav>
 			<nav class="tsd-navigation secondary menu-sticky">
 				<ul class="before-current">
+					<li class=" tsd-kind-class tsd-parent-kind-module">
+						<a href="_mergepass_.effectdictionary.html" class="tsd-kind-icon">Effect<wbr>Dictionary</a>
+					</li>
 				</ul>
 				<ul class="current">
 					<li class="current tsd-kind-class tsd-parent-kind-module">
@@ -272,13 +281,13 @@
 								<a href="_mergepass_.effectloop.html#effects" class="tsd-kind-icon">effects</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class">
-								<a href="_mergepass_.effectloop.html#repeat" class="tsd-kind-icon">repeat</a>
+								<a href="_mergepass_.effectloop.html#loopinfo" class="tsd-kind-icon">loop<wbr>Info</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_mergepass_.effectloop.html#genprograms" class="tsd-kind-icon">gen<wbr>Programs</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
-								<a href="_mergepass_.effectloop.html#getsamplenum" class="tsd-kind-icon">get<wbr>Sample<wbr>Num</a>
+								<a href="_mergepass_.effectloop.html#target" class="tsd-kind-icon">target</a>
 							</li>
 						</ul>
 					</li>
@@ -290,6 +299,9 @@
 					<li class=" tsd-kind-interface tsd-parent-kind-module">
 						<a href="../interfaces/_mergepass_.effectlike.html" class="tsd-kind-icon">Effect<wbr>Like</a>
 					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module tsd-is-not-exported">
+						<a href="../interfaces/_mergepass_.effectmap.html" class="tsd-kind-icon">Effect<wbr>Map</a>
+					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-module">
 						<a href="../interfaces/_mergepass_.generable.html" class="tsd-kind-icon">Generable</a>
 					</li>
@@ -298,6 +310,12 @@
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-module tsd-is-not-exported">
 						<a href="../interfaces/_mergepass_.mergeroptions.html" class="tsd-kind-icon">Merger<wbr>Options</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module tsd-is-not-exported">
+						<a href="../interfaces/_mergepass_.programmap.html" class="tsd-kind-icon">Program<wbr>Map</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module">
+						<a href="../interfaces/_mergepass_.texwrapper.html" class="tsd-kind-icon">Tex<wbr>Wrapper</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-module">
 						<a href="../interfaces/_mergepass_.uniformlocs.html" class="tsd-kind-icon">Uniform<wbr>Locs</a>
