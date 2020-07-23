@@ -14,6 +14,8 @@ const TIME_SET = `uniform mediump float uTime;\n`;
 /** @ignore */
 const MOUSE_SET = `uniform mediump vec2 uMouse;\n`;
 /** @ignore */
+const COUNT_SET = `uniform int uCount;\n`;
+/** @ignore */
 const BOILERPLATE = `#ifdef GL_ES
 precision mediump float;
 #endif
@@ -49,12 +51,14 @@ class CodeBuilder {
             uniformTypes: {},
             externalFuncs: new Set(),
             exprs: [],
+            // update me on change to needs
             needs: {
                 centerSample: false,
                 neighborSample: false,
                 sceneBuffer: false,
                 timeUniform: false,
                 mouseUniform: false,
+                passCount: false,
                 extraBuffers: new Set(),
             },
         };
@@ -103,6 +107,7 @@ class CodeBuilder {
             (this.totalNeeds.sceneBuffer ? SCENE_SET : "") +
             (this.totalNeeds.timeUniform ? TIME_SET : "") +
             (this.totalNeeds.mouseUniform ? MOUSE_SET : "") +
+            (this.totalNeeds.passCount ? COUNT_SET : "") +
             Array.from(this.totalNeeds.extraBuffers)
                 .map((n) => channelSamplerDeclaration(n))
                 .join("\n") +
@@ -359,19 +364,14 @@ const demos = {
     },
     region: (channels = []) => {
         const offset = MP.op(MP.a1("sin", MP.time()), "/", 5);
-        const merger = new MP.Merger(
-        //[MP.region([0, 0, 0.5, 0.5], MP.brightness(0.3), MP.brightness(-0.3))],
-        //[MP.region([0.1, 0.1, 0.5, 0.5], MP.blur2d(1, 1), MP.brightness(0.1))],
-        //[MP.region([0.1, 0.1, 0.5, 0.5], MP.edge("dark"), MP.brightness(0.1))],
-        [
-            MP.region([MP.op(offset, "+", 0.3), 0.3, MP.op(offset, "+", 0.7), 0.7], MP.loop([
+        const merger = new MP.Merger([
+            MP.region([MP.op(offset, "+", 0.2), 0.2, MP.op(offset, "+", 0.8), 0.8], MP.loop([
                 MP.blur2d(),
                 MP.edge("dark"),
                 MP.brightness(MP.getcomp(MP.channel(0), "r")),
-            ]), MP.brightness(0.1)),
-        ], 
-        //[MP.region([0.1, 0.1, 0.5, 0.5], MP.channel(0), MP.brightness(0.1))],
-        sourceCanvas, gl, { channels: channels });
+                MP.region([0.3, 0.3, 0.7, 0.7], MP.loop([MP.blur2d(), MP.brightness(-0.5)]), MP.fcolor()),
+            ]), MP.brightness(-0.2)),
+        ], sourceCanvas, gl, { channels: channels });
         return {
             merger: merger,
             change: () => { },
@@ -776,7 +776,7 @@ const stripes = (t, frames) => {
     if (frames === 0) {
         x.fillStyle = "black";
         x.fillRect(0, 0, 960, 540);
-        x.font = "99px monospace";
+        x.font = "99px Helvetica, sans-serif";
         x.fillStyle = "white";
         x.textAlign = "center";
         x.textBaseline = "middle";
@@ -788,6 +788,19 @@ const stripes = (t, frames) => {
     x.fillStyle = `hsl(${(k & j) * i},40%,${50 + C(i) * 10}%`;
     x.fillRect(k * 24, 0, 24, k + 2);
     x.drawImage(c, 0, k + 2);
+};
+const higherOrderSpiral = (dots, background, num = 50, size = 1, speed = 1) => (t, frames) => {
+    x.fillStyle = R(...background);
+    x.fillRect(0, 0, 960, 540);
+    let d;
+    for (let i = num; (i -= 0.5); i > 0) {
+        x.beginPath();
+        d = 2 * C((2 + S(t / 99)) * 2 * i * speed);
+        x.arc(480 + d * 10 * C(i) * i, 270 + d * 9 * S(i) * i, i * size, 0, 44 / 7);
+        const fade = i / num;
+        x.fillStyle = R(dots[0] * fade, dots[1] * fade, dots[2] * fade);
+        x.fill();
+    }
 };
 const redSpiral = (t, frames) => {
     x.fillStyle = "white";
@@ -967,7 +980,8 @@ const draws = {
         higherOrderWaves(false),
         bitwiseGrid(),
     ],
-    motionblur: [redSpiral],
+    //motionblur: [higherOrderSpiral([101, 8, 252], [242, 128, 7], 25, 2, 3)],
+    motionblur: [higherOrderSpiral([40, 40, 40], [0, 235, 145], 25, 2, 3)],
     basicdof: [higherOrderPerspective(true), higherOrderPerspective(false)],
     lineardof: [
         higherOrderPerspective(true),
@@ -1420,9 +1434,9 @@ exports.gauss = exports.BlurExpr = void 0;
 const glslfunctions_1 = require("../glslfunctions");
 const expr_1 = require("./expr");
 /** @ignore */
-function genBlurSource(direction, taps, buffer) {
+function genBlurSource(direction, taps) {
     return {
-        sections: [`gauss${taps}${buffer === undefined ? "" : "_" + buffer}(`, ")"],
+        sections: [`gauss${taps}(`, ")"],
         values: [direction],
     };
 }
@@ -1445,7 +1459,7 @@ class BlurExpr extends expr_1.ExprVec4 {
         if (![5, 9, 13].includes(taps)) {
             throw new Error("taps for gauss blur can only be 5, 9 or 13");
         }
-        super(genBlurSource(direction, taps, samplerNum), ["uDirection"]);
+        super(genBlurSource(direction, taps), ["uDirection"]);
         this.direction = direction;
         this.externalFuncs = [tapsToFuncSource(taps)];
         this.brandExprWithChannel(0, samplerNum);
@@ -1845,12 +1859,14 @@ function toGLSLFloatString(num) {
 }
 class Expr {
     constructor(sourceLists, defaultNames) {
+        // update me on change to needs
         this.needs = {
             neighborSample: false,
             centerSample: false,
             sceneBuffer: false,
             timeUniform: false,
             mouseUniform: false,
+            passCount: false,
             extraBuffers: new Set(),
         };
         this.uniformValChangeMap = {};
@@ -1960,8 +1976,6 @@ class Expr {
     brandExprWithRegion(space) {
         utils_1.brandWithRegion(this, this.funcIndex, space);
         for (const v of this.sourceLists.values) {
-            // TODO get rid of this
-            //console.log("brand", v);
             v.brandExprWithRegion(space);
         }
         return this;
@@ -2607,7 +2621,6 @@ class GodRaysExpr extends expr_1.ExprVec4 {
             this.externalFuncs.push(glslfunctions_1.glslFuncs.depth2occlusion);
         }
         this.externalFuncs.push(customGodRayFunc);
-        //this.needs.extraBuffers = new Set([samplerNum]);
         this.brandExprWithChannel(this.funcIndex, samplerNum);
     }
     /** sets the light color */
@@ -3151,15 +3164,19 @@ function createDifferenceFloats(floats) {
     }
     return differences;
 }
+/**
+ * restrict an effect to a region of the screen
+ * @param space top left, top right, bottom left, bottom right corners of the
+ * region
+ * @param success expression for being inside the region
+ * @param failure expression for being outside the region
+ */
 function region(space, success, failure) {
     const floats = space.map((f) => expr_1.wrapInValue(f));
     if (success instanceof mergepass_1.EffectLoop) {
         return success.regionWrap(space, failure);
     }
-    return ternaryexpr_1.ternary(createDifferenceFloats(floats), 
-    //success instanceof Expr ? success.brandExprWithRegion(floats) : success,
-    //failure instanceof Expr ? failure.brandExprWithRegion(floats) : failure
-    success.brandExprWithRegion(floats), failure.brandExprWithRegion(floats));
+    return ternaryexpr_1.ternary(createDifferenceFloats(floats), success.brandExprWithRegion(floats), failure.brandExprWithRegion(floats));
 }
 exports.region = region;
 
@@ -3329,15 +3346,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.sobel = exports.SobelExpr = void 0;
 const glslfunctions_1 = require("../glslfunctions");
 const expr_1 = require("./expr");
-/** @ignore */
-/*
-function genSobelSource(samplerNum?: number): SourceLists {
-  return {
-    sections: [`sobel${samplerNum === undefined ? "" : "_" + samplerNum}()`],
-    values: [],
-  };
-}
-*/
 /** Sobel edge detection expression */
 class SobelExpr extends expr_1.ExprVec4 {
     constructor(samplerNum) {
@@ -3370,11 +3378,16 @@ function genTernarySourceList(floats, success, failure) {
     };
     let counter = 0;
     // generate the boolean expression
-    for (const f of floats) {
-        counter++;
-        const last = counter === floats.length;
-        sourceList.values.push(f);
-        sourceList.sections.push(` > 0.${last ? ") ? " : " && "}`);
+    if (floats !== null) {
+        for (const f of floats) {
+            counter++;
+            const last = counter === floats.length;
+            sourceList.values.push(f);
+            sourceList.sections.push(` > 0.${last ? ") ? " : " && "}`);
+        }
+    }
+    else {
+        sourceList.sections[0] += "uCount == 0) ? ";
     }
     // generate the success expression and colon
     sourceList.values.push(success);
@@ -3387,22 +3400,32 @@ function genTernarySourceList(floats, success, failure) {
 class TernaryExpr extends expr_1.Operator {
     constructor(floats, success, failure) {
         super(success, genTernarySourceList(floats, success, failure), [
-            ...Array.from(floats, (val, index) => "uFloat" + index),
+            ...(floats !== null
+                ? Array.from(floats, (val, index) => "uFloat" + index)
+                : []),
             "uSuccess",
             "uFailure",
         ]);
         this.success = success;
         this.failure = failure;
+        this.needs.passCount = floats === null;
     }
 }
 exports.TernaryExpr = TernaryExpr;
+/**
+ * creates a ternary expression; the boolean expression is if all the floats
+ * given are greater than 0
+ * @param floats if all these floats (or the single float) are above 0, then
+ * evaluates to success expression
+ * @param success
+ * @param failure
+ */
 function ternary(floats, success, failure) {
     // wrap single float in array if need be
-    if (!Array.isArray(floats))
-        floats = [floats];
-    return new TernaryExpr(
-    // TODO what's up with the return type of this map?
-    floats.map((f) => expr_1.wrapInValue(f)), success, failure);
+    if (!Array.isArray(floats) && floats !== null)
+        floats = [floats].map((f) => expr_1.wrapInValue(f));
+    // TODO get rid of this cast
+    return new TernaryExpr(floats, success, failure);
 }
 exports.ternary = ternary;
 
@@ -3935,6 +3958,8 @@ const setcolorexpr_1 = require("./exprs/setcolorexpr");
 const settings_1 = require("./settings");
 const webglprogramloop_1 = require("./webglprogramloop");
 const regiondecorator_1 = require("./exprs/regiondecorator");
+const fragcolorexpr_1 = require("./exprs/fragcolorexpr");
+const ternaryexpr_1 = require("./exprs/ternaryexpr");
 function wrapInSetColors(effects) {
     return effects.map((e) => e instanceof expr_1.ExprVec4 || e instanceof EffectLoop ? e : new setcolorexpr_1.SetColorExpr(e));
 }
@@ -3959,6 +3984,7 @@ class EffectDictionary {
             sceneBuffer: false,
             timeUniform: false,
             mouseUniform: false,
+            passCount: false,
             extraBuffers: new Set(),
         };
         for (const name in this.effectMap) {
@@ -4095,11 +4121,17 @@ class EffectLoop {
         return false;
     }
     /** @ignore */
-    regionWrap(space, failure) {
-        // TODO why do we have the not instance
-        this.effects = this.effects.map((e) => e instanceof EffectLoop /* && !(e instanceof ExprVec4) */
-            ? e.regionWrap(space, failure)
-            : new setcolorexpr_1.SetColorExpr(regiondecorator_1.region(space, e.brandExprWithRegion(space.map((e) => expr_1.wrapInValue(e))), failure)));
+    regionWrap(space, failure, finalPath = true) {
+        this.effects = this.effects.map((e, index) => 
+        // loops that aren't all the way to the right can't terminate the count ternery
+        // don't wrap fcolors in a ternery (it's redundant)
+        e instanceof EffectLoop
+            ? e.regionWrap(space, failure, index === this.effects.length - 1)
+            : new setcolorexpr_1.SetColorExpr(regiondecorator_1.region(space, e.brandExprWithRegion(space.map((e) => expr_1.wrapInValue(e))), index === this.effects.length - 1 && finalPath
+                ? !(failure instanceof fragcolorexpr_1.FragColorExpr)
+                    ? ternaryexpr_1.ternary(null, failure, fragcolorexpr_1.fcolor())
+                    : failure
+                : fragcolorexpr_1.fcolor())));
         return this;
     }
 }
@@ -4354,7 +4386,7 @@ function sendTexture(gl, src) {
 }
 exports.sendTexture = sendTexture;
 
-},{"./codebuilder":1,"./exprs/expr":16,"./exprs/regiondecorator":38,"./exprs/scenesampleexpr":42,"./exprs/setcolorexpr":43,"./settings":55,"./webglprogramloop":57}],55:[function(require,module,exports){
+},{"./codebuilder":1,"./exprs/expr":16,"./exprs/fragcolorexpr":17,"./exprs/regiondecorator":38,"./exprs/scenesampleexpr":42,"./exprs/setcolorexpr":43,"./exprs/ternaryexpr":46,"./settings":55,"./webglprogramloop":57}],55:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.settings = void 0;
@@ -4371,7 +4403,7 @@ exports.settings = {
 },{}],56:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.brandWithRegion = exports.brandWithChannel = exports.replaceSampler = exports.captureAndAppend = void 0;
+exports.brandWithRegion = exports.brandWithChannel = exports.captureAndAppend = void 0;
 const glslfunctions_1 = require("./glslfunctions");
 /** @ignore */
 function captureAndAppend(str, reg, suffix) {
@@ -4381,13 +4413,7 @@ function captureAndAppend(str, reg, suffix) {
     return str.replace(reg, matches[0] + suffix);
 }
 exports.captureAndAppend = captureAndAppend;
-// TODO get rid of this
 /** @ignore */
-function replaceSampler(fullString, funcRegExp, samplerNum, extra // TODO see if this is even useful anymore
-) {
-    return captureAndAppend(fullString.replace(/uSampler/g, "uBufferSampler" + samplerNum), funcRegExp, "_" + samplerNum + (extra === undefined ? "" : extra));
-}
-exports.replaceSampler = replaceSampler;
 function nameExtractor(sourceLists, extra) {
     const origFuncName = sourceLists.sections[0];
     const ending = origFuncName[origFuncName.length - 1] === ")" ? ")" : "";
@@ -4413,8 +4439,6 @@ function brandWithChannel(sourceLists, funcs, needs, funcIndex, samplerNum) {
         .join(newFuncName)
         .split("uSampler")
         .join("uBufferSampler" + samplerNum);
-    //needs.extraBuffers = new Set([samplerNum]);
-    //needs.neighborSample = false;
 }
 exports.brandWithChannel = brandWithChannel;
 /** @ignore */
@@ -4455,8 +4479,6 @@ function brandWithRegion(expr, funcIndex, space) {
     sourceLists.values.unshift(...space);
     // put the texture access wrapper at the beginning
     funcs.unshift(glslfunctions_1.glslFuncs.texture2D_region);
-    // TODO get rid of this
-    console.log(sourceLists);
     expr.regionBranded = true;
 }
 exports.brandWithRegion = brandWithRegion;
@@ -4474,6 +4496,7 @@ function updateNeeds(acc, curr) {
         sceneBuffer: acc.sceneBuffer || curr.sceneBuffer,
         timeUniform: acc.timeUniform || curr.timeUniform,
         mouseUniform: acc.mouseUniform || curr.mouseUniform,
+        passCount: acc.passCount || curr.passCount,
         extraBuffers: new Set([...acc.extraBuffers, ...curr.extraBuffers]),
     };
 }
@@ -4486,34 +4509,35 @@ class WebGLProgramLeaf {
     }
 }
 exports.WebGLProgramLeaf = WebGLProgramLeaf;
+/** @ignore */
+function getLoc(programElement, gl, name) {
+    gl.useProgram(programElement.program);
+    const loc = gl.getUniformLocation(programElement.program, name);
+    if (loc === null) {
+        throw new Error("could not get the " + name + " uniform location");
+    }
+    return loc;
+}
 /** recursive data structure of compiled programs */
 class WebGLProgramLoop {
     constructor(programElement, loopInfo, gl) {
         //effects: Expr[];
         this.last = false;
+        this.counter = 0;
         this.programElement = programElement;
         this.loopInfo = loopInfo;
         if (this.programElement instanceof WebGLProgramLeaf) {
             if (gl === undefined) {
                 throw new Error("program element is a program but context is undefined");
             }
-            // get the time uniform location
             if (this.programElement.totalNeeds.timeUniform) {
-                gl.useProgram(this.programElement.program);
-                const timeLoc = gl.getUniformLocation(this.programElement.program, "uTime");
-                if (timeLoc === null) {
-                    throw new Error("could not get the time uniform location");
-                }
-                this.timeLoc = timeLoc;
+                this.timeLoc = getLoc(this.programElement, gl, "uTime");
             }
-            // get the mouse uniform location
             if (this.programElement.totalNeeds.mouseUniform) {
-                gl.useProgram(this.programElement.program);
-                const mouseLoc = gl.getUniformLocation(this.programElement.program, "uMouse");
-                if (mouseLoc === null) {
-                    throw new Error("could not get the mouse uniform location");
-                }
-                this.mouseLoc = mouseLoc;
+                this.mouseLoc = getLoc(this.programElement, gl, "uMouse");
+            }
+            if (this.programElement.totalNeeds.passCount) {
+                this.countLoc = getLoc(this.programElement, gl, "uCount");
             }
         }
     }
@@ -4564,7 +4588,6 @@ class WebGLProgramLoop {
                 }
                 gl.activeTexture(gl.TEXTURE1);
                 if (this.loopInfo.target === -1) {
-                    //console.log("binding scene to the saved texture", savedTexture);
                     gl.bindTexture(gl.TEXTURE_2D, savedTexture.tex);
                 }
                 else {
@@ -4598,6 +4621,18 @@ class WebGLProgramLoop {
                     throw new Error("mouse uniform or location is undefined");
                 }
                 gl.uniform2f(this.mouseLoc, defaultUniforms.mouseX, defaultUniforms.mouseY);
+            }
+            // set count uniform if needed
+            if (this.programElement.totalNeeds.passCount && outerLoop !== undefined) {
+                if (this.countLoc === undefined) {
+                    throw new Error("count location is undefined");
+                }
+                if (outerLoop !== undefined) {
+                    gl.uniform1i(this.countLoc, outerLoop.counter);
+                }
+                this.counter++;
+                const mod = outerLoop === undefined ? 1 : outerLoop.loopInfo.num;
+                this.counter %= mod;
             }
         }
         for (let i = 0; i < this.loopInfo.num; i++) {
