@@ -2588,7 +2588,6 @@ class GodRaysExpr extends expr_1.ExprVec4 {
             "uThreshold",
             "uNewColor",
         ]);
-        this.funcIndex = 1; // depth converting function needs to be before
         this.col = col;
         this.exposure = exposure;
         this.decay = decay;
@@ -2597,15 +2596,8 @@ class GodRaysExpr extends expr_1.ExprVec4 {
         this.lightPos = lightPos;
         this.threshold = convertDepth === null || convertDepth === void 0 ? void 0 : convertDepth.threshold;
         this.newColor = convertDepth === null || convertDepth === void 0 ? void 0 : convertDepth.newColor;
-        /*
-        let customGodRayFunc = replaceSampler(
-          glslFuncs.godrays,
-          /vec4\sgodrays/g,
-          samplerNum,
-          convertDepth === undefined ? undefined : "_depth"
-        );
-        */
-        //customGodRayFunc = glslFuncs.split();
+        // will be 1 if needs to convert depth, and 0 otherwise
+        this.funcIndex = ~~(convertDepth !== undefined);
         let customGodRayFunc = glslfunctions_1.glslFuncs.godrays.split("godrays(").join(customName);
         if (convertDepth !== undefined) {
             // with regex, uncomment the line in the source code that does the
