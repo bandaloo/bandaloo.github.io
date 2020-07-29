@@ -4,7 +4,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.blurandtrace = exports.BlurAndTrace = void 0;
 const merge_pass_1 = require("@bandaloo/merge-pass");
 class BlurAndTrace extends merge_pass_1.EffectLoop {
-    constructor(brightness = merge_pass_1.mut(1), blurSize = merge_pass_1.mut(1), reps = 4, taps = 9, samplerNum = 0, useDepth = false) {
+    constructor(brightness, blurSize, reps, taps, samplerNum, useDepth) {
         const brightnessFloat = merge_pass_1.float(brightness);
         const blurSizeFloat = merge_pass_1.float(blurSize);
         super([
@@ -27,12 +27,12 @@ class BlurAndTrace extends merge_pass_1.EffectLoop {
     }
 }
 exports.BlurAndTrace = BlurAndTrace;
-function blurandtrace(brightness, blurSize, reps, taps, samplerNum, useDepth) {
-    return new BlurAndTrace(brightness, blurSize, reps, taps, samplerNum, useDepth);
+function blurandtrace(brightness = merge_pass_1.mut(1), blurSize = merge_pass_1.mut(1), reps = 4, taps = 9, samplerNum = 0, useDepth = false) {
+    return new BlurAndTrace(merge_pass_1.wrapInValue(brightness), merge_pass_1.wrapInValue(blurSize), reps, taps, samplerNum, useDepth);
 }
 exports.blurandtrace = blurandtrace;
 
-},{"@bandaloo/merge-pass":58}],2:[function(require,module,exports){
+},{"@bandaloo/merge-pass":62}],2:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -61,10 +61,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const MP = __importStar(require("@bandaloo/merge-pass"));
 const dat = __importStar(require("dat.gui"));
 const A = __importStar(require("./exampleanimations"));
-const foggyrays_1 = require("./foggyrays");
-const vignette_1 = require("./vignette");
-const merge_pass_1 = require("@bandaloo/merge-pass");
-const blurandtrace_1 = require("./blurandtrace");
+const P = __importStar(require("./index"));
 const slow = false;
 const glCanvas = document.getElementById("gl");
 const gl = glCanvas.getContext("webgl2");
@@ -89,7 +86,7 @@ function getVariable(variable) {
 const demos = {
     foggyrays: (channels = []) => {
         let fg;
-        const merger = new MP.Merger([(fg = foggyrays_1.foggyrays())], sourceCanvas, gl, {
+        const merger = new MP.Merger([(fg = P.foggyrays())], sourceCanvas, gl, {
             channels: channels,
         });
         class BlurControls {
@@ -97,6 +94,7 @@ const demos = {
                 this.period = 100;
                 this.speed = 1;
                 this.throwDistance = 0.3;
+                this.newColorG = 0.3;
             }
         }
         const controls = new BlurControls();
@@ -115,7 +113,7 @@ const demos = {
     },
     vignette: () => {
         let v;
-        const merger = new MP.Merger([(v = vignette_1.vignette())], sourceCanvas, gl);
+        const merger = new MP.Merger([(v = P.vignette())], sourceCanvas, gl);
         class VignetteControls {
             constructor() {
                 this.blur = 3;
@@ -139,7 +137,7 @@ const demos = {
     },
     blurandtracescene: () => {
         let bt;
-        const merger = new merge_pass_1.Merger([(bt = new blurandtrace_1.BlurAndTrace())], sourceCanvas, gl, {
+        const merger = new MP.Merger([(bt = P.blurandtrace())], sourceCanvas, gl, {
             channels: [null],
         });
         class BlurAndTraceControls {
@@ -162,7 +160,7 @@ const demos = {
     },
     blurandtracedepth: (channels = []) => {
         let bt;
-        const merger = new merge_pass_1.Merger([(bt = new blurandtrace_1.BlurAndTrace(MP.mut(1), MP.mut(1), 4, 13, 0, true))], sourceCanvas, gl, { channels: channels });
+        const merger = new MP.Merger([(bt = P.blurandtrace(MP.mut(1), MP.mut(1), 4, 13, 0, true))], sourceCanvas, gl, { channels: channels });
         class BlurAndTraceControls {
             constructor() {
                 this.brightness = 1;
@@ -181,6 +179,82 @@ const demos = {
             },
         };
     },
+    lightbands: (channels = []) => {
+        let lb;
+        const merger = new MP.Merger([(lb = P.lightbands())], sourceCanvas, gl, {
+            channels: channels,
+        });
+        class LightBandsControls {
+            constructor() {
+                this.speed = 4;
+                this.intensity = 0.3;
+                this.threshold = 0.01;
+            }
+        }
+        const controls = new LightBandsControls();
+        const gui = new dat.GUI();
+        gui.add(controls, "speed", 1, 20);
+        gui.add(controls, "intensity", 0.1, 1, 0.01);
+        gui.add(controls, "threshold", 0.01, 0.3);
+        return {
+            merger: merger,
+            change: () => {
+                lb.setSpeed(controls.speed);
+                lb.setIntensity(controls.intensity);
+                lb.setThreshold(controls.threshold);
+            },
+        };
+    },
+    noisedisplacement: (channels = []) => {
+        let nd;
+        const merger = new MP.Merger([(nd = new P.NoiseDisplacement())], sourceCanvas, gl, {
+            channels: channels,
+        });
+        class LightBandsControls {
+            constructor() {
+                this.period = 0.1;
+                this.speed = 1;
+                this.intensity = 0.005;
+            }
+        }
+        const controls = new LightBandsControls();
+        const gui = new dat.GUI();
+        gui.add(controls, "period", 0.01, 1, 0.01);
+        gui.add(controls, "speed", -2, 2);
+        gui.add(controls, "intensity", 0.005, 0.5, 0.005);
+        return {
+            merger: merger,
+            change: () => {
+                nd.setPeriod(controls.period);
+                nd.setSpeed(controls.speed);
+                nd.setIntensity(controls.intensity);
+            },
+        };
+    },
+    oldfilm: (channels = []) => {
+        let olf;
+        const merger = new MP.Merger([(olf = P.oldfilm()), P.vignette(3, 1.5)], sourceCanvas, gl, { channels: channels });
+        class OldFilmControls {
+            constructor() {
+                this.specks = 0.4;
+                this.lines = 0.25;
+                this.grain = 0.11;
+            }
+        }
+        const controls = new OldFilmControls();
+        const gui = new dat.GUI();
+        gui.add(controls, "specks", 0, 1, 0.01);
+        gui.add(controls, "lines", 0, 1, 0.01);
+        gui.add(controls, "grain", 0, 1, 0.01);
+        return {
+            merger: merger,
+            change: () => {
+                olf.setSpeckIntensity(controls.specks);
+                olf.setLineIntensity(controls.lines);
+                olf.setGrainIntensity(controls.grain);
+            },
+        };
+    },
 };
 const draws = {
     foggyrays: [A.higherOrderDonuts(true), A.higherOrderDonuts(false)],
@@ -190,6 +264,9 @@ const draws = {
         A.higherOrderPerspective(true),
         A.higherOrderPerspective(false),
     ],
+    lightbands: [A.higherOrderPerspective(true), A.higherOrderPerspective(false)],
+    noisedisplacement: [A.higherOrderSpiral([0, 0, 255], [255, 255, 255])],
+    oldfilm: [A.higherOrderSpiral([0, 0, 255], [255, 255, 0])],
 };
 const notes = {
     foggyrays: "this adds some texture to the effect you would normally get with <code>godrays</code>",
@@ -201,6 +278,11 @@ const notes = {
         "better effect compared to only using the scene buffer. the lines will naturally get " +
         "lighter in the distance with this method. set the final argument of <code>blurandtrace</code> " +
         "to true",
+    lightbands: "you can light up and darken strips of your scene if you supply a depth buffer",
+    noisedisplacement: "depending on the parameters, <code>noisedisplacement</code> can make things look as though " +
+        "they are underwater or behind textured glass",
+    oldfilm: "this adds random vertical scratches and specks of dust, as well as film grain. this pairs " +
+        "nicely with <code>vignette</code>, as seen here",
 };
 const canvases = [sourceCanvas];
 const contexts = [source];
@@ -209,7 +291,7 @@ let key;
 window.addEventListener("load", () => {
     var _a, _b;
     MP.settings.verbosity = 1;
-    MP.settings.offset = 3;
+    MP.settings.offset = 0;
     console.log("offset", MP.settings.offset);
     let mstr = getVariable("m");
     let dstr = getVariable("d");
@@ -253,9 +335,8 @@ window.addEventListener("load", () => {
     if (demo === undefined)
         throw new Error("merger not found");
     document.getElementById("title").innerText =
-        "merge-pass demo: " + mstr;
+        "postpre demo: " + mstr;
     // unindent code string
-    // only replace leading spaces with nbsp
     let codeStr = (" ".repeat(4) + demos[mstr])
         .split("\n")
         .map((l) => l.substr(4))
@@ -304,7 +385,7 @@ glCanvas.addEventListener("mousemove", (e) => {
 });
 sourceCanvas.addEventListener("click", () => sourceCanvas.requestFullscreen());
 
-},{"./blurandtrace":1,"./exampleanimations":3,"./foggyrays":4,"./vignette":5,"@bandaloo/merge-pass":58,"dat.gui":6}],3:[function(require,module,exports){
+},{"./exampleanimations":3,"./index":5,"@bandaloo/merge-pass":62,"dat.gui":10}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.bloomTest = exports.higherOrderDonuts = exports.higherOrderPerspective = exports.movingGrid = exports.pinkishHelix = exports.vectorSpiral = exports.higherOrderGoo = exports.bitwiseGrid = exports.uncommonCheckerboard = exports.higherOrderWaves = exports.shaderLike = exports.fabric = exports.redSpiral = exports.higherOrderSpiral = exports.stripes = void 0;
@@ -504,7 +585,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.foggyrays = exports.FoggyRaysExpr = void 0;
 const merge_pass_1 = require("@bandaloo/merge-pass");
 class FoggyRaysExpr extends merge_pass_1.WrappedExpr {
-    constructor(period = merge_pass_1.mut(100), speed = merge_pass_1.mut(1), throwDistance = merge_pass_1.mut(0.3), numSamples = 100, samplerNum, convertDepthColor) {
+    constructor(period, speed, throwDistance, numSamples, samplerNum, convertDepthColor) {
         const periodFloat = merge_pass_1.float(period);
         const speedFloat = merge_pass_1.float(speed);
         const throwDistanceFloat = merge_pass_1.float(throwDistance);
@@ -522,6 +603,8 @@ class FoggyRaysExpr extends merge_pass_1.WrappedExpr {
         this.periodFloat = periodFloat;
         this.speedFloat = speedFloat;
         this.throwDistanceFloat = throwDistanceFloat;
+        this.godraysExpr = expr;
+        this.convertsDepth = convertDepthColor !== undefined;
         this.period = period;
         this.speed = speed;
         this.throwDistance = throwDistance;
@@ -538,20 +621,167 @@ class FoggyRaysExpr extends merge_pass_1.WrappedExpr {
         this.throwDistanceFloat.setVal(merge_pass_1.wrapInValue(throwDistance));
         this.throwDistance = merge_pass_1.wrapInValue(throwDistance);
     }
+    setNewColor(newColor) {
+        if (this.convertsDepth === undefined) {
+            throw new Error("can only set new color if you are converting from a depth buffer");
+        }
+        this.godraysExpr.setNewColor(newColor);
+    }
 }
 exports.FoggyRaysExpr = FoggyRaysExpr;
-function foggyrays(period, speed, throwDistance, numSamples, samplerNum, convertDepthColor) {
+function foggyrays(period = merge_pass_1.mut(100), speed = merge_pass_1.mut(1), throwDistance = merge_pass_1.mut(0.3), numSamples = 100, samplerNum, convertDepthColor) {
     return new FoggyRaysExpr(merge_pass_1.wrapInValue(period), merge_pass_1.wrapInValue(speed), merge_pass_1.wrapInValue(throwDistance), numSamples, samplerNum, convertDepthColor);
 }
 exports.foggyrays = foggyrays;
 
-},{"@bandaloo/merge-pass":58}],5:[function(require,module,exports){
+},{"@bandaloo/merge-pass":62}],5:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !exports.hasOwnProperty(p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./foggyrays"), exports);
+__exportStar(require("./vignette"), exports);
+__exportStar(require("./blurandtrace"), exports);
+__exportStar(require("./lightbands"), exports);
+__exportStar(require("./noisedisplacement"), exports);
+__exportStar(require("./oldfilm"), exports);
+
+},{"./blurandtrace":1,"./foggyrays":4,"./lightbands":6,"./noisedisplacement":7,"./oldfilm":8,"./vignette":9}],6:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.lightbands = exports.LightBands = void 0;
+const merge_pass_1 = require("@bandaloo/merge-pass");
+class LightBands extends merge_pass_1.WrappedExpr {
+    constructor(speed, intensity, threshold, samplerNum) {
+        const speedFloat = merge_pass_1.float(speed);
+        const intensityFloat = merge_pass_1.float(intensity);
+        const thresholdFloat = merge_pass_1.float(threshold);
+        const expr = merge_pass_1.brightness(merge_pass_1.ternary(merge_pass_1.op(merge_pass_1.getcomp(merge_pass_1.channel(0), "r"), "-", thresholdFloat), merge_pass_1.op(merge_pass_1.a1("sin", merge_pass_1.op(merge_pass_1.op(merge_pass_1.time(), "*", speedFloat), "+", merge_pass_1.truedepth(merge_pass_1.getcomp(merge_pass_1.channel(samplerNum), "r")))), "*", intensityFloat), 0));
+        super(expr);
+        this.speedFloat = speedFloat;
+        this.intensityFloat = intensityFloat;
+        this.thresholdFloat = thresholdFloat;
+        this.speed = speed;
+        this.intensity = intensity;
+        this.threshold = threshold;
+    }
+    setSpeed(speed) {
+        this.speedFloat.setVal(merge_pass_1.wrapInValue(speed));
+        this.speed = merge_pass_1.wrapInValue(speed);
+    }
+    setIntensity(intensity) {
+        this.intensityFloat.setVal(merge_pass_1.wrapInValue(intensity));
+        this.intensity = merge_pass_1.wrapInValue(intensity);
+    }
+    setThreshold(threshold) {
+        this.thresholdFloat.setVal(merge_pass_1.wrapInValue(threshold));
+        this.threshold = merge_pass_1.wrapInValue(threshold);
+    }
+}
+exports.LightBands = LightBands;
+function lightbands(speed = merge_pass_1.mut(4), intensity = merge_pass_1.mut(0.3), threshold = merge_pass_1.mut(0.01), samplerNum = 0) {
+    return new LightBands(merge_pass_1.wrapInValue(speed), merge_pass_1.wrapInValue(intensity), merge_pass_1.wrapInValue(threshold), samplerNum);
+}
+exports.lightbands = lightbands;
+
+},{"@bandaloo/merge-pass":62}],7:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.NoiseDisplacement = void 0;
+const merge_pass_1 = require("@bandaloo/merge-pass");
+const X_OFF = 1234;
+const Y_OFF = 5678;
+class NoiseDisplacement extends merge_pass_1.WrappedExpr {
+    constructor(period = merge_pass_1.mut(0.1), speed = merge_pass_1.mut(1), intensity = merge_pass_1.mut(0.005)) {
+        const periodFloat = merge_pass_1.float(period);
+        const speedFloat = merge_pass_1.float(speed);
+        const intensityFloat = merge_pass_1.float(intensity);
+        const noise = (comp) => merge_pass_1.simplex(merge_pass_1.op(merge_pass_1.op(merge_pass_1.changecomp(merge_pass_1.op(merge_pass_1.pos(), "/", periodFloat), merge_pass_1.op(merge_pass_1.time(), "*", speedFloat), comp, "+"), "*", merge_pass_1.op(merge_pass_1.resolution(), "/", merge_pass_1.getcomp(merge_pass_1.resolution(), "y"))), "+", comp === "x" ? X_OFF : Y_OFF));
+        super(merge_pass_1.channel(-1, merge_pass_1.op(merge_pass_1.op(merge_pass_1.op(merge_pass_1.vec2(noise("x"), noise("y")), "*", intensityFloat), "*", merge_pass_1.op(merge_pass_1.get2comp(merge_pass_1.resolution(), "yx"), "/", merge_pass_1.getcomp(merge_pass_1.resolution(), "y"))), "+", merge_pass_1.pos())));
+        this.periodFloat = periodFloat;
+        this.speedFloat = speedFloat;
+        this.intensityFloat = intensityFloat;
+        this.period = period;
+        this.speed = speed;
+        this.intensity = intensity;
+    }
+    setPeriod(period) {
+        this.periodFloat.setVal(merge_pass_1.wrapInValue(period));
+        this.period = merge_pass_1.wrapInValue(period);
+    }
+    setSpeed(speed) {
+        this.speedFloat.setVal(merge_pass_1.wrapInValue(speed));
+        this.speed = merge_pass_1.wrapInValue(speed);
+    }
+    setIntensity(intensity) {
+        this.intensityFloat.setVal(merge_pass_1.wrapInValue(intensity));
+        this.speed = merge_pass_1.wrapInValue(intensity);
+    }
+}
+exports.NoiseDisplacement = NoiseDisplacement;
+
+},{"@bandaloo/merge-pass":62}],8:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.oldfilm = exports.OldFilm = void 0;
+const merge_pass_1 = require("@bandaloo/merge-pass");
+class OldFilm extends merge_pass_1.WrappedExpr {
+    constructor(speckIntensity, lineIntensity, grainIntensity) {
+        const speckIntensityFloat = merge_pass_1.float(speckIntensity);
+        const lineIntensityFloat = merge_pass_1.float(lineIntensity);
+        const grainIntensityFloat = merge_pass_1.float(grainIntensity);
+        const period = 1 / 3;
+        const ftime = merge_pass_1.a1("floor", merge_pass_1.op(merge_pass_1.time(), "*", 24));
+        const grainy = merge_pass_1.op(merge_pass_1.random(merge_pass_1.op(merge_pass_1.pixel(), "+", merge_pass_1.a2("mod", merge_pass_1.op(ftime, "*", 99), 3000))), "*", grainIntensityFloat);
+        // mod is to wrap values back around
+        const rpos = merge_pass_1.a2("mod", merge_pass_1.op(merge_pass_1.pos(), "+", merge_pass_1.random(merge_pass_1.vec2(ftime, 0))), merge_pass_1.vec2(10000, 10000));
+        const lines = merge_pass_1.op(merge_pass_1.a2("pow", merge_pass_1.a1("sin", merge_pass_1.getcomp(merge_pass_1.op(rpos, "/", period), "x")), 3000), "*", merge_pass_1.op(merge_pass_1.op(merge_pass_1.random(merge_pass_1.vec2(ftime, 0)), "*", merge_pass_1.op(lineIntensityFloat, "*", -1)), "+", merge_pass_1.op(lineIntensityFloat, "/", 5)));
+        const spos = merge_pass_1.op(merge_pass_1.op(merge_pass_1.pos(), "*", merge_pass_1.op(merge_pass_1.resolution(), "/", merge_pass_1.getcomp(merge_pass_1.resolution(), "y"))), "+", merge_pass_1.op(ftime, "*", 4));
+        // TODO consider adding an optional cue mark
+        const fsimplex = merge_pass_1.op(merge_pass_1.op(merge_pass_1.simplex(merge_pass_1.op(spos, "*", 7)), "*", 0.44), "+", 0.5);
+        const spots = merge_pass_1.op(merge_pass_1.a2("step", fsimplex, 0.08), "*", speckIntensityFloat);
+        super(merge_pass_1.monochrome(merge_pass_1.brightness(spots, merge_pass_1.brightness(lines, merge_pass_1.brightness(grainy)))));
+        this.speckIntensityFloat = speckIntensityFloat;
+        this.lineIntensityFloat = lineIntensityFloat;
+        this.grainIntensityFloat = grainIntensityFloat;
+        this.speckIntensity = speckIntensity;
+        this.lineIntensity = lineIntensity;
+        this.grainIntensity = grainIntensity;
+    }
+    setSpeckIntensity(speckIntensity) {
+        this.speckIntensityFloat.setVal(merge_pass_1.wrapInValue(speckIntensity));
+        this.speckIntensity = merge_pass_1.wrapInValue(speckIntensity);
+    }
+    setLineIntensity(lineIntensity) {
+        this.lineIntensityFloat.setVal(merge_pass_1.wrapInValue(lineIntensity));
+        this.lineIntensity = merge_pass_1.wrapInValue(lineIntensity);
+    }
+    setGrainIntensity(grainIntensity) {
+        this.grainIntensityFloat.setVal(merge_pass_1.wrapInValue(grainIntensity));
+        this.grainIntensity = merge_pass_1.wrapInValue(grainIntensity);
+    }
+}
+exports.OldFilm = OldFilm;
+function oldfilm(speckIntensity = merge_pass_1.mut(0.4), lineIntensity = merge_pass_1.mut(0.25), grainIntensity = merge_pass_1.mut(0.11)) {
+    return new OldFilm(merge_pass_1.wrapInValue(speckIntensity), merge_pass_1.wrapInValue(lineIntensity), merge_pass_1.wrapInValue(grainIntensity));
+}
+exports.oldfilm = oldfilm;
+
+},{"@bandaloo/merge-pass":62}],9:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.vignette = exports.Vignette = void 0;
 const merge_pass_1 = require("@bandaloo/merge-pass");
 class Vignette extends merge_pass_1.EffectLoop {
-    constructor(blurScalar = merge_pass_1.mut(3), brightnessScalar = merge_pass_1.mut(1.8), brightnessExponent = merge_pass_1.mut(1.8)) {
+    constructor(blurScalar, brightnessScalar, brightnessExponent) {
         const blurScalarFloat = merge_pass_1.float(blurScalar);
         const brightnessScalarFloat = merge_pass_1.float(brightnessScalar);
         const brightnessExponentFloat = merge_pass_1.float(brightnessExponent);
@@ -581,12 +811,12 @@ class Vignette extends merge_pass_1.EffectLoop {
     }
 }
 exports.Vignette = Vignette;
-function vignette(blurScalar, brightnessScalar, brightnessExponent) {
+function vignette(blurScalar = merge_pass_1.mut(3), brightnessScalar = merge_pass_1.mut(1.8), brightnessExponent = merge_pass_1.mut(1.8)) {
     return new Vignette(merge_pass_1.wrapInValue(blurScalar), merge_pass_1.wrapInValue(brightnessScalar), merge_pass_1.wrapInValue(brightnessExponent));
 }
 exports.vignette = vignette;
 
-},{"@bandaloo/merge-pass":58}],6:[function(require,module,exports){
+},{"@bandaloo/merge-pass":62}],10:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -3126,7 +3356,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 })));
 
 
-},{}],7:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CodeBuilder = exports.channelSamplerName = void 0;
@@ -3156,7 +3386,7 @@ uniform mediump vec2 uResolution;\n`;
  */
 function channelSamplerName(num) {
     // texture 2 sampler has number 0 (0 and 1 are used for back buffer and scene)
-    return `uBufferSampler${num}`;
+    return num === -1 ? "uSampler" : `uBufferSampler${num}`;
 }
 exports.channelSamplerName = channelSamplerName;
 /**
@@ -3317,7 +3547,7 @@ class CodeBuilder {
 }
 exports.CodeBuilder = CodeBuilder;
 
-},{"./exprs/expr":21,"./settings":60,"./webglprogramloop":62}],8:[function(require,module,exports){
+},{"./exprs/expr":25,"./settings":64,"./webglprogramloop":66}],12:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.a1 = exports.Arity1HomogenousExpr = void 0;
@@ -3352,7 +3582,7 @@ function a1(name, val) {
 }
 exports.a1 = a1;
 
-},{"./expr":21}],9:[function(require,module,exports){
+},{"./expr":25}],13:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.a2 = exports.Arity2HomogenousExpr = void 0;
@@ -3395,7 +3625,7 @@ function a2(name, val1, val2) {
 }
 exports.a2 = a2;
 
-},{"./expr":21}],10:[function(require,module,exports){
+},{"./expr":25}],14:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.bloom = exports.BloomLoop = void 0;
@@ -3479,7 +3709,7 @@ function bloom(threshold, horizontal, vertical, boost, samplerNum, taps, reps) {
 }
 exports.bloom = bloom;
 
-},{"../mergepass":59,"./arity2":9,"./blurexpr":12,"./brightnessexpr":13,"./channelsampleexpr":15,"./contrastexpr":16,"./expr":21,"./fragcolorexpr":22,"./opexpr":39,"./vecexprs":55}],11:[function(require,module,exports){
+},{"../mergepass":63,"./arity2":13,"./blurexpr":16,"./brightnessexpr":17,"./channelsampleexpr":19,"./contrastexpr":20,"./expr":25,"./fragcolorexpr":26,"./opexpr":43,"./vecexprs":59}],15:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.blur2d = exports.Blur2dLoop = void 0;
@@ -3532,7 +3762,7 @@ function blur2d(horizontalExpr, verticalExpr, reps, taps, samplerNum) {
 }
 exports.blur2d = blur2d;
 
-},{"../mergepass":59,"./blurexpr":12,"./expr":21,"./vecexprs":55}],12:[function(require,module,exports){
+},{"../mergepass":63,"./blurexpr":16,"./expr":25,"./vecexprs":59}],16:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.gauss = exports.BlurExpr = void 0;
@@ -3588,7 +3818,7 @@ function gauss(direction, taps = 5, samplerNum) {
 }
 exports.gauss = gauss;
 
-},{"../glslfunctions":57,"./expr":21}],13:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25}],17:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.brightness = exports.Brightness = void 0;
@@ -3621,7 +3851,7 @@ function brightness(val, col) {
 }
 exports.brightness = brightness;
 
-},{"../glslfunctions":57,"./expr":21,"./fragcolorexpr":22}],14:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25,"./fragcolorexpr":26}],18:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.changecomp = exports.ChangeCompExpr = void 0;
@@ -3701,7 +3931,7 @@ function changecomp(vec, setter, comps, op) {
 }
 exports.changecomp = changecomp;
 
-},{"./expr":21,"./getcompexpr":26}],15:[function(require,module,exports){
+},{"./expr":25,"./getcompexpr":30}],19:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.channel = exports.ChannelSampleExpr = void 0;
@@ -3723,7 +3953,8 @@ class ChannelSampleExpr extends expr_1.ExprVec4 {
         super(genChannelSampleSource(buf, coord), ["uVec"]);
         this.coord = coord;
         this.externalFuncs = [glslfunctions_1.glslFuncs.channel];
-        this.needs.extraBuffers = new Set([buf]);
+        if (buf !== -1)
+            this.needs.extraBuffers = new Set([buf]);
     }
     setCoord(coord) {
         this.setUniform("uVec", coord);
@@ -3744,7 +3975,7 @@ function channel(channel, vec) {
 }
 exports.channel = channel;
 
-},{"../codebuilder":7,"../glslfunctions":57,"./expr":21,"./normfragcoordexpr":37}],16:[function(require,module,exports){
+},{"../codebuilder":11,"../glslfunctions":61,"./expr":25,"./normfragcoordexpr":41}],20:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.contrast = exports.ContrastExpr = void 0;
@@ -3776,7 +4007,7 @@ function contrast(val, col) {
 }
 exports.contrast = contrast;
 
-},{"../glslfunctions":57,"./expr":21,"./fragcolorexpr":22}],17:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25,"./fragcolorexpr":26}],21:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.depth2occlusion = exports.DepthToOcclusionExpr = void 0;
@@ -3824,7 +4055,7 @@ function depth2occlusion(depthCol, newCol, threshold) {
 }
 exports.depth2occlusion = depth2occlusion;
 
-},{"./channelsampleexpr":15,"./expr":21,"./vecexprs":55}],18:[function(require,module,exports){
+},{"./channelsampleexpr":19,"./expr":25,"./vecexprs":59}],22:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.dof = exports.DoFLoop = void 0;
@@ -3870,7 +4101,7 @@ function dof(depth, rad, depthInfo, reps) {
 }
 exports.dof = dof;
 
-},{"../mergepass":59,"./arity2":9,"./blurexpr":12,"./channelsampleexpr":15,"./expr":21,"./gaussianexpr":25,"./getcompexpr":26,"./opexpr":39,"./vecexprs":55}],19:[function(require,module,exports){
+},{"../mergepass":63,"./arity2":13,"./blurexpr":16,"./channelsampleexpr":19,"./expr":25,"./gaussianexpr":29,"./getcompexpr":30,"./opexpr":43,"./vecexprs":59}],23:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.edgecolor = exports.EdgeColorExpr = void 0;
@@ -3908,7 +4139,7 @@ function edgecolor(color, samplerNum, stepped) {
 }
 exports.edgecolor = edgecolor;
 
-},{"./arity2":9,"./expr":21,"./fragcolorexpr":22,"./monochromeexpr":32,"./sobelexpr":50,"./vecexprs":55}],20:[function(require,module,exports){
+},{"./arity2":13,"./expr":25,"./fragcolorexpr":26,"./monochromeexpr":36,"./sobelexpr":54,"./vecexprs":59}],24:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.edge = exports.EdgeExpr = void 0;
@@ -3944,7 +4175,7 @@ function edge(style, samplerNum) {
 }
 exports.edge = edge;
 
-},{"./brightnessexpr":13,"./expr":21,"./getcompexpr":26,"./invertexpr":30,"./monochromeexpr":32,"./opexpr":39,"./sobelexpr":50}],21:[function(require,module,exports){
+},{"./brightnessexpr":17,"./expr":25,"./getcompexpr":30,"./invertexpr":34,"./monochromeexpr":36,"./opexpr":43,"./sobelexpr":54}],25:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.tag = exports.wrapInValue = exports.pfloat = exports.Operator = exports.WrappedExpr = exports.ExprVec4 = exports.ExprVec3 = exports.ExprVec2 = exports.float = exports.ExprFloat = exports.BasicFloat = exports.ExprVec = exports.BasicVec4 = exports.BasicVec3 = exports.BasicVec2 = exports.BasicVec = exports.PrimitiveVec4 = exports.PrimitiveVec3 = exports.PrimitiveVec2 = exports.PrimitiveVec = exports.PrimitiveFloat = exports.Primitive = exports.mut = exports.Mutable = exports.cvec4 = exports.cvec3 = exports.cvec2 = exports.cfloat = exports.Expr = void 0;
@@ -4402,7 +4633,7 @@ function tag(strings, ...values) {
 }
 exports.tag = tag;
 
-},{"../mergepass":59,"../utils":61,"../webglprogramloop":62}],22:[function(require,module,exports){
+},{"../mergepass":63,"../utils":65,"../webglprogramloop":66}],26:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fcolor = exports.FragColorExpr = void 0;
@@ -4421,7 +4652,7 @@ function fcolor() {
 }
 exports.fcolor = fcolor;
 
-},{"./expr":21}],23:[function(require,module,exports){
+},{"./expr":25}],27:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pixel = exports.FragCoordExpr = void 0;
@@ -4442,7 +4673,7 @@ function pixel() {
 }
 exports.pixel = pixel;
 
-},{"./expr":21}],24:[function(require,module,exports){
+},{"./expr":25}],28:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fxaa = void 0;
@@ -4462,7 +4693,7 @@ function fxaa() {
 }
 exports.fxaa = fxaa;
 
-},{"../glslfunctions":57,"./expr":21}],25:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25}],29:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.gaussian = exports.GaussianExpr = void 0;
@@ -4502,7 +4733,7 @@ function gaussian(x, a = 0, b = 1) {
 }
 exports.gaussian = gaussian;
 
-},{"../glslfunctions":57,"./expr":21}],26:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25}],30:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.get4comp = exports.get3comp = exports.get2comp = exports.getcomp = exports.Get4CompExpr = exports.Get3CompExpr = exports.Get2CompExpr = exports.GetCompExpr = exports.checkLegalComponents = exports.typeStringToLength = void 0;
@@ -4656,7 +4887,7 @@ function get4comp(vec, comps) {
 }
 exports.get4comp = get4comp;
 
-},{"./expr":21}],27:[function(require,module,exports){
+},{"./expr":25}],31:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.godrays = exports.GodRaysExpr = void 0;
@@ -4772,7 +5003,7 @@ function godrays(options = {}) {
 }
 exports.godrays = godrays;
 
-},{"../glslfunctions":57,"./expr":21,"./fragcolorexpr":22,"./vecexprs":55}],28:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25,"./fragcolorexpr":26,"./vecexprs":59}],32:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.grain = exports.GrainExpr = void 0;
@@ -4804,7 +5035,7 @@ function grain(val) {
 }
 exports.grain = grain;
 
-},{"../glslfunctions":57,"./expr":21}],29:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25}],33:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.hsv2rgb = exports.HSVToRGBExpr = void 0;
@@ -4833,7 +5064,7 @@ function hsv2rgb(col) {
 }
 exports.hsv2rgb = hsv2rgb;
 
-},{"../glslfunctions":57,"./expr":21}],30:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25}],34:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.invert = exports.InvertExpr = void 0;
@@ -4861,7 +5092,7 @@ function invert(col) {
 }
 exports.invert = invert;
 
-},{"../glslfunctions":57,"./expr":21}],31:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25}],35:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.len = exports.LenExpr = void 0;
@@ -4884,7 +5115,7 @@ function len(vec) {
 }
 exports.len = len;
 
-},{"./expr":21}],32:[function(require,module,exports){
+},{"./expr":25}],36:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.monochrome = exports.MonochromeExpr = void 0;
@@ -4913,7 +5144,7 @@ function monochrome(col) {
 }
 exports.monochrome = monochrome;
 
-},{"../glslfunctions":57,"./expr":21}],33:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25}],37:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.motionblur = exports.MotionBlurLoop = void 0;
@@ -4955,7 +5186,7 @@ function motionblur(target, persistence) {
 }
 exports.motionblur = motionblur;
 
-},{"../mergepass":59,"./channelsampleexpr":15,"./expr":21,"./fragcolorexpr":22,"./opexpr":39}],34:[function(require,module,exports){
+},{"../mergepass":63,"./channelsampleexpr":19,"./expr":25,"./fragcolorexpr":26,"./opexpr":43}],38:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.mouse = exports.MouseExpr = void 0;
@@ -4977,7 +5208,7 @@ function mouse() {
 }
 exports.mouse = mouse;
 
-},{"./expr":21}],35:[function(require,module,exports){
+},{"./expr":25}],39:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.center = exports.NormCenterFragCoordExpr = void 0;
@@ -4998,7 +5229,7 @@ function center() {
 }
 exports.center = center;
 
-},{"./expr":21}],36:[function(require,module,exports){
+},{"./expr":25}],40:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.norm = exports.NormExpr = void 0;
@@ -5022,7 +5253,7 @@ function norm(vec) {
 }
 exports.norm = norm;
 
-},{"./expr":21}],37:[function(require,module,exports){
+},{"./expr":25}],41:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pos = exports.NormFragCoordExpr = void 0;
@@ -5045,7 +5276,7 @@ function pos() {
 }
 exports.pos = pos;
 
-},{"./expr":21}],38:[function(require,module,exports){
+},{"./expr":25}],42:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.nmouse = exports.NormMouseExpr = void 0;
@@ -5067,7 +5298,7 @@ function nmouse() {
 }
 exports.nmouse = nmouse;
 
-},{"./expr":21}],39:[function(require,module,exports){
+},{"./expr":25}],43:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.op = exports.OpExpr = void 0;
@@ -5106,7 +5337,7 @@ function op(left, op, right) {
 }
 exports.op = op;
 
-},{"./expr":21}],40:[function(require,module,exports){
+},{"./expr":25}],44:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fractalize = exports.perlin = exports.PerlinExpr = void 0;
@@ -5157,7 +5388,7 @@ function fractalize(pos, octaves, func) {
 }
 exports.fractalize = fractalize;
 
-},{"../glslfunctions":57,"./expr":21,"./opexpr":39}],41:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25,"./opexpr":43}],45:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pblur = exports.PowerBlurLoop = void 0;
@@ -5199,7 +5430,7 @@ function pblur(size) {
 }
 exports.pblur = pblur;
 
-},{"../mergepass":59,"./blurexpr":12,"./expr":21,"./vecexprs":55}],42:[function(require,module,exports){
+},{"../mergepass":63,"./blurexpr":16,"./expr":25,"./vecexprs":59}],46:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.random = exports.RandomExpr = void 0;
@@ -5230,7 +5461,7 @@ function random(seed) {
 }
 exports.random = random;
 
-},{"../glslfunctions":57,"./expr":21,"./normfragcoordexpr":37}],43:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25,"./normfragcoordexpr":41}],47:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.region = void 0;
@@ -5290,7 +5521,7 @@ function region(space, success, failure, not = false) {
 }
 exports.region = region;
 
-},{"../mergepass":59,"./expr":21,"./fragcolorexpr":22,"./getcompexpr":26,"./normfragcoordexpr":37,"./opexpr":39,"./ternaryexpr":51}],44:[function(require,module,exports){
+},{"../mergepass":63,"./expr":25,"./fragcolorexpr":26,"./getcompexpr":30,"./normfragcoordexpr":41,"./opexpr":43,"./ternaryexpr":55}],48:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resolution = exports.ResolutionExpr = void 0;
@@ -5308,7 +5539,7 @@ function resolution() {
 }
 exports.resolution = resolution;
 
-},{"./expr":21}],45:[function(require,module,exports){
+},{"./expr":25}],49:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.rgb2hsv = exports.RGBToHSVExpr = void 0;
@@ -5338,7 +5569,7 @@ function rgb2hsv(col) {
 }
 exports.rgb2hsv = rgb2hsv;
 
-},{"../glslfunctions":57,"./expr":21}],46:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25}],50:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.rotate = exports.RotateExpr = void 0;
@@ -5374,7 +5605,7 @@ function rotate(vec, angle) {
 }
 exports.rotate = rotate;
 
-},{"../glslfunctions":57,"./expr":21}],47:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25}],51:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.input = exports.SceneSampleExpr = void 0;
@@ -5405,7 +5636,7 @@ function input(vec) {
 }
 exports.input = input;
 
-},{"./expr":21,"./normfragcoordexpr":37}],48:[function(require,module,exports){
+},{"./expr":25,"./normfragcoordexpr":41}],52:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SetColorExpr = void 0;
@@ -5422,7 +5653,7 @@ class SetColorExpr extends expr_1.ExprVec4 {
 }
 exports.SetColorExpr = SetColorExpr;
 
-},{"./expr":21}],49:[function(require,module,exports){
+},{"./expr":25}],53:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.simplex = exports.SimplexNoise = void 0;
@@ -5450,7 +5681,7 @@ function simplex(pos) {
 }
 exports.simplex = simplex;
 
-},{"../glslfunctions":57,"./expr":21}],50:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25}],54:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sobel = exports.SobelExpr = void 0;
@@ -5476,7 +5707,7 @@ function sobel(samplerNum) {
 }
 exports.sobel = sobel;
 
-},{"../glslfunctions":57,"./expr":21}],51:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25}],55:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ternary = exports.TernaryExpr = void 0;
@@ -5532,15 +5763,16 @@ exports.TernaryExpr = TernaryExpr;
  * @param not whether to invert the ternary
  */
 function ternary(floats, success, failure, not = false) {
+    // TODO make this type safe (ran into a type error here)
     // wrap single float in array if need be
     if (!Array.isArray(floats) && floats !== null)
         floats = [floats].map((f) => expr_1.wrapInValue(f));
     // TODO get rid of this cast
-    return new TernaryExpr(floats, success, failure, not);
+    return new TernaryExpr(floats, expr_1.wrapInValue(success), expr_1.wrapInValue(failure), not);
 }
 exports.ternary = ternary;
 
-},{"./expr":21}],52:[function(require,module,exports){
+},{"./expr":25}],56:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.time = exports.TimeExpr = void 0;
@@ -5559,7 +5791,7 @@ function time() {
 }
 exports.time = time;
 
-},{"./expr":21}],53:[function(require,module,exports){
+},{"./expr":25}],57:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.translate = exports.TranslateExpr = void 0;
@@ -5592,7 +5824,7 @@ function translate(vec, pos) {
 }
 exports.translate = translate;
 
-},{"./expr":21}],54:[function(require,module,exports){
+},{"./expr":25}],58:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.truedepth = exports.TrueDepthExpr = void 0;
@@ -5618,7 +5850,7 @@ function truedepth(depth) {
 }
 exports.truedepth = truedepth;
 
-},{"../glslfunctions":57,"./expr":21}],55:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25}],59:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pvec4 = exports.pvec3 = exports.pvec2 = exports.vec4 = exports.vec3 = exports.vec2 = void 0;
@@ -5669,11 +5901,11 @@ function pvec4(comp1, comp2, comp3, comp4) {
 }
 exports.pvec4 = pvec4;
 
-},{"./expr":21}],56:[function(require,module,exports){
+},{"./expr":25}],60:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 
-},{}],57:[function(require,module,exports){
+},{}],61:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.glslFuncs = void 0;
@@ -5993,7 +6225,7 @@ vec3 permute(vec3 x) { return mod289_3(((x*34.0)+1.0)*x); }`,
 }`,
 };
 
-},{}],58:[function(require,module,exports){
+},{}],62:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -6057,7 +6289,7 @@ __exportStar(require("./exprs/ternaryexpr"), exports);
 __exportStar(require("./exprs/regiondecorator"), exports);
 __exportStar(require("./exprs/expr"), exports);
 
-},{"./exprs/arity1":8,"./exprs/arity2":9,"./exprs/bloomloop":10,"./exprs/blur2dloop":11,"./exprs/blurexpr":12,"./exprs/brightnessexpr":13,"./exprs/changecompexpr":14,"./exprs/channelsampleexpr":15,"./exprs/contrastexpr":16,"./exprs/depthtoocclusionexpr":17,"./exprs/dofloop":18,"./exprs/edgecolorexpr":19,"./exprs/edgeexpr":20,"./exprs/expr":21,"./exprs/fragcolorexpr":22,"./exprs/fragcoordexpr":23,"./exprs/fxaaexpr":24,"./exprs/getcompexpr":26,"./exprs/godraysexpr":27,"./exprs/grainexpr":28,"./exprs/hsvtorgbexpr":29,"./exprs/invertexpr":30,"./exprs/lenexpr":31,"./exprs/monochromeexpr":32,"./exprs/motionblurloop":33,"./exprs/mouseexpr":34,"./exprs/normcenterfragcoordexpr":35,"./exprs/normexpr":36,"./exprs/normfragcoordexpr":37,"./exprs/normmouseexpr":38,"./exprs/opexpr":39,"./exprs/perlinexpr":40,"./exprs/powerblur":41,"./exprs/randomexpr":42,"./exprs/regiondecorator":43,"./exprs/resolutionexpr":44,"./exprs/rgbtohsvexpr":45,"./exprs/rotateexpr":46,"./exprs/scenesampleexpr":47,"./exprs/simplexexpr":49,"./exprs/sobelexpr":50,"./exprs/ternaryexpr":51,"./exprs/timeexpr":52,"./exprs/translateexpr":53,"./exprs/truedepthexpr":54,"./exprs/vecexprs":55,"./exprtypes":56,"./glslfunctions":57,"./mergepass":59,"./settings":60}],59:[function(require,module,exports){
+},{"./exprs/arity1":12,"./exprs/arity2":13,"./exprs/bloomloop":14,"./exprs/blur2dloop":15,"./exprs/blurexpr":16,"./exprs/brightnessexpr":17,"./exprs/changecompexpr":18,"./exprs/channelsampleexpr":19,"./exprs/contrastexpr":20,"./exprs/depthtoocclusionexpr":21,"./exprs/dofloop":22,"./exprs/edgecolorexpr":23,"./exprs/edgeexpr":24,"./exprs/expr":25,"./exprs/fragcolorexpr":26,"./exprs/fragcoordexpr":27,"./exprs/fxaaexpr":28,"./exprs/getcompexpr":30,"./exprs/godraysexpr":31,"./exprs/grainexpr":32,"./exprs/hsvtorgbexpr":33,"./exprs/invertexpr":34,"./exprs/lenexpr":35,"./exprs/monochromeexpr":36,"./exprs/motionblurloop":37,"./exprs/mouseexpr":38,"./exprs/normcenterfragcoordexpr":39,"./exprs/normexpr":40,"./exprs/normfragcoordexpr":41,"./exprs/normmouseexpr":42,"./exprs/opexpr":43,"./exprs/perlinexpr":44,"./exprs/powerblur":45,"./exprs/randomexpr":46,"./exprs/regiondecorator":47,"./exprs/resolutionexpr":48,"./exprs/rgbtohsvexpr":49,"./exprs/rotateexpr":50,"./exprs/scenesampleexpr":51,"./exprs/simplexexpr":53,"./exprs/sobelexpr":54,"./exprs/ternaryexpr":55,"./exprs/timeexpr":56,"./exprs/translateexpr":57,"./exprs/truedepthexpr":58,"./exprs/vecexprs":59,"./exprtypes":60,"./glslfunctions":61,"./mergepass":63,"./settings":64}],63:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendTexture = exports.makeTexture = exports.Merger = exports.loop = exports.EffectLoop = exports.EffectDictionary = void 0;
@@ -6492,7 +6724,7 @@ function sendTexture(gl, src) {
 }
 exports.sendTexture = sendTexture;
 
-},{"./codebuilder":7,"./exprs/expr":21,"./exprs/fragcolorexpr":22,"./exprs/regiondecorator":43,"./exprs/scenesampleexpr":47,"./exprs/setcolorexpr":48,"./exprs/ternaryexpr":51,"./settings":60,"./webglprogramloop":62}],60:[function(require,module,exports){
+},{"./codebuilder":11,"./exprs/expr":25,"./exprs/fragcolorexpr":26,"./exprs/regiondecorator":47,"./exprs/scenesampleexpr":51,"./exprs/setcolorexpr":52,"./exprs/ternaryexpr":55,"./settings":64,"./webglprogramloop":66}],64:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.settings = void 0;
@@ -6508,7 +6740,7 @@ exports.settings = {
     offset: 0,
 };
 
-},{}],61:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.brandWithRegion = exports.brandWithChannel = exports.captureAndAppend = void 0;
@@ -6593,7 +6825,7 @@ function brandWithRegion(expr, funcIndex, space) {
 }
 exports.brandWithRegion = brandWithRegion;
 
-},{"./glslfunctions":57}],62:[function(require,module,exports){
+},{"./glslfunctions":61}],66:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WebGLProgramLoop = exports.WebGLProgramLeaf = exports.updateNeeds = void 0;
@@ -6686,10 +6918,6 @@ class WebGLProgramLoop {
                 tex.back = tex.scene;
             }
             tex.bufTextures[this.loopInfo.target] = savedTexture;
-            // TODO get rid of this
-            //console.log("saved texture", savedTexture);
-            //console.log("buf textures", tex.bufTextures);
-            //console.log("target buf texture", tex.bufTextures[this.loopInfo.target]);
             if (settings_1.settings.verbosity > 99)
                 console.log("saved texture: " + savedTexture.name);
         }
@@ -6831,4 +7059,4 @@ class WebGLProgramLoop {
 }
 exports.WebGLProgramLoop = WebGLProgramLoop;
 
-},{"./settings":60}]},{},[2]);
+},{"./settings":64}]},{},[2]);
