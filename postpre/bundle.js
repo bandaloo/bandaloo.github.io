@@ -32,7 +32,25 @@ function blurandtrace(brightness = merge_pass_1.mut(1), blurSize = merge_pass_1.
 }
 exports.blurandtrace = blurandtrace;
 
-},{"@bandaloo/merge-pass":11}],2:[function(require,module,exports){
+},{"@bandaloo/merge-pass":64}],2:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.CelShade = void 0;
+const merge_pass_1 = require("@bandaloo/merge-pass");
+class CelShade extends merge_pass_1.WrappedExpr {
+    constructor() {
+        const mult = merge_pass_1.pfloat(0.8);
+        const bump = merge_pass_1.pfloat(0.3);
+        const center = merge_pass_1.pfloat(0.3);
+        const edge = merge_pass_1.pfloat(0.03);
+        const smooth = merge_pass_1.cfloat(merge_pass_1.tag `(smoothstep(-${edge} + ${center}, ${edge} + ${center}, ${merge_pass_1.rgb2hsv(merge_pass_1.fcolor())}.z) * ${mult} + ${bump})`);
+        const expr = merge_pass_1.hsv2rgb(merge_pass_1.changecomp(merge_pass_1.rgb2hsv(merge_pass_1.fcolor()), smooth, "z"));
+        super(expr);
+    }
+}
+exports.CelShade = CelShade;
+
+},{"@bandaloo/merge-pass":64}],3:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -62,7 +80,7 @@ const MP = __importStar(require("@bandaloo/merge-pass"));
 const dat = __importStar(require("dat.gui"));
 const A = __importStar(require("./exampleanimations"));
 const P = __importStar(require("./index"));
-const kaleidoscope_1 = require("./kaleidoscope");
+const celshade_1 = require("./celshade");
 const slow = false;
 const glCanvas = document.getElementById("gl");
 const gl = glCanvas.getContext("webgl2");
@@ -208,7 +226,7 @@ const demos = {
     },
     noisedisplacement: (channels = []) => {
         let nd;
-        const merger = new MP.Merger([(nd = new P.NoiseDisplacement())], sourceCanvas, gl, {
+        const merger = new MP.Merger([(nd = P.noisedisplacement())], sourceCanvas, gl, {
             channels: channels,
         });
         class LightBandsControls {
@@ -238,7 +256,7 @@ const demos = {
         class OldFilmControls {
             constructor() {
                 this.specks = 0.4;
-                this.lines = 0.25;
+                this.lines = 0.12;
                 this.grain = 0.11;
             }
         }
@@ -256,9 +274,9 @@ const demos = {
             },
         };
     },
-    kaleidoscope: (channels = []) => {
+    kaleidoscopscope: (channels = []) => {
         let ka;
-        const merger = new MP.Merger([(ka = kaleidoscope_1.kaleidoscope())], sourceCanvas, gl, {
+        const merger = new MP.Merger([(ka = P.kaleidoscope())], sourceCanvas, gl, {
             channels: channels,
         });
         class KaleidoscopeControls {
@@ -279,6 +297,15 @@ const demos = {
             },
         };
     },
+    celshade: (channels = []) => {
+        const merger = new MP.Merger([new celshade_1.CelShade()], sourceCanvas, gl, {
+            channels: channels,
+        });
+        return {
+            merger: merger,
+            change: () => { },
+        };
+    },
 };
 const draws = {
     foggyrays: [A.higherOrderDonuts(true), A.higherOrderDonuts(false)],
@@ -292,6 +319,7 @@ const draws = {
     noisedisplacement: [A.higherOrderSpiral([0, 0, 255], [255, 255, 255])],
     oldfilm: [A.higherOrderSpiral([0, 0, 255], [255, 255, 0])],
     kaleidoscope: [A.higherOrderGoo(true)],
+    celshade: [A.celTest],
 };
 const notes = {
     foggyrays: "this adds some texture to the effect you would normally get with <code>godrays</code>",
@@ -410,10 +438,10 @@ glCanvas.addEventListener("mousemove", (e) => {
 });
 sourceCanvas.addEventListener("click", () => sourceCanvas.requestFullscreen());
 
-},{"./exampleanimations":3,"./index":5,"./kaleidoscope":6,"@bandaloo/merge-pass":64,"dat.gui":12}],3:[function(require,module,exports){
+},{"./celshade":2,"./exampleanimations":4,"./index":6,"@bandaloo/merge-pass":64,"dat.gui":12}],4:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.bloomTest = exports.higherOrderDonuts = exports.higherOrderPerspective = exports.movingGrid = exports.pinkishHelix = exports.vectorSpiral = exports.higherOrderGoo = exports.bitwiseGrid = exports.uncommonCheckerboard = exports.higherOrderWaves = exports.shaderLike = exports.fabric = exports.redSpiral = exports.higherOrderSpiral = exports.stripes = void 0;
+exports.celTest = exports.bloomTest = exports.higherOrderDonuts = exports.higherOrderPerspective = exports.movingGrid = exports.pinkishHelix = exports.vectorSpiral = exports.higherOrderGoo = exports.bitwiseGrid = exports.uncommonCheckerboard = exports.higherOrderWaves = exports.shaderLike = exports.fabric = exports.redSpiral = exports.higherOrderSpiral = exports.stripes = void 0;
 // dwitter sim
 let C = Math.cos;
 let S = Math.sin;
@@ -603,8 +631,19 @@ exports.bloomTest = (t, frames, x, c) => {
         x.fillRect(960 / 2 - hsize + position, 540 / 2 - hsize, hsize * 2, hsize * 2);
     }
 };
+exports.celTest = (t, frames, x, c) => {
+    x.fillStyle = "white";
+    x.fillRect(0, 0, 960, 540);
+    const g = x.createRadialGradient(480, 270, 0, 400, 200, 200);
+    g.addColorStop(0, "#ff0000");
+    g.addColorStop(1, "#330000");
+    x.fillStyle = g;
+    x.beginPath();
+    x.arc(480, 270, 200, 0, 2 * Math.PI);
+    x.fill();
+};
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.foggyrays = exports.FoggyRaysExpr = void 0;
@@ -659,7 +698,7 @@ function foggyrays(period = merge_pass_1.mut(100), speed = merge_pass_1.mut(1), 
 }
 exports.foggyrays = foggyrays;
 
-},{"@bandaloo/merge-pass":11}],5:[function(require,module,exports){
+},{"@bandaloo/merge-pass":64}],6:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -680,7 +719,7 @@ __exportStar(require("./noisedisplacement"), exports);
 __exportStar(require("./oldfilm"), exports);
 __exportStar(require("./kaleidoscope"), exports);
 
-},{"./blurandtrace":1,"./foggyrays":4,"./kaleidoscope":6,"./lightbands":7,"./noisedisplacement":8,"./oldfilm":9,"./vignette":10}],6:[function(require,module,exports){
+},{"./blurandtrace":1,"./foggyrays":5,"./kaleidoscope":7,"./lightbands":8,"./noisedisplacement":9,"./oldfilm":10,"./vignette":11}],7:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.kaleidoscope = exports.Kaleidoscope = void 0;
@@ -719,7 +758,7 @@ function kaleidoscope(sides = merge_pass_1.mut(8), scale = merge_pass_1.mut(1)) 
 }
 exports.kaleidoscope = kaleidoscope;
 
-},{"@bandaloo/merge-pass":64}],7:[function(require,module,exports){
+},{"@bandaloo/merge-pass":64}],8:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.lightbands = exports.LightBands = void 0;
@@ -757,15 +796,15 @@ function lightbands(speed = merge_pass_1.mut(4), intensity = merge_pass_1.mut(0.
 }
 exports.lightbands = lightbands;
 
-},{"@bandaloo/merge-pass":11}],8:[function(require,module,exports){
+},{"@bandaloo/merge-pass":64}],9:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.NoiseDisplacement = void 0;
+exports.noisedisplacement = exports.NoiseDisplacement = void 0;
 const merge_pass_1 = require("@bandaloo/merge-pass");
 const X_OFF = 1234;
 const Y_OFF = 5678;
 class NoiseDisplacement extends merge_pass_1.WrappedExpr {
-    constructor(period = merge_pass_1.mut(0.1), speed = merge_pass_1.mut(1), intensity = merge_pass_1.mut(0.005)) {
+    constructor(period, speed, intensity) {
         const periodFloat = merge_pass_1.float(period);
         const speedFloat = merge_pass_1.float(speed);
         const intensityFloat = merge_pass_1.float(intensity);
@@ -792,8 +831,12 @@ class NoiseDisplacement extends merge_pass_1.WrappedExpr {
     }
 }
 exports.NoiseDisplacement = NoiseDisplacement;
+function noisedisplacement(period = merge_pass_1.mut(0.1), speed = merge_pass_1.mut(1), intensity = merge_pass_1.mut(0.005)) {
+    return new NoiseDisplacement(period, speed, intensity);
+}
+exports.noisedisplacement = noisedisplacement;
 
-},{"@bandaloo/merge-pass":11}],9:[function(require,module,exports){
+},{"@bandaloo/merge-pass":64}],10:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.oldfilm = exports.OldFilm = void 0;
@@ -807,9 +850,30 @@ class OldFilm extends merge_pass_1.WrappedExpr {
         const ftime = merge_pass_1.a1("floor", merge_pass_1.op(merge_pass_1.time(), "*", 24));
         const grainy = merge_pass_1.op(merge_pass_1.random(merge_pass_1.op(merge_pass_1.pixel(), "+", merge_pass_1.a2("mod", merge_pass_1.op(ftime, "*", 99), 3000))), "*", grainIntensityFloat);
         const rpos = merge_pass_1.a2("mod", merge_pass_1.op(merge_pass_1.pos(), "+", merge_pass_1.random(merge_pass_1.vec2(ftime, 0))), merge_pass_1.vec2(100, 100));
-        const lines = merge_pass_1.op(merge_pass_1.a2("pow", merge_pass_1.a1("sin", merge_pass_1.getcomp(merge_pass_1.op(rpos, "/", period), "x")), 3000), "*", merge_pass_1.op(merge_pass_1.op(merge_pass_1.random(merge_pass_1.vec2(ftime, 0)), "*", merge_pass_1.op(lineIntensityFloat, "*", -1)), "+", merge_pass_1.op(lineIntensityFloat, "/", 4)));
+        //abs(2.*fract(rate * uv.x + 0.5)-1.);
+        const rate = 10;
+        /*
+        const triangles = op(
+          a1(
+            "abs",
+            op(
+              2,
+              "*",
+              a1(
+                "fract",
+                op(op(op(rate, "*", getcomp(pos(), "x")), "+", 0.5), "-", 1)
+              )
+            )
+          ),
+          "*",
+          lineIntensityFloat
+        );
+        */
+        const triangles = merge_pass_1.op(merge_pass_1.op(merge_pass_1.op(merge_pass_1.a1("abs", merge_pass_1.op(merge_pass_1.op(2, "*", merge_pass_1.a1("fract", merge_pass_1.op(rate, "*", merge_pass_1.getcomp(merge_pass_1.pos(), "x")))), "-", 1)), "-", 0.5), "*", 2), "*", lineIntensityFloat);
+        //step(1. - 1. / rate, mod(uv.x, 1.));
+        const stepping = merge_pass_1.a2("step", merge_pass_1.op(1, "-", merge_pass_1.op(1, "/", rate * 12)), merge_pass_1.a2("mod", merge_pass_1.op(merge_pass_1.getcomp(merge_pass_1.pos(), "x"), "+", merge_pass_1.random(merge_pass_1.op(merge_pass_1.vec2(50, 50), "*", merge_pass_1.time()))), 1));
+        const lines = merge_pass_1.op(triangles, "*", stepping);
         const spos = merge_pass_1.a2("mod", merge_pass_1.op(merge_pass_1.op(merge_pass_1.pos(), "*", merge_pass_1.op(merge_pass_1.resolution(), "/", merge_pass_1.getcomp(merge_pass_1.resolution(), "y"))), "+", ftime), merge_pass_1.vec2(100, 100));
-        // TODO consider adding an optional cue mark
         const fsimplex = merge_pass_1.op(merge_pass_1.op(merge_pass_1.simplex(merge_pass_1.op(spos, "*", 7)), "*", 0.44), "+", 0.5);
         const spots = merge_pass_1.op(merge_pass_1.a2("step", fsimplex, 0.08), "*", speckIntensityFloat);
         super(merge_pass_1.monochrome(merge_pass_1.brightness(spots, merge_pass_1.brightness(lines, merge_pass_1.brightness(grainy)))));
@@ -834,12 +898,12 @@ class OldFilm extends merge_pass_1.WrappedExpr {
     }
 }
 exports.OldFilm = OldFilm;
-function oldfilm(speckIntensity = merge_pass_1.mut(0.4), lineIntensity = merge_pass_1.mut(0.25), grainIntensity = merge_pass_1.mut(0.11)) {
+function oldfilm(speckIntensity = merge_pass_1.mut(0.4), lineIntensity = merge_pass_1.mut(0.12), grainIntensity = merge_pass_1.mut(0.11)) {
     return new OldFilm(merge_pass_1.wrapInValue(speckIntensity), merge_pass_1.wrapInValue(lineIntensity), merge_pass_1.wrapInValue(grainIntensity));
 }
 exports.oldfilm = oldfilm;
 
-},{"@bandaloo/merge-pass":11}],10:[function(require,module,exports){
+},{"@bandaloo/merge-pass":64}],11:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.vignette = exports.Vignette = void 0;
@@ -880,71 +944,7 @@ function vignette(blurScalar = merge_pass_1.mut(3), brightnessScalar = merge_pas
 }
 exports.vignette = vignette;
 
-},{"@bandaloo/merge-pass":11}],11:[function(require,module,exports){
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __exportStar = (this && this.__exportStar) || function(m, exports) {
-    for (var p in m) if (p !== "default" && !exports.hasOwnProperty(p)) __createBinding(exports, m, p);
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-__exportStar(require("./mergepass"), exports);
-__exportStar(require("./exprtypes"), exports);
-__exportStar(require("./glslfunctions"), exports);
-__exportStar(require("./settings"), exports);
-__exportStar(require("./exprs/blurexpr"), exports);
-__exportStar(require("./exprs/fragcolorexpr"), exports);
-__exportStar(require("./exprs/vecexprs"), exports);
-__exportStar(require("./exprs/opexpr"), exports);
-__exportStar(require("./exprs/powerblur"), exports);
-__exportStar(require("./exprs/blur2dloop"), exports);
-__exportStar(require("./exprs/lenexpr"), exports);
-__exportStar(require("./exprs/normexpr"), exports);
-__exportStar(require("./exprs/fragcoordexpr"), exports);
-__exportStar(require("./exprs/normfragcoordexpr"), exports);
-__exportStar(require("./exprs/normcenterfragcoordexpr"), exports);
-__exportStar(require("./exprs/scenesampleexpr"), exports);
-__exportStar(require("./exprs/brightnessexpr"), exports);
-__exportStar(require("./exprs/contrastexpr"), exports);
-__exportStar(require("./exprs/grainexpr"), exports);
-__exportStar(require("./exprs/getcompexpr"), exports);
-__exportStar(require("./exprs/changecompexpr"), exports);
-__exportStar(require("./exprs/rgbtohsvexpr"), exports);
-__exportStar(require("./exprs/hsvtorgbexpr"), exports);
-__exportStar(require("./exprs/timeexpr"), exports);
-__exportStar(require("./exprs/arity1"), exports);
-__exportStar(require("./exprs/arity2"), exports);
-__exportStar(require("./exprs/fxaaexpr"), exports);
-__exportStar(require("./exprs/channelsampleexpr"), exports);
-__exportStar(require("./exprs/dofloop"), exports);
-__exportStar(require("./exprs/truedepthexpr"), exports);
-__exportStar(require("./exprs/godraysexpr"), exports);
-__exportStar(require("./exprs/depthtoocclusionexpr"), exports);
-__exportStar(require("./exprs/resolutionexpr"), exports);
-__exportStar(require("./exprs/mouseexpr"), exports);
-__exportStar(require("./exprs/rotateexpr"), exports);
-__exportStar(require("./exprs/translateexpr"), exports);
-__exportStar(require("./exprs/normmouseexpr"), exports);
-__exportStar(require("./exprs/perlinexpr"), exports);
-__exportStar(require("./exprs/simplexexpr"), exports);
-__exportStar(require("./exprs/motionblurloop"), exports);
-__exportStar(require("./exprs/randomexpr"), exports);
-__exportStar(require("./exprs/sobelexpr"), exports);
-__exportStar(require("./exprs/bloomloop"), exports);
-__exportStar(require("./exprs/monochromeexpr"), exports);
-__exportStar(require("./exprs/invertexpr"), exports);
-__exportStar(require("./exprs/edgeexpr"), exports);
-__exportStar(require("./exprs/edgecolorexpr"), exports);
-__exportStar(require("./exprs/ternaryexpr"), exports);
-__exportStar(require("./exprs/regiondecorator"), exports);
-__exportStar(require("./exprs/expr"), exports);
-
-},{"./exprs/arity1":14,"./exprs/arity2":15,"./exprs/bloomloop":16,"./exprs/blur2dloop":17,"./exprs/blurexpr":18,"./exprs/brightnessexpr":19,"./exprs/changecompexpr":20,"./exprs/channelsampleexpr":21,"./exprs/contrastexpr":22,"./exprs/depthtoocclusionexpr":23,"./exprs/dofloop":24,"./exprs/edgecolorexpr":25,"./exprs/edgeexpr":26,"./exprs/expr":27,"./exprs/fragcolorexpr":28,"./exprs/fragcoordexpr":29,"./exprs/fxaaexpr":30,"./exprs/getcompexpr":32,"./exprs/godraysexpr":33,"./exprs/grainexpr":34,"./exprs/hsvtorgbexpr":35,"./exprs/invertexpr":36,"./exprs/lenexpr":37,"./exprs/monochromeexpr":38,"./exprs/motionblurloop":39,"./exprs/mouseexpr":40,"./exprs/normcenterfragcoordexpr":41,"./exprs/normexpr":42,"./exprs/normfragcoordexpr":43,"./exprs/normmouseexpr":44,"./exprs/opexpr":45,"./exprs/perlinexpr":46,"./exprs/powerblur":47,"./exprs/randomexpr":48,"./exprs/regiondecorator":49,"./exprs/resolutionexpr":50,"./exprs/rgbtohsvexpr":51,"./exprs/rotateexpr":52,"./exprs/scenesampleexpr":53,"./exprs/simplexexpr":55,"./exprs/sobelexpr":56,"./exprs/ternaryexpr":57,"./exprs/timeexpr":58,"./exprs/translateexpr":59,"./exprs/truedepthexpr":60,"./exprs/vecexprs":61,"./exprtypes":62,"./glslfunctions":63,"./mergepass":65,"./settings":66}],12:[function(require,module,exports){
+},{"@bandaloo/merge-pass":64}],12:[function(require,module,exports){
 /**
  * dat-gui JavaScript Controller Library
  * http://code.google.com/p/dat-gui
@@ -4025,7 +4025,16 @@ class ChangeCompExpr extends expr_1.Operator {
     constructor(vec, setter, comps, op) {
         checkChangeComponents(comps, setter, vec);
         // part of name of custom function
-        const suffix = `${vec.typeString()}_${setter.typeString()}_${comps}`;
+        const operation = op === "+"
+            ? "plus"
+            : op === "-"
+                ? "minus"
+                : op === "*"
+                    ? "mult"
+                    : op === "/"
+                        ? "div"
+                        : "assign";
+        const suffix = `${vec.typeString()}_${setter.typeString()}_${comps}_${operation}`;
         super(vec, { sections: [`changecomp_${suffix}(`, ", ", ")"], values: [vec, setter] }, ["uOriginal", "uNew"]);
         this.originalVec = vec;
         this.newVal = setter;
@@ -6355,8 +6364,70 @@ vec3 permute(vec3 x) { return mod289_3(((x*34.0)+1.0)*x); }`,
 };
 
 },{}],64:[function(require,module,exports){
-arguments[4][11][0].apply(exports,arguments)
-},{"./exprs/arity1":14,"./exprs/arity2":15,"./exprs/bloomloop":16,"./exprs/blur2dloop":17,"./exprs/blurexpr":18,"./exprs/brightnessexpr":19,"./exprs/changecompexpr":20,"./exprs/channelsampleexpr":21,"./exprs/contrastexpr":22,"./exprs/depthtoocclusionexpr":23,"./exprs/dofloop":24,"./exprs/edgecolorexpr":25,"./exprs/edgeexpr":26,"./exprs/expr":27,"./exprs/fragcolorexpr":28,"./exprs/fragcoordexpr":29,"./exprs/fxaaexpr":30,"./exprs/getcompexpr":32,"./exprs/godraysexpr":33,"./exprs/grainexpr":34,"./exprs/hsvtorgbexpr":35,"./exprs/invertexpr":36,"./exprs/lenexpr":37,"./exprs/monochromeexpr":38,"./exprs/motionblurloop":39,"./exprs/mouseexpr":40,"./exprs/normcenterfragcoordexpr":41,"./exprs/normexpr":42,"./exprs/normfragcoordexpr":43,"./exprs/normmouseexpr":44,"./exprs/opexpr":45,"./exprs/perlinexpr":46,"./exprs/powerblur":47,"./exprs/randomexpr":48,"./exprs/regiondecorator":49,"./exprs/resolutionexpr":50,"./exprs/rgbtohsvexpr":51,"./exprs/rotateexpr":52,"./exprs/scenesampleexpr":53,"./exprs/simplexexpr":55,"./exprs/sobelexpr":56,"./exprs/ternaryexpr":57,"./exprs/timeexpr":58,"./exprs/translateexpr":59,"./exprs/truedepthexpr":60,"./exprs/vecexprs":61,"./exprtypes":62,"./glslfunctions":63,"./mergepass":65,"./settings":66,"dup":11}],65:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !exports.hasOwnProperty(p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+__exportStar(require("./mergepass"), exports);
+__exportStar(require("./exprtypes"), exports);
+__exportStar(require("./glslfunctions"), exports);
+__exportStar(require("./settings"), exports);
+__exportStar(require("./exprs/blurexpr"), exports);
+__exportStar(require("./exprs/fragcolorexpr"), exports);
+__exportStar(require("./exprs/vecexprs"), exports);
+__exportStar(require("./exprs/opexpr"), exports);
+__exportStar(require("./exprs/powerblur"), exports);
+__exportStar(require("./exprs/blur2dloop"), exports);
+__exportStar(require("./exprs/lenexpr"), exports);
+__exportStar(require("./exprs/normexpr"), exports);
+__exportStar(require("./exprs/fragcoordexpr"), exports);
+__exportStar(require("./exprs/normfragcoordexpr"), exports);
+__exportStar(require("./exprs/normcenterfragcoordexpr"), exports);
+__exportStar(require("./exprs/scenesampleexpr"), exports);
+__exportStar(require("./exprs/brightnessexpr"), exports);
+__exportStar(require("./exprs/contrastexpr"), exports);
+__exportStar(require("./exprs/grainexpr"), exports);
+__exportStar(require("./exprs/getcompexpr"), exports);
+__exportStar(require("./exprs/changecompexpr"), exports);
+__exportStar(require("./exprs/rgbtohsvexpr"), exports);
+__exportStar(require("./exprs/hsvtorgbexpr"), exports);
+__exportStar(require("./exprs/timeexpr"), exports);
+__exportStar(require("./exprs/arity1"), exports);
+__exportStar(require("./exprs/arity2"), exports);
+__exportStar(require("./exprs/fxaaexpr"), exports);
+__exportStar(require("./exprs/channelsampleexpr"), exports);
+__exportStar(require("./exprs/dofloop"), exports);
+__exportStar(require("./exprs/truedepthexpr"), exports);
+__exportStar(require("./exprs/godraysexpr"), exports);
+__exportStar(require("./exprs/depthtoocclusionexpr"), exports);
+__exportStar(require("./exprs/resolutionexpr"), exports);
+__exportStar(require("./exprs/mouseexpr"), exports);
+__exportStar(require("./exprs/rotateexpr"), exports);
+__exportStar(require("./exprs/translateexpr"), exports);
+__exportStar(require("./exprs/normmouseexpr"), exports);
+__exportStar(require("./exprs/perlinexpr"), exports);
+__exportStar(require("./exprs/simplexexpr"), exports);
+__exportStar(require("./exprs/motionblurloop"), exports);
+__exportStar(require("./exprs/randomexpr"), exports);
+__exportStar(require("./exprs/sobelexpr"), exports);
+__exportStar(require("./exprs/bloomloop"), exports);
+__exportStar(require("./exprs/monochromeexpr"), exports);
+__exportStar(require("./exprs/invertexpr"), exports);
+__exportStar(require("./exprs/edgeexpr"), exports);
+__exportStar(require("./exprs/edgecolorexpr"), exports);
+__exportStar(require("./exprs/ternaryexpr"), exports);
+__exportStar(require("./exprs/regiondecorator"), exports);
+__exportStar(require("./exprs/expr"), exports);
+
+},{"./exprs/arity1":14,"./exprs/arity2":15,"./exprs/bloomloop":16,"./exprs/blur2dloop":17,"./exprs/blurexpr":18,"./exprs/brightnessexpr":19,"./exprs/changecompexpr":20,"./exprs/channelsampleexpr":21,"./exprs/contrastexpr":22,"./exprs/depthtoocclusionexpr":23,"./exprs/dofloop":24,"./exprs/edgecolorexpr":25,"./exprs/edgeexpr":26,"./exprs/expr":27,"./exprs/fragcolorexpr":28,"./exprs/fragcoordexpr":29,"./exprs/fxaaexpr":30,"./exprs/getcompexpr":32,"./exprs/godraysexpr":33,"./exprs/grainexpr":34,"./exprs/hsvtorgbexpr":35,"./exprs/invertexpr":36,"./exprs/lenexpr":37,"./exprs/monochromeexpr":38,"./exprs/motionblurloop":39,"./exprs/mouseexpr":40,"./exprs/normcenterfragcoordexpr":41,"./exprs/normexpr":42,"./exprs/normfragcoordexpr":43,"./exprs/normmouseexpr":44,"./exprs/opexpr":45,"./exprs/perlinexpr":46,"./exprs/powerblur":47,"./exprs/randomexpr":48,"./exprs/regiondecorator":49,"./exprs/resolutionexpr":50,"./exprs/rgbtohsvexpr":51,"./exprs/rotateexpr":52,"./exprs/scenesampleexpr":53,"./exprs/simplexexpr":55,"./exprs/sobelexpr":56,"./exprs/ternaryexpr":57,"./exprs/timeexpr":58,"./exprs/translateexpr":59,"./exprs/truedepthexpr":60,"./exprs/vecexprs":61,"./exprtypes":62,"./glslfunctions":63,"./mergepass":65,"./settings":66}],65:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendTexture = exports.makeTexture = exports.Merger = exports.loop = exports.EffectLoop = exports.EffectDictionary = void 0;
@@ -6832,10 +6903,10 @@ function nameExtractor(sourceLists, extra) {
 }
 /** @ignore */
 function brandWithChannel(sourceLists, funcs, needs, funcIndex, samplerNum) {
-    samplerNum === undefined
+    samplerNum === undefined || samplerNum === -1
         ? (needs.neighborSample = true)
         : (needs.extraBuffers = new Set([samplerNum]));
-    if (samplerNum === undefined)
+    if (samplerNum === undefined || samplerNum === -1)
         return;
     const { origFuncName, newFuncName, ending } = nameExtractor(sourceLists, samplerNum !== undefined ? "_" + samplerNum : "");
     sourceLists.sections[0] = sourceLists.sections[0]
@@ -7126,4 +7197,4 @@ class WebGLProgramLoop {
 }
 exports.WebGLProgramLoop = WebGLProgramLoop;
 
-},{"./settings":66}]},{},[2]);
+},{"./settings":66}]},{},[3]);
