@@ -25,7 +25,6 @@ class ChanceTable {
         let count = 0;
         for (const [result, chance] of map.entries()) {
             if (choice > count && choice < count + chance.weight) {
-                // TODO change this
                 chance.weight = Math.max(chance.weight + chance.decr, 0);
                 return result;
             }
@@ -115,6 +114,11 @@ const motionBlurRand = () => {
 const blurAndTraceRand = () => {
     return postpre_1.blurandtrace(utils_1.randBetween(-1, 1));
 };
+const bloomRand = () => {
+    const threshold = utils_1.randBetween(0.3, 0.5);
+    const boost = utils_1.randBetween(1.2, 1.5);
+    return merge_pass_1.bloom(threshold, 1, 1, boost, 0);
+};
 const hueRotateRand = () => {
     const speed = Math.pow(utils_1.randBetween(0.01, 1), 2);
     const timeExpr = merge_pass_1.op(merge_pass_1.time(), "*", speed);
@@ -122,25 +126,28 @@ const hueRotateRand = () => {
         ? merge_pass_1.op(timeExpr, "/", 2)
         : merge_pass_1.op(merge_pass_1.a1("sin", timeExpr), "*", utils_1.randBetween(0.05, 0.2)), "r", "+"));
 };
+const celShadeRand = () => {
+    return postpre_1.celshade(1, 0, 0.2, 0.03);
+};
 const chanceTable = new chancetable_1.ChanceTable();
-// TODO bloom can share the blur and trace scratch buffer (0)
 chanceTable.addAll([
     [kaleidoscopeRand, 2, -Infinity],
-    [noiseDisplacementRand, 1],
+    [noiseDisplacementRand, 3, -1],
     [edgeRand, 1],
     [blurAndTraceRand, 0.5, -0.25],
     [postpre_1.vignette, 0.5],
     [hueRotateRand, 1, -Infinity],
-    //[oldfilm, 0.25, -Infinity],
     [foggyRaysRand, 3, -Infinity],
-    [motionBlurRand, 0.5, -Infinity],
+    [motionBlurRand, 1, -Infinity],
+    [bloomRand, 0.25, -Infinity],
+    [celShadeRand, 3, -Infinity],
 ]);
 function randomEffects(num) {
     return chanceTable.pick(num).map((n) => n());
 }
 exports.randomEffects = randomEffects;
 
-},{"./chancetable":1,"./utils":5,"@bandaloo/merge-pass":57,"postpre":64}],4:[function(require,module,exports){
+},{"./chancetable":1,"./utils":5,"@bandaloo/merge-pass":57,"postpre":65}],4:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -177,7 +184,7 @@ const source = sourceCanvas.getContext("2d");
 if (source === null) {
     throw new Error("problem getting the source context");
 }
-const effects = effectrand_1.randomEffects(3);
+const effects = [...effectrand_1.randomEffects(3)];
 const merger = new MP.Merger(effects, sourceCanvas, gl, {
     channels: [null, null],
 });
@@ -3977,6 +3984,52 @@ exports.blurandtrace = blurandtrace;
 },{"@bandaloo/merge-pass":57}],63:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.celshade = exports.CelShade = void 0;
+const merge_pass_1 = require("@bandaloo/merge-pass");
+class CelShade extends merge_pass_1.WrappedExpr {
+    constructor(mult, bump, center, edge) {
+        const multFloat = merge_pass_1.float(mult);
+        const bumpFloat = merge_pass_1.float(bump);
+        const centerFloat = merge_pass_1.float(center);
+        const edgeFloat = merge_pass_1.float(edge);
+        const smooth = merge_pass_1.cfloat(merge_pass_1.tag `(smoothstep(-${edgeFloat} + ${centerFloat}, ${edgeFloat} + ${centerFloat}, ${merge_pass_1.rgb2hsv(merge_pass_1.fcolor())}.z) * ${multFloat} + ${bumpFloat})`);
+        const expr = merge_pass_1.hsv2rgb(merge_pass_1.changecomp(merge_pass_1.rgb2hsv(merge_pass_1.fcolor()), smooth, "z"));
+        super(expr);
+        this.multFloat = multFloat;
+        this.bumpFloat = bumpFloat;
+        this.centerFloat = centerFloat;
+        this.edgeFloat = edgeFloat;
+        this.mult = mult;
+        this.bump = bump;
+        this.center = center;
+        this.edge = edge;
+    }
+    setMult(mult) {
+        this.multFloat.setVal(merge_pass_1.wrapInValue(mult));
+        this.mult = merge_pass_1.wrapInValue(mult);
+    }
+    setBump(bump) {
+        this.bumpFloat.setVal(merge_pass_1.wrapInValue(bump));
+        this.bump = merge_pass_1.wrapInValue(bump);
+    }
+    setCenter(center) {
+        this.centerFloat.setVal(merge_pass_1.wrapInValue(center));
+        this.center = merge_pass_1.wrapInValue(center);
+    }
+    setEdge(edge) {
+        this.edgeFloat.setVal(merge_pass_1.wrapInValue(edge));
+        this.edge = merge_pass_1.wrapInValue(edge);
+    }
+}
+exports.CelShade = CelShade;
+function celshade(mult = merge_pass_1.mut(0.8), bump = merge_pass_1.mut(0.3), center = merge_pass_1.mut(0.3), edge = merge_pass_1.mut(0.03)) {
+    return new CelShade(merge_pass_1.wrapInValue(mult), merge_pass_1.wrapInValue(bump), merge_pass_1.wrapInValue(center), merge_pass_1.wrapInValue(edge));
+}
+exports.celshade = celshade;
+
+},{"@bandaloo/merge-pass":57}],64:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 exports.foggyrays = exports.FoggyRaysExpr = void 0;
 const merge_pass_1 = require("@bandaloo/merge-pass");
 class FoggyRaysExpr extends merge_pass_1.WrappedExpr {
@@ -4029,7 +4082,7 @@ function foggyrays(period = merge_pass_1.mut(100), speed = merge_pass_1.mut(1), 
 }
 exports.foggyrays = foggyrays;
 
-},{"@bandaloo/merge-pass":57}],64:[function(require,module,exports){
+},{"@bandaloo/merge-pass":57}],65:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -4049,8 +4102,9 @@ __exportStar(require("./lightbands"), exports);
 __exportStar(require("./noisedisplacement"), exports);
 __exportStar(require("./oldfilm"), exports);
 __exportStar(require("./kaleidoscope"), exports);
+__exportStar(require("./celshade"), exports);
 
-},{"./blurandtrace":62,"./foggyrays":63,"./kaleidoscope":65,"./lightbands":66,"./noisedisplacement":67,"./oldfilm":68,"./vignette":69}],65:[function(require,module,exports){
+},{"./blurandtrace":62,"./celshade":63,"./foggyrays":64,"./kaleidoscope":66,"./lightbands":67,"./noisedisplacement":68,"./oldfilm":69,"./vignette":70}],66:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.kaleidoscope = exports.Kaleidoscope = void 0;
@@ -4088,7 +4142,7 @@ function kaleidoscope(sides = merge_pass_1.mut(8), scale = merge_pass_1.mut(1)) 
 }
 exports.kaleidoscope = kaleidoscope;
 
-},{"@bandaloo/merge-pass":57}],66:[function(require,module,exports){
+},{"@bandaloo/merge-pass":57}],67:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.lightbands = exports.LightBands = void 0;
@@ -4126,7 +4180,7 @@ function lightbands(speed = merge_pass_1.mut(4), intensity = merge_pass_1.mut(0.
 }
 exports.lightbands = lightbands;
 
-},{"@bandaloo/merge-pass":57}],67:[function(require,module,exports){
+},{"@bandaloo/merge-pass":57}],68:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.noisedisplacement = exports.NoiseDisplacement = void 0;
@@ -4166,7 +4220,7 @@ function noisedisplacement(period = merge_pass_1.mut(0.1), speed = merge_pass_1.
 }
 exports.noisedisplacement = noisedisplacement;
 
-},{"@bandaloo/merge-pass":57}],68:[function(require,module,exports){
+},{"@bandaloo/merge-pass":57}],69:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.oldfilm = exports.OldFilm = void 0;
@@ -4176,31 +4230,10 @@ class OldFilm extends merge_pass_1.WrappedExpr {
         const speckIntensityFloat = merge_pass_1.float(speckIntensity);
         const lineIntensityFloat = merge_pass_1.float(lineIntensity);
         const grainIntensityFloat = merge_pass_1.float(grainIntensity);
-        const period = 1 / 3;
         const ftime = merge_pass_1.a1("floor", merge_pass_1.op(merge_pass_1.time(), "*", 24));
         const grainy = merge_pass_1.op(merge_pass_1.random(merge_pass_1.op(merge_pass_1.pixel(), "+", merge_pass_1.a2("mod", merge_pass_1.op(ftime, "*", 99), 3000))), "*", grainIntensityFloat);
-        const rpos = merge_pass_1.a2("mod", merge_pass_1.op(merge_pass_1.pos(), "+", merge_pass_1.random(merge_pass_1.vec2(ftime, 0))), merge_pass_1.vec2(100, 100));
-        //abs(2.*fract(rate * uv.x + 0.5)-1.);
         const rate = 10;
-        /*
-        const triangles = op(
-          a1(
-            "abs",
-            op(
-              2,
-              "*",
-              a1(
-                "fract",
-                op(op(op(rate, "*", getcomp(pos(), "x")), "+", 0.5), "-", 1)
-              )
-            )
-          ),
-          "*",
-          lineIntensityFloat
-        );
-        */
         const triangles = merge_pass_1.op(merge_pass_1.op(merge_pass_1.op(merge_pass_1.a1("abs", merge_pass_1.op(merge_pass_1.op(2, "*", merge_pass_1.a1("fract", merge_pass_1.op(rate, "*", merge_pass_1.getcomp(merge_pass_1.pos(), "x")))), "-", 1)), "-", 0.5), "*", 2), "*", lineIntensityFloat);
-        //step(1. - 1. / rate, mod(uv.x, 1.));
         const stepping = merge_pass_1.a2("step", merge_pass_1.op(1, "-", merge_pass_1.op(1, "/", rate * 12)), merge_pass_1.a2("mod", merge_pass_1.op(merge_pass_1.getcomp(merge_pass_1.pos(), "x"), "+", merge_pass_1.random(merge_pass_1.op(merge_pass_1.vec2(50, 50), "*", merge_pass_1.time()))), 1));
         const lines = merge_pass_1.op(triangles, "*", stepping);
         const spos = merge_pass_1.a2("mod", merge_pass_1.op(merge_pass_1.op(merge_pass_1.pos(), "*", merge_pass_1.op(merge_pass_1.resolution(), "/", merge_pass_1.getcomp(merge_pass_1.resolution(), "y"))), "+", ftime), merge_pass_1.vec2(100, 100));
@@ -4233,7 +4266,7 @@ function oldfilm(speckIntensity = merge_pass_1.mut(0.4), lineIntensity = merge_p
 }
 exports.oldfilm = oldfilm;
 
-},{"@bandaloo/merge-pass":57}],69:[function(require,module,exports){
+},{"@bandaloo/merge-pass":57}],70:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.vignette = exports.Vignette = void 0;
