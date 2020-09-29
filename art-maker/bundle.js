@@ -117,13 +117,15 @@ function roseDots() {
     const background = utils_1.R(b, b, b);
     const size = 0.5 + Math.random();
     const freq = 0.8 + Math.random();
+    const speed = utils_1.randBetween(0.25, 1.75);
+    const num = Math.floor(utils_1.randBetween(30, 70));
     return (t, fr, x, c) => {
         x.fillStyle = background;
         x.fillRect(0, 0, utils_1.H, utils_1.V);
         let d;
-        for (let i = 0; i < 50; i += 0.5) {
+        for (let i = 0; i < num; i += 0.5) {
             x.beginPath();
-            d = 2 * utils_1.C((2 + utils_1.S(t / 99)) * 2 * i);
+            d = 2 * utils_1.C((2 + utils_1.S((speed * t) / 99)) * 2 * i);
             x.arc(utils_1.H / 2 + d * 9 * utils_1.C(i * freq) * i, utils_1.V / 2 + d * 9 * utils_1.S(i * freq) * i, i * size, 0, Math.PI * 2);
             x.fillStyle = utils_1.R(...utils_1.mix(color1, color2, i / 50));
             x.fill();
@@ -140,6 +142,24 @@ const merge_pass_1 = require("@bandaloo/merge-pass");
 const postpre_1 = require("postpre");
 const chancetable_1 = require("./chancetable");
 const utils_1 = require("./utils");
+function randPos() {
+    const chanceTable = new chancetable_1.ChanceTable();
+    chanceTable.addAll([
+        [() => merge_pass_1.nmouse(), 3],
+        [() => merge_pass_1.vec2(0.5, 0.5), 1],
+        [
+            (() => {
+                const freq1 = (1 + utils_1.randInt(5)) / 3;
+                const freq2 = (1 + utils_1.randInt(5)) / 3;
+                const s = merge_pass_1.op(merge_pass_1.a1("sin", merge_pass_1.op(merge_pass_1.time(), "*", freq1)), "*", 0.5);
+                const c = merge_pass_1.op(merge_pass_1.a1("cos", merge_pass_1.op(merge_pass_1.time(), "*", freq2)), "*", 0.5);
+                return () => merge_pass_1.vec2(merge_pass_1.op(s, "+", 0.5), merge_pass_1.op(c, "+", 0.5));
+            })(),
+            1,
+        ],
+    ]);
+    return chanceTable.pick()();
+}
 const kaleidoscopeRand = () => {
     const chanceTable = new chancetable_1.ChanceTable();
     chanceTable.addAll([
@@ -181,6 +201,31 @@ const hueRotateRand = () => {
         ? merge_pass_1.op(timeExpr, "/", 2)
         : merge_pass_1.op(merge_pass_1.a1("sin", timeExpr), "*", utils_1.randBetween(0.05, 0.2)), "r", "+"));
 };
+const colorDisplacementRand = () => {
+    const c = "rgb"[utils_1.randInt(3)];
+    const d = "xy"[utils_1.randInt(2)];
+    const o = Math.random() > 0.5 ? "+" : "-";
+    const mult = utils_1.randBetween(0.01, 1.5) / 10;
+    return merge_pass_1.channel(-1, merge_pass_1.changecomp(merge_pass_1.pos(), merge_pass_1.op(merge_pass_1.getcomp(merge_pass_1.fcolor(), c), "*", mult), d, o));
+};
+const swirlRand = () => {
+    const size = utils_1.randBetween(1, 120); // inversely proportional
+    const intensity = utils_1.randBetween(5, 50) * (Math.random() > 0.5 ? 1 : -1);
+    //const vec = vec2(0.5, 0.5);
+    const vec = randPos();
+    const dist = merge_pass_1.op(merge_pass_1.len(merge_pass_1.op(merge_pass_1.pos(), "-", vec)), "*", size);
+    const angle = merge_pass_1.op(merge_pass_1.op(1, "/", merge_pass_1.op(1, "+", dist)), "*", intensity);
+    const centered = merge_pass_1.translate(merge_pass_1.pos(), merge_pass_1.op(vec, "*", -1));
+    const rot = merge_pass_1.rotate(centered, angle);
+    const reverted = merge_pass_1.translate(rot, vec);
+    return merge_pass_1.channel(-1, reverted);
+};
+const repeatRand = () => {
+    const h = utils_1.randInt(6) + 3;
+    const v = utils_1.randInt(6) + 3;
+    const vec = merge_pass_1.vec2(h, v);
+    return merge_pass_1.channel(-1, merge_pass_1.a2("mod", merge_pass_1.op(merge_pass_1.pos(), "*", vec), merge_pass_1.vec2(1, 1)));
+};
 const celShadeRand = () => {
     return postpre_1.celshade(1, 0, 0.2, 0.03);
 };
@@ -196,6 +241,9 @@ chanceTable.addAll([
     [motionBlurRand, 1, -Infinity],
     [bloomRand, 0.25, -Infinity],
     [celShadeRand, 3, -Infinity],
+    [colorDisplacementRand, 3],
+    [swirlRand, 1, -Infinity],
+    [repeatRand, 2, -1],
 ]);
 function randomEffects(num) {
     return chanceTable.pick(num).map((n) => n());
@@ -240,7 +288,7 @@ window.addEventListener("keydown", (e) => {
 function main() {
     const glCanvas = document.getElementById("gl");
     const gl = glCanvas.getContext("webgl2");
-    const mousePos = { x: 0, y: 0 };
+    const mousePos = { x: utils_1.H / 2, y: utils_1.V / 2 };
     if (gl === null) {
         throw new Error("problem getting the gl context");
     }
@@ -279,7 +327,7 @@ function main() {
             originalTime = time;
         const t = (time - originalTime) / 1000;
         drawFunc(t, frames, source, sourceCanvas);
-        merger.draw(t);
+        merger.draw(t, mousePos.x, mousePos.y);
         curAnimationFrame = requestAnimationFrame(update);
     };
     curAnimationFrame = requestAnimationFrame(update);
