@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>all life</title>
+    <style></style>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <h1>Every Game of Life</h1>
+    <p>
+      Conway's Game of Life is one of many cellular automata that have rules
+      based on neighbors. If you generalize it, there are 262144 similar games.
+      Check the table in the top left corner of this web toy I made
+      <a href="https://www.bandaloo.fun/golm/">here</a>. Each pixel on this grid
+      corresponds to one of those rulesets and starts off empty. I couldn't find
+      if anybody had done this before and I wanted to see what it looked like. I
+      think it's pretty interesting! (It's pretty slow; I threw this together in
+      under an hour.) Also, it's toroidal so cells at the edges are actually
+      neighbors with the opposite edge.
+    </p>
+    <canvas id="gl" width="512" height="512" style="border: solid red"></canvas>
+  </body>
+  <script src="main.js"></script>
+</html>
