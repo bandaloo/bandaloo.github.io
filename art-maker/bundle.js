@@ -1,10 +1,84 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.ArtMaker = void 0;
+const merge_pass_1 = require("@bandaloo/merge-pass");
+const chancetable_1 = require("./chancetable");
+const bitgrid_1 = require("./draws/bitgrid");
+const rosedots_1 = require("./draws/rosedots");
+const effectrand_1 = require("./effectrand");
+const utils_1 = require("./utils");
+function canvasAndContext(width, height, kind) {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext(kind);
+    if (context === null) {
+        throw new Error(`failed to get ${kind} context`);
+    }
+    return [canvas, context];
+}
+class ArtMaker {
+    constructor(width = utils_1.H, height = Math.floor((width * 9) / 16), id = "art") {
+        this.timeScale = 1;
+        this.mousePos = { x: width / 2, y: height / 2 };
+        [this.glCanvas, this.gl] = canvasAndContext(width, height, "webgl2");
+        [this.sourceCanvas, this.source] = canvasAndContext(width, height, "2d");
+        this.glCanvas.addEventListener("click", () => this.glCanvas.requestFullscreen());
+        this.glCanvas.addEventListener("mousemove", (e) => {
+            const rect = this.glCanvas.getBoundingClientRect();
+            this.mousePos.x = (width * (e.clientX - rect.left)) / rect.width;
+            this.mousePos.y =
+                (height * (rect.height - (e.clientY - rect.top))) / rect.height;
+        });
+        const elem = document.getElementById(id);
+        if (elem === null) {
+            throw new Error(`could not find element with id "${id}"`);
+        }
+        elem.appendChild(this.glCanvas);
+    }
+    art(seed) {
+        this.source.restore();
+        this.source.save();
+        this.source.scale(this.sourceCanvas.width / utils_1.H, this.sourceCanvas.height / utils_1.V);
+        if (this.curAnimationFrame !== undefined) {
+            cancelAnimationFrame(this.curAnimationFrame);
+        }
+        this.rand = new utils_1.Rand(seed);
+        this.timeScale = this.rand.between(0.4, 1.1);
+        const effects = [...effectrand_1.randomEffects(3, this.rand)];
+        const merger = new merge_pass_1.Merger(effects, this.sourceCanvas, this.gl, {
+            channels: [null, null],
+            edgeMode: "wrap",
+        });
+        const chanceTable = new chancetable_1.ChanceTable(this.rand);
+        chanceTable.addAll([
+            [rosedots_1.roseDots, 1],
+            [bitgrid_1.bitGrid, 1],
+        ]);
+        const drawFunc = chanceTable.pick()(this.rand);
+        const update = (time) => {
+            if (this.originalTime === undefined)
+                this.originalTime = time;
+            const t = ((time - this.originalTime) / 1000) * this.timeScale;
+            drawFunc(t, 0, this.source, this.sourceCanvas);
+            merger.draw(t, this.mousePos.x, this.mousePos.y);
+            this.curAnimationFrame = requestAnimationFrame(update);
+        };
+        this.curAnimationFrame = requestAnimationFrame(update);
+    }
+}
+exports.ArtMaker = ArtMaker;
+ArtMaker.seedVersion = "0";
+
+},{"./chancetable":2,"./draws/bitgrid":3,"./draws/rosedots":4,"./effectrand":5,"./utils":7,"@bandaloo/merge-pass":59}],2:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChanceTable = void 0;
 class ChanceTable {
-    constructor(info = new Map()) {
-        this.info = info;
+    constructor(rand) {
+        this.rand = rand;
+        this.info = new Map();
     }
     add(result, weight, decr = 0) {
         if (decr > 0)
@@ -21,7 +95,7 @@ class ChanceTable {
         for (const chance of map.values())
             sum += chance.weight;
         // choose a number and count up until that choice
-        let choice = Math.random() * sum;
+        let choice = this.rand.random() * sum;
         let count = 0;
         for (const [result, chance] of map.entries()) {
             if (choice > count && choice < count + chance.weight) {
@@ -49,35 +123,35 @@ class ChanceTable {
 }
 exports.ChanceTable = ChanceTable;
 
-},{}],2:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.bitGrid = void 0;
 const chancetable_1 = require("../chancetable");
 const utils_1 = require("../utils");
-function bitGrid() {
-    const r = () => Math.random() * 255;
+function bitGrid(rand) {
+    const r = () => rand.random() * 255;
     const color1 = [r(), r(), r()];
     const color2 = [r(), r(), r()];
-    const hNum = Math.floor(utils_1.randBetween(15, 40));
-    const vNum = Math.floor(utils_1.randBetween(15, 40));
-    const clearBackground = utils_1.randBackgroundFunc();
-    const smooth = Math.random() > 0.2;
+    const hNum = Math.floor(rand.between(15, 40));
+    const vNum = Math.floor(rand.between(15, 40));
+    const clearBackground = utils_1.randBackgroundFunc(rand);
+    const smooth = rand.random() > 0.2;
     const xorFunc = (() => {
-        const div = utils_1.randBetween(10, 50);
-        const m = utils_1.randBetween(1, 2);
+        const div = rand.between(10, 50);
+        const m = rand.between(1, 2);
         return (i, j) => ((i ^ j) / div) % m;
     })();
     const andFunc = (() => {
-        const div = utils_1.randBetween(1, 4);
+        const div = rand.between(1, 4);
         return (i, j) => (i & j) / div;
     })();
     const plusMinusXorFunc = (() => {
-        const div = utils_1.randBetween(3, 12);
-        const m = Math.floor(utils_1.randBetween(1, 6));
+        const div = rand.between(3, 12);
+        const m = Math.floor(rand.between(1, 6));
         return (i, j) => (((i - j) ^ (j + i)) / div) % m;
     })();
-    const colorFuncTable = new chancetable_1.ChanceTable();
+    const colorFuncTable = new chancetable_1.ChanceTable(rand);
     colorFuncTable.addAll([
         [xorFunc, 1],
         [andFunc, 2],
@@ -85,17 +159,17 @@ function bitGrid() {
     ]);
     const colorFunc = colorFuncTable.pick();
     const sinFunc = (() => {
-        const xAmp = utils_1.randBetween(0.3, 1.5);
-        const yAmp = utils_1.randBetween(0.3, 1.5);
-        const xSpeed = utils_1.randBetween(0.3, 2);
-        const ySpeed = utils_1.randBetween(0.3, 2);
-        const xFreq = utils_1.randBetween(1, 9);
-        const yFreq = utils_1.randBetween(1, 9);
+        const xAmp = rand.between(0.3, 1.5);
+        const yAmp = rand.between(0.3, 1.5);
+        const xSpeed = rand.between(0.3, 2);
+        const ySpeed = rand.between(0.3, 2);
+        const xFreq = rand.between(1, 9);
+        const yFreq = rand.between(1, 9);
         return (i, j, t) => xAmp * Math.sin(xSpeed * t + xFreq * i) +
             yAmp * Math.cos(ySpeed + t + yFreq * j);
     })();
     const oneFunc = () => 1;
-    const sizeFuncTable = new chancetable_1.ChanceTable();
+    const sizeFuncTable = new chancetable_1.ChanceTable(rand);
     sizeFuncTable.addAll([
         [sinFunc, 1.5],
         [oneFunc, 1],
@@ -103,16 +177,19 @@ function bitGrid() {
     const sizeFunc = sizeFuncTable.pick();
     const hSize = utils_1.H / hNum;
     const vSize = utils_1.V / vNum;
-    const speed = Math.random() < 0.05 ? 0 : 0.25 + Math.random() * 9;
-    const up = Math.random() < 0.5;
+    const speed = rand.random() < 0.05 ? 0 : 0.25 + rand.random() * 9;
+    const up = rand.random() < 0.5;
     const iSpeed = !up ? speed : 0;
     const jSpeed = up ? speed : 0;
+    const overscan = sizeFunc !== oneFunc ? 2 : 0;
+    const overscanX = iSpeed !== 0 ? overscan : 0;
+    const overscanY = jSpeed !== 0 ? overscan : 0;
     return (t, fr, x, c) => {
         clearBackground(x);
-        for (let i = 0; i < hNum + 1; i++) {
+        for (let i = 0 - overscanX; i < hNum + 1 + overscanX; i++) {
             const ri = Math.floor(i + t * iSpeed);
             const iOffset = smooth ? (t * iSpeed) % 1 : 0;
-            for (let j = 0; j < vNum + 1; j++) {
+            for (let j = 0 - overscanY; j < vNum + 1 + overscanY; j++) {
                 const rj = Math.floor(j + t * jSpeed);
                 const jOffset = smooth ? (t * jSpeed) % 1 : 0;
                 const size = sizeFunc(ri, rj, t);
@@ -124,28 +201,28 @@ function bitGrid() {
 }
 exports.bitGrid = bitGrid;
 
-},{"../chancetable":1,"../utils":6}],3:[function(require,module,exports){
+},{"../chancetable":2,"../utils":7}],4:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.roseDots = void 0;
 const chancetable_1 = require("../chancetable");
 const utils_1 = require("../utils");
-function roseDots() {
+function roseDots(rand) {
     // common attributes
-    const r = () => Math.random() * 255;
+    const r = () => rand.random() * 255;
     const color1 = [r(), r(), r()];
     const color2 = [r(), r(), r()];
-    const size = 0.5 + Math.random();
-    const freq = 0.8 + Math.random();
-    const speed = utils_1.randBetween(0.25, 1.75);
-    const num = Math.floor(utils_1.randBetween(30, 70));
-    const clearBackground = utils_1.randBackgroundFunc();
+    const size = 0.5 + rand.random();
+    const freq = 0.8 + rand.random();
+    const speed = rand.between(0.25, 1.75);
+    const num = Math.floor(rand.between(30, 70));
+    const clearBackground = utils_1.randBackgroundFunc(rand);
     // specific to second drawing pattern
-    const lineWidth = utils_1.randBetween(3, 15);
-    const segments = [15 + utils_1.randInt(20), utils_1.randInt(20), utils_1.randInt(20)];
-    const copies = utils_1.randInt(15) + 2;
-    const spacing = utils_1.randBetween(100, 500);
-    const chanceTable = new chancetable_1.ChanceTable();
+    const lineWidth = rand.between(3, 15);
+    const segments = [15 + rand.int(20), rand.int(20), rand.int(20)];
+    const copies = rand.int(15) + 2;
+    const spacing = rand.between(100, 500);
+    const chanceTable = new chancetable_1.ChanceTable(rand);
     chanceTable.addAll([
         [(i, t) => Math.tan(freq2 * t + freq3 * i), 1],
         [(i, t) => Math.sin(freq2 * t + freq3 * i), 1],
@@ -153,9 +230,9 @@ function roseDots() {
         [(i, t) => speed * i * t, 1],
     ]);
     const posFunc = chanceTable.pick();
-    const freq2 = utils_1.randBetween(0.2, 2);
-    const freq3 = utils_1.randBetween(0.2, 2);
-    return Math.random() < 0.5
+    const freq2 = rand.between(0.2, 2);
+    const freq3 = rand.between(0.2, 2);
+    return rand.random() < 0.5
         ? (t, fr, x, c) => {
             clearBackground(x);
             for (let i = 0; i < num; i += 0.5) {
@@ -184,23 +261,22 @@ function roseDots() {
 }
 exports.roseDots = roseDots;
 
-},{"../chancetable":1,"../utils":6}],4:[function(require,module,exports){
+},{"../chancetable":2,"../utils":7}],5:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.randomEffects = void 0;
 const merge_pass_1 = require("@bandaloo/merge-pass");
 const postpre_1 = require("postpre");
 const chancetable_1 = require("./chancetable");
-const utils_1 = require("./utils");
-function randPos() {
-    const chanceTable = new chancetable_1.ChanceTable();
+function randPos(rand) {
+    const chanceTable = new chancetable_1.ChanceTable(rand);
     chanceTable.addAll([
         [() => merge_pass_1.nmouse(), 3],
         [() => merge_pass_1.vec2(0.5, 0.5), 1],
         [
             (() => {
-                const freq1 = (1 + utils_1.randInt(5)) / 3;
-                const freq2 = (1 + utils_1.randInt(5)) / 3;
+                const freq1 = (1 + rand.int(5)) / 3;
+                const freq2 = (1 + rand.int(5)) / 3;
                 const s = merge_pass_1.op(merge_pass_1.a1("sin", merge_pass_1.op(merge_pass_1.time(), "*", freq1)), "*", 0.5);
                 const c = merge_pass_1.op(merge_pass_1.a1("cos", merge_pass_1.op(merge_pass_1.time(), "*", freq2)), "*", 0.5);
                 return () => merge_pass_1.vec2(merge_pass_1.op(s, "+", 0.5), merge_pass_1.op(c, "+", 0.5));
@@ -210,8 +286,8 @@ function randPos() {
     ]);
     return chanceTable.pick()();
 }
-const kaleidoscopeRand = () => {
-    const chanceTable = new chancetable_1.ChanceTable();
+const kaleidoscopeRand = (rand) => {
+    const chanceTable = new chancetable_1.ChanceTable(rand);
     chanceTable.addAll([
         [4, 2],
         [8, 2],
@@ -221,20 +297,20 @@ const kaleidoscopeRand = () => {
     ]);
     return postpre_1.kaleidoscope(chanceTable.pick());
 };
-const edgeRand = () => {
-    return merge_pass_1.edge(Math.pow((-1), Math.floor(1 + Math.random() * 2)));
+const edgeRand = (rand) => {
+    return merge_pass_1.edge(Math.pow((-1), Math.floor(1 + rand.random() * 2)));
 };
-const noiseDisplacementRand = () => {
-    const period = 0.01 + Math.pow(Math.random(), 3);
-    const periodExpr = Math.random() < 0.7
+const noiseDisplacementRand = (rand) => {
+    const period = 0.01 + Math.pow(rand.random(), 3);
+    const periodExpr = rand.random() < 0.7
         ? merge_pass_1.pfloat(period)
         : merge_pass_1.op(merge_pass_1.op(merge_pass_1.op(merge_pass_1.getcomp(merge_pass_1.nmouse(), "x"), "*", 0.5), "+", 0.5), "*", period * 2);
-    const intensity = period * (0.1 + 0.2 * Math.pow(Math.random(), 3));
-    const speed = utils_1.randBetween(-1.5, 1.5);
-    const speedExpr = Math.random() < 0.7
+    const intensity = period * (0.1 + 0.2 * Math.pow(rand.random(), 3));
+    const speed = rand.between(-1.5, 1.5);
+    const speedExpr = rand.random() < 0.7
         ? merge_pass_1.pfloat(speed)
         : merge_pass_1.op(merge_pass_1.getcomp(merge_pass_1.nmouse(), "x"), "*", speed * 2);
-    const intensityExpr = Math.random() < 0.7
+    const intensityExpr = rand.random() < 0.7
         ? merge_pass_1.pfloat(intensity)
         : merge_pass_1.op(merge_pass_1.getcomp(merge_pass_1.nmouse(), "x"), "*", intensity * 2);
     return postpre_1.noisedisplacement(periodExpr, speedExpr, intensityExpr);
@@ -242,42 +318,42 @@ const noiseDisplacementRand = () => {
 const foggyRaysRand = () => {
     return postpre_1.foggyrays(100, 1, 0.3, 60, -1);
 };
-const motionBlurRand = () => {
-    return merge_pass_1.motionblur(1, utils_1.randBetween(0.1, 0.4));
+const motionBlurRand = (rand) => {
+    return merge_pass_1.motionblur(1, rand.between(0.1, 0.4));
 };
-const blurAndTraceRand = () => {
-    return postpre_1.blurandtrace(utils_1.randBetween(-1, 1));
+const blurAndTraceRand = (rand) => {
+    return postpre_1.blurandtrace(rand.between(-1, 1));
 };
-const bloomRand = () => {
-    const threshold = utils_1.randBetween(0.3, 0.5);
-    const boost = utils_1.randBetween(1.2, 1.5);
+const bloomRand = (rand) => {
+    const threshold = rand.between(0.3, 0.5);
+    const boost = rand.between(1.2, 1.5);
     return merge_pass_1.bloom(threshold, 1, 1, boost, 0);
 };
-const hueRotateRand = () => {
-    const speed = Math.pow(utils_1.randBetween(0.01, 1), 2);
+const hueRotateRand = (rand) => {
+    const speed = Math.pow(rand.between(0.01, 1), 2);
     const timeExpr = merge_pass_1.op(merge_pass_1.time(), "*", speed);
-    return merge_pass_1.hsv2rgb(merge_pass_1.changecomp(merge_pass_1.rgb2hsv(merge_pass_1.fcolor()), Math.random() < 0
+    return merge_pass_1.hsv2rgb(merge_pass_1.changecomp(merge_pass_1.rgb2hsv(merge_pass_1.fcolor()), rand.random() < 0
         ? merge_pass_1.op(timeExpr, "/", 2)
-        : merge_pass_1.op(merge_pass_1.a1("sin", timeExpr), "*", utils_1.randBetween(0.05, 0.2)), "r", "+"));
+        : merge_pass_1.op(merge_pass_1.a1("sin", timeExpr), "*", rand.between(0.05, 0.2)), "r", "+"));
 };
-const colorDisplacementRand = () => {
-    const c = "rgb"[utils_1.randInt(3)];
-    const d = "xy"[utils_1.randInt(2)];
-    const o = Math.random() > 0.5 ? "+" : "-";
-    const mult = merge_pass_1.pfloat(utils_1.randBetween(0.01, 1.5) / 10);
-    const chanceTable = new chancetable_1.ChanceTable();
+const colorDisplacementRand = (rand) => {
+    const c = "rgb"[rand.int(3)];
+    const d = "xy"[rand.int(2)];
+    const o = rand.random() > 0.5 ? "+" : "-";
+    const mult = merge_pass_1.pfloat(rand.between(0.01, 1.5) / 10);
+    const chanceTable = new chancetable_1.ChanceTable(rand);
     chanceTable.addAll([
         [mult, 1],
-        [merge_pass_1.op(mult, "*", merge_pass_1.a1("sin", merge_pass_1.op(merge_pass_1.time(), "*", utils_1.randBetween(0.2, 1.3)))), 1],
-        [merge_pass_1.op(mult, "*", merge_pass_1.getcomp(merge_pass_1.nmouse(), Math.random() < 0.5 ? "x" : "y")), 1],
+        [merge_pass_1.op(mult, "*", merge_pass_1.a1("sin", merge_pass_1.op(merge_pass_1.time(), "*", rand.between(0.2, 1.3)))), 1],
+        [merge_pass_1.op(mult, "*", merge_pass_1.getcomp(merge_pass_1.nmouse(), rand.random() < 0.5 ? "x" : "y")), 1],
     ]);
     const inside = chanceTable.pick();
     return merge_pass_1.channel(-1, merge_pass_1.changecomp(merge_pass_1.pos(), merge_pass_1.op(merge_pass_1.getcomp(merge_pass_1.fcolor(), c), "*", inside), d, o));
 };
-const swirlRand = () => {
-    const size = utils_1.randBetween(1, 120); // inversely proportional
-    const intensity = utils_1.randBetween(5, 50) * (Math.random() > 0.5 ? 1 : -1);
-    const vec = randPos();
+const swirlRand = (rand) => {
+    const size = rand.between(1, 120); // inversely proportional
+    const intensity = rand.between(5, 50) * (rand.random() > 0.5 ? 1 : -1);
+    const vec = randPos(rand);
     const dist = merge_pass_1.op(merge_pass_1.len(merge_pass_1.op(merge_pass_1.pos(), "-", vec)), "*", size);
     const angle = merge_pass_1.op(merge_pass_1.op(1, "/", merge_pass_1.op(1, "+", dist)), "*", intensity);
     const centered = merge_pass_1.translate(merge_pass_1.pos(), merge_pass_1.op(vec, "*", -1));
@@ -285,10 +361,10 @@ const swirlRand = () => {
     const reverted = merge_pass_1.translate(rot, vec);
     return merge_pass_1.channel(-1, reverted);
 };
-const repeatRand = () => {
-    const h = utils_1.randInt(6) + 3;
-    const v = utils_1.randInt(6) + 3;
-    const vec = Math.random() < 0.5
+const repeatRand = (rand) => {
+    const h = rand.int(6) + 3;
+    const v = rand.int(6) + 3;
+    const vec = rand.random() < 0.5
         ? merge_pass_1.vec2(h, v)
         : merge_pass_1.vec2(merge_pass_1.a1("floor", merge_pass_1.op(merge_pass_1.getcomp(merge_pass_1.nmouse(), "x"), "*", h * 2)), merge_pass_1.a1("floor", merge_pass_1.op(merge_pass_1.getcomp(merge_pass_1.nmouse(), "y"), "*", v * 2)));
     return merge_pass_1.channel(-1, merge_pass_1.a2("mod", merge_pass_1.op(merge_pass_1.pos(), "*", vec), merge_pass_1.vec2(1, 1)));
@@ -296,70 +372,44 @@ const repeatRand = () => {
 const celShadeRand = () => {
     return postpre_1.celshade(1, 0, 0.2, 0.03);
 };
-const grainRand = () => {
-    const intensity = utils_1.randBetween(0.1, 0.3) * (Math.random() < 0.5 ? 1 : -1);
+const grainRand = (rand) => {
+    const intensity = rand.between(0.1, 0.3) * (rand.random() < 0.5 ? 1 : -1);
     const position = merge_pass_1.op(merge_pass_1.pixel(), "*", 0.3);
-    const inside = Math.random() < 0.5 ? position : merge_pass_1.op(position, "+", merge_pass_1.time());
+    const inside = rand.random() < 0.5 ? position : merge_pass_1.op(position, "+", merge_pass_1.time());
     return merge_pass_1.brightness(merge_pass_1.op(merge_pass_1.random(inside), "*", intensity));
 };
-const chanceTable = new chancetable_1.ChanceTable();
-chanceTable.addAll([
-    [kaleidoscopeRand, 2, -Infinity],
-    [noiseDisplacementRand, 3, -1],
-    [edgeRand, 1],
-    [blurAndTraceRand, 0.5, -0.25],
-    [postpre_1.vignette, 0.5],
-    [hueRotateRand, 1, -Infinity],
-    [foggyRaysRand, 3, -Infinity],
-    [motionBlurRand, 1, -Infinity],
-    [bloomRand, 0.25, -Infinity],
-    [celShadeRand, 3, -Infinity],
-    [colorDisplacementRand, 3],
-    [swirlRand, 1, -Infinity],
-    [repeatRand, 2, -1],
-    [grainRand, 1, -Infinity],
-]);
-function randomEffects(num) {
-    return chanceTable.pick(num).map((n) => n());
+const vignetteRand = (rand) => {
+    return postpre_1.vignette();
+};
+function randomEffects(num, rand) {
+    const chanceTable = new chancetable_1.ChanceTable(rand);
+    chanceTable.addAll([
+        [kaleidoscopeRand, 2, -Infinity],
+        [noiseDisplacementRand, 3, -1],
+        [edgeRand, 1],
+        [blurAndTraceRand, 0.5, -0.25],
+        [vignetteRand, 0.5],
+        [hueRotateRand, 1, -Infinity],
+        [foggyRaysRand, 3, -Infinity],
+        [motionBlurRand, 1, -Infinity],
+        [bloomRand, 0.25, -Infinity],
+        [celShadeRand, 3, -Infinity],
+        [colorDisplacementRand, 3],
+        [swirlRand, 1, -Infinity],
+        [repeatRand, 2, -1],
+        [grainRand, 1, -Infinity],
+    ]);
+    return chanceTable.pick(num).map((n) => n(rand));
 }
 exports.randomEffects = randomEffects;
 
-},{"./chancetable":1,"./utils":6,"@bandaloo/merge-pass":58,"postpre":67}],5:[function(require,module,exports){
+},{"./chancetable":2,"@bandaloo/merge-pass":59,"postpre":68}],6:[function(require,module,exports){
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-const MP = __importStar(require("@bandaloo/merge-pass"));
-const chancetable_1 = require("./chancetable");
-const bitgrid_1 = require("./draws/bitgrid");
-const rosedots_1 = require("./draws/rosedots");
-const effectrand_1 = require("./effectrand");
+const artmaker_1 = require("./artmaker");
 const utils_1 = require("./utils");
-const seedrandom_1 = __importDefault(require("seedrandom"));
-const seedVersion = "0";
-let curAnimationFrame;
 let reset = false;
-let timeScale;
+let artMaker;
 const gotIt = document.getElementById("gotit");
 if (gotIt === null)
     throw new Error("got it button was null");
@@ -389,15 +439,13 @@ more.addEventListener("click", () => {
     }
 });
 window.addEventListener("keydown", (e) => {
-    if (e.key === "r") {
-        cancelAnimationFrame(curAnimationFrame);
+    if (e.key === "r")
         main();
-    }
 });
 function updatePath(name) {
     const searchParams = new URLSearchParams(window.location.search);
     searchParams.set("s", name);
-    searchParams.set("v", seedVersion);
+    searchParams.set("v", artmaker_1.ArtMaker.seedVersion);
     const query = window.location.pathname + "?" + searchParams.toString();
     history.pushState(null, "", query);
 }
@@ -405,74 +453,28 @@ function main() {
     const preset = window.location.search.substring(1);
     const query = !reset ? utils_1.getQuery("s", preset) : undefined;
     const version = !reset ? utils_1.getQuery("v", preset) : undefined;
-    if (version !== undefined && version !== seedVersion) {
+    if (version !== undefined && version !== artmaker_1.ArtMaker.seedVersion) {
         window.alert("This seed is from a previous version. You won't see same pattern from when you first saved the URL.");
     }
     const seed = query !== null && query !== void 0 ? query : utils_1.randString(8);
     console.log("seed:", seed);
     if (seed === undefined)
         throw new Error("seed was somehow undefined");
-    seedrandom_1.default(seed, { global: true });
+    if (!reset)
+        artMaker = new artmaker_1.ArtMaker();
     reset = true;
     updatePath(seed);
-    timeScale = utils_1.randBetween(0.4, 1.1);
-    const glCanvas = document.getElementById("gl");
-    const gl = glCanvas.getContext("webgl2");
-    const mousePos = { x: utils_1.H / 2, y: utils_1.V / 2 };
-    if (gl === null) {
-        throw new Error("problem getting the gl context");
-    }
-    const sourceCanvas = document.getElementById("source");
-    const source = sourceCanvas.getContext("2d");
-    if (source === null) {
-        throw new Error("problem getting the source context");
-    }
-    // clear the canvas (we reuse this canvas on reset so it can be dirtied)
-    source.fillStyle = "white";
-    source.fillRect(0, 0, utils_1.H, utils_1.V);
-    const effects = [...effectrand_1.randomEffects(3)];
-    const merger = new MP.Merger(effects, sourceCanvas, gl, {
-        channels: [null, null],
-        edgeMode: "wrap",
-    });
-    // add mouse controls
-    glCanvas.addEventListener("click", () => glCanvas.requestFullscreen());
-    glCanvas.addEventListener("mousemove", (e) => {
-        const rect = glCanvas.getBoundingClientRect();
-        mousePos.x = (utils_1.H * (e.clientX - rect.left)) / rect.width;
-        mousePos.y = (utils_1.V * (rect.height - (e.clientY - rect.top))) / rect.height;
-    });
-    // fullscreen listener
-    sourceCanvas.addEventListener("click", () => sourceCanvas.requestFullscreen());
-    let frames = 0;
-    // TODO randomize the draw funcs, splitting across extra buffers
-    const chanceTable = new chancetable_1.ChanceTable();
-    chanceTable.addAll([
-        [rosedots_1.roseDots, 1],
-        [bitgrid_1.bitGrid, 1],
-    ]);
-    const drawFunc = chanceTable.pick()();
-    let originalTime;
-    const update = (time) => {
-        if (originalTime === undefined)
-            originalTime = time;
-        const t = ((time - originalTime) / 1000) * timeScale;
-        drawFunc(t, frames, source, sourceCanvas);
-        merger.draw(t, mousePos.x, mousePos.y);
-        curAnimationFrame = requestAnimationFrame(update);
-    };
-    curAnimationFrame = requestAnimationFrame(update);
+    artMaker.art(seed);
 }
 main();
-// TODO reset the context on a reset
 
-},{"./chancetable":1,"./draws/bitgrid":2,"./draws/rosedots":3,"./effectrand":4,"./utils":6,"@bandaloo/merge-pass":58,"seedrandom":73}],6:[function(require,module,exports){
+},{"./artmaker":1,"./utils":7}],7:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.randBackgroundFunc = exports.getQuery = exports.randString = exports.randInt = exports.randBetween = exports.mix = exports.R = exports.T = exports.S = exports.C = exports.V = exports.H = void 0;
+exports.randBackgroundFunc = exports.getQuery = exports.Rand = exports.randString = exports.mix = exports.R = exports.T = exports.S = exports.C = exports.V = exports.H = void 0;
 const seedrandom_1 = __importDefault(require("seedrandom"));
 // default resolution
 exports.H = 1920;
@@ -486,21 +488,27 @@ function mix(a, b, num) {
     return a.map((n, i) => n + (b[i] - n) * num);
 }
 exports.mix = mix;
-// random functions
-function randBetween(lo, hi) {
-    return lo + (hi - lo) * Math.random();
-}
-exports.randBetween = randBetween;
-function randInt(num) {
-    return Math.floor(Math.random() * num);
-}
-exports.randInt = randInt;
 function randString(length) {
     return [...Array(length)]
-        .map(() => "abcdefghijklmnopqrstuvwxyz"[Math.floor(26 * seedrandom_1.default()())])
+        .map(() => "abcdefghijklmnopqrstuvwxyz"[Math.floor(26 * Math.random())])
         .join("");
 }
 exports.randString = randString;
+class Rand {
+    constructor(seed) {
+        this.rand = seedrandom_1.default(seed !== null && seed !== void 0 ? seed : randString(8));
+    }
+    between(lo, hi) {
+        return lo + (hi - lo) * this.rand();
+    }
+    int(num) {
+        return Math.floor(this.rand() * num);
+    }
+    random() {
+        return this.rand();
+    }
+}
+exports.Rand = Rand;
 // browser functions
 function getQuery(variable, query) {
     const vars = query.split("&");
@@ -514,8 +522,8 @@ function getQuery(variable, query) {
 }
 exports.getQuery = getQuery;
 // drawing functions
-function randBackgroundFunc() {
-    const b = Math.floor(Math.random() * 2) * 255;
+function randBackgroundFunc(rand) {
+    const b = Math.floor(rand.random() * 2) * 255;
     const background = exports.R(b, b, b);
     return (x) => {
         x.fillStyle = background;
@@ -524,7 +532,7 @@ function randBackgroundFunc() {
 }
 exports.randBackgroundFunc = randBackgroundFunc;
 
-},{"seedrandom":73}],7:[function(require,module,exports){
+},{"seedrandom":74}],8:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CodeBuilder = exports.channelSamplerName = void 0;
@@ -715,7 +723,7 @@ class CodeBuilder {
 }
 exports.CodeBuilder = CodeBuilder;
 
-},{"./exprs/expr":21,"./settings":60,"./webglprogramloop":62}],8:[function(require,module,exports){
+},{"./exprs/expr":22,"./settings":61,"./webglprogramloop":63}],9:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.a1 = exports.Arity1HomogenousExpr = void 0;
@@ -750,7 +758,7 @@ function a1(name, val) {
 }
 exports.a1 = a1;
 
-},{"./expr":21}],9:[function(require,module,exports){
+},{"./expr":22}],10:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.a2 = exports.Arity2HomogenousExpr = void 0;
@@ -794,7 +802,7 @@ function a2(name, val1, val2) {
 }
 exports.a2 = a2;
 
-},{"./expr":21}],10:[function(require,module,exports){
+},{"./expr":22}],11:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.bloom = exports.BloomLoop = void 0;
@@ -878,7 +886,7 @@ function bloom(threshold, horizontal, vertical, boost, samplerNum, taps, reps) {
 }
 exports.bloom = bloom;
 
-},{"../mergepass":59,"./arity2":9,"./blurexpr":12,"./brightnessexpr":13,"./channelsampleexpr":15,"./contrastexpr":16,"./expr":21,"./fragcolorexpr":22,"./opexpr":39,"./vecexprs":55}],11:[function(require,module,exports){
+},{"../mergepass":60,"./arity2":10,"./blurexpr":13,"./brightnessexpr":14,"./channelsampleexpr":16,"./contrastexpr":17,"./expr":22,"./fragcolorexpr":23,"./opexpr":40,"./vecexprs":56}],12:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.blur2d = exports.Blur2dLoop = void 0;
@@ -931,7 +939,7 @@ function blur2d(horizontalExpr, verticalExpr, reps, taps, samplerNum) {
 }
 exports.blur2d = blur2d;
 
-},{"../mergepass":59,"./blurexpr":12,"./expr":21,"./vecexprs":55}],12:[function(require,module,exports){
+},{"../mergepass":60,"./blurexpr":13,"./expr":22,"./vecexprs":56}],13:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.gauss = exports.BlurExpr = void 0;
@@ -987,7 +995,7 @@ function gauss(direction, taps = 5, samplerNum) {
 }
 exports.gauss = gauss;
 
-},{"../glslfunctions":57,"./expr":21}],13:[function(require,module,exports){
+},{"../glslfunctions":58,"./expr":22}],14:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.brightness = exports.Brightness = void 0;
@@ -1020,7 +1028,7 @@ function brightness(val, col) {
 }
 exports.brightness = brightness;
 
-},{"../glslfunctions":57,"./expr":21,"./fragcolorexpr":22}],14:[function(require,module,exports){
+},{"../glslfunctions":58,"./expr":22,"./fragcolorexpr":23}],15:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.changecomp = exports.ChangeCompExpr = void 0;
@@ -1109,7 +1117,7 @@ function changecomp(vec, setter, comps, op) {
 }
 exports.changecomp = changecomp;
 
-},{"./expr":21,"./getcompexpr":26}],15:[function(require,module,exports){
+},{"./expr":22,"./getcompexpr":27}],16:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.channel = exports.ChannelSampleExpr = void 0;
@@ -1155,7 +1163,7 @@ function channel(channel, vec) {
 }
 exports.channel = channel;
 
-},{"../codebuilder":7,"../glslfunctions":57,"./expr":21,"./normfragcoordexpr":37}],16:[function(require,module,exports){
+},{"../codebuilder":8,"../glslfunctions":58,"./expr":22,"./normfragcoordexpr":38}],17:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.contrast = exports.ContrastExpr = void 0;
@@ -1187,7 +1195,7 @@ function contrast(val, col) {
 }
 exports.contrast = contrast;
 
-},{"../glslfunctions":57,"./expr":21,"./fragcolorexpr":22}],17:[function(require,module,exports){
+},{"../glslfunctions":58,"./expr":22,"./fragcolorexpr":23}],18:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.depth2occlusion = exports.DepthToOcclusionExpr = void 0;
@@ -1235,7 +1243,7 @@ function depth2occlusion(depthCol, newCol, threshold) {
 }
 exports.depth2occlusion = depth2occlusion;
 
-},{"./channelsampleexpr":15,"./expr":21,"./vecexprs":55}],18:[function(require,module,exports){
+},{"./channelsampleexpr":16,"./expr":22,"./vecexprs":56}],19:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.dof = exports.DoFLoop = void 0;
@@ -1281,7 +1289,7 @@ function dof(depth, rad, depthInfo, reps) {
 }
 exports.dof = dof;
 
-},{"../mergepass":59,"./arity2":9,"./blurexpr":12,"./channelsampleexpr":15,"./expr":21,"./gaussianexpr":25,"./getcompexpr":26,"./opexpr":39,"./vecexprs":55}],19:[function(require,module,exports){
+},{"../mergepass":60,"./arity2":10,"./blurexpr":13,"./channelsampleexpr":16,"./expr":22,"./gaussianexpr":26,"./getcompexpr":27,"./opexpr":40,"./vecexprs":56}],20:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.edgecolor = exports.EdgeColorExpr = void 0;
@@ -1319,7 +1327,7 @@ function edgecolor(color, samplerNum, stepped) {
 }
 exports.edgecolor = edgecolor;
 
-},{"./arity2":9,"./expr":21,"./fragcolorexpr":22,"./monochromeexpr":32,"./sobelexpr":50,"./vecexprs":55}],20:[function(require,module,exports){
+},{"./arity2":10,"./expr":22,"./fragcolorexpr":23,"./monochromeexpr":33,"./sobelexpr":51,"./vecexprs":56}],21:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.edge = exports.EdgeExpr = void 0;
@@ -1355,7 +1363,7 @@ function edge(style, samplerNum) {
 }
 exports.edge = edge;
 
-},{"./brightnessexpr":13,"./expr":21,"./getcompexpr":26,"./invertexpr":30,"./monochromeexpr":32,"./opexpr":39,"./sobelexpr":50}],21:[function(require,module,exports){
+},{"./brightnessexpr":14,"./expr":22,"./getcompexpr":27,"./invertexpr":31,"./monochromeexpr":33,"./opexpr":40,"./sobelexpr":51}],22:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.tag = exports.wrapInValue = exports.pfloat = exports.Operator = exports.WrappedExpr = exports.ExprVec4 = exports.ExprVec3 = exports.ExprVec2 = exports.float = exports.ExprFloat = exports.BasicFloat = exports.ExprVec = exports.BasicVec4 = exports.BasicVec3 = exports.BasicVec2 = exports.BasicVec = exports.PrimitiveVec4 = exports.PrimitiveVec3 = exports.PrimitiveVec2 = exports.PrimitiveVec = exports.PrimitiveFloat = exports.Primitive = exports.mut = exports.Mutable = exports.cvec4 = exports.cvec3 = exports.cvec2 = exports.cfloat = exports.Expr = void 0;
@@ -1813,7 +1821,7 @@ function tag(strings, ...values) {
 }
 exports.tag = tag;
 
-},{"../mergepass":59,"../utils":61,"../webglprogramloop":62}],22:[function(require,module,exports){
+},{"../mergepass":60,"../utils":62,"../webglprogramloop":63}],23:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fcolor = exports.FragColorExpr = void 0;
@@ -1832,7 +1840,7 @@ function fcolor() {
 }
 exports.fcolor = fcolor;
 
-},{"./expr":21}],23:[function(require,module,exports){
+},{"./expr":22}],24:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pixel = exports.FragCoordExpr = void 0;
@@ -1853,7 +1861,7 @@ function pixel() {
 }
 exports.pixel = pixel;
 
-},{"./expr":21}],24:[function(require,module,exports){
+},{"./expr":22}],25:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fxaa = void 0;
@@ -1873,7 +1881,7 @@ function fxaa() {
 }
 exports.fxaa = fxaa;
 
-},{"../glslfunctions":57,"./expr":21}],25:[function(require,module,exports){
+},{"../glslfunctions":58,"./expr":22}],26:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.gaussian = exports.GaussianExpr = void 0;
@@ -1913,7 +1921,7 @@ function gaussian(x, a = 0, b = 1) {
 }
 exports.gaussian = gaussian;
 
-},{"../glslfunctions":57,"./expr":21}],26:[function(require,module,exports){
+},{"../glslfunctions":58,"./expr":22}],27:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.get4comp = exports.get3comp = exports.get2comp = exports.getcomp = exports.Get4CompExpr = exports.Get3CompExpr = exports.Get2CompExpr = exports.GetCompExpr = exports.checkLegalComponents = exports.typeStringToLength = void 0;
@@ -2067,7 +2075,7 @@ function get4comp(vec, comps) {
 }
 exports.get4comp = get4comp;
 
-},{"./expr":21}],27:[function(require,module,exports){
+},{"./expr":22}],28:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.godrays = exports.GodRaysExpr = void 0;
@@ -2183,7 +2191,7 @@ function godrays(options = {}) {
 }
 exports.godrays = godrays;
 
-},{"../glslfunctions":57,"./expr":21,"./fragcolorexpr":22,"./vecexprs":55}],28:[function(require,module,exports){
+},{"../glslfunctions":58,"./expr":22,"./fragcolorexpr":23,"./vecexprs":56}],29:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.grain = exports.GrainExpr = void 0;
@@ -2215,7 +2223,7 @@ function grain(val) {
 }
 exports.grain = grain;
 
-},{"../glslfunctions":57,"./expr":21}],29:[function(require,module,exports){
+},{"../glslfunctions":58,"./expr":22}],30:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.hsv2rgb = exports.HSVToRGBExpr = void 0;
@@ -2244,7 +2252,7 @@ function hsv2rgb(col) {
 }
 exports.hsv2rgb = hsv2rgb;
 
-},{"../glslfunctions":57,"./expr":21}],30:[function(require,module,exports){
+},{"../glslfunctions":58,"./expr":22}],31:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.invert = exports.InvertExpr = void 0;
@@ -2272,7 +2280,7 @@ function invert(col) {
 }
 exports.invert = invert;
 
-},{"../glslfunctions":57,"./expr":21}],31:[function(require,module,exports){
+},{"../glslfunctions":58,"./expr":22}],32:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.len = exports.LenExpr = void 0;
@@ -2295,7 +2303,7 @@ function len(vec) {
 }
 exports.len = len;
 
-},{"./expr":21}],32:[function(require,module,exports){
+},{"./expr":22}],33:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.monochrome = exports.MonochromeExpr = void 0;
@@ -2324,7 +2332,7 @@ function monochrome(col) {
 }
 exports.monochrome = monochrome;
 
-},{"../glslfunctions":57,"./expr":21}],33:[function(require,module,exports){
+},{"../glslfunctions":58,"./expr":22}],34:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.motionblur = exports.MotionBlurLoop = void 0;
@@ -2366,7 +2374,7 @@ function motionblur(target, persistence) {
 }
 exports.motionblur = motionblur;
 
-},{"../mergepass":59,"./channelsampleexpr":15,"./expr":21,"./fragcolorexpr":22,"./opexpr":39}],34:[function(require,module,exports){
+},{"../mergepass":60,"./channelsampleexpr":16,"./expr":22,"./fragcolorexpr":23,"./opexpr":40}],35:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.mouse = exports.MouseExpr = void 0;
@@ -2388,7 +2396,7 @@ function mouse() {
 }
 exports.mouse = mouse;
 
-},{"./expr":21}],35:[function(require,module,exports){
+},{"./expr":22}],36:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.center = exports.NormCenterFragCoordExpr = void 0;
@@ -2409,7 +2417,7 @@ function center() {
 }
 exports.center = center;
 
-},{"./expr":21}],36:[function(require,module,exports){
+},{"./expr":22}],37:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.norm = exports.NormExpr = void 0;
@@ -2433,7 +2441,7 @@ function norm(vec) {
 }
 exports.norm = norm;
 
-},{"./expr":21}],37:[function(require,module,exports){
+},{"./expr":22}],38:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pos = exports.NormFragCoordExpr = void 0;
@@ -2456,7 +2464,7 @@ function pos() {
 }
 exports.pos = pos;
 
-},{"./expr":21}],38:[function(require,module,exports){
+},{"./expr":22}],39:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.nmouse = exports.NormMouseExpr = void 0;
@@ -2478,7 +2486,7 @@ function nmouse() {
 }
 exports.nmouse = nmouse;
 
-},{"./expr":21}],39:[function(require,module,exports){
+},{"./expr":22}],40:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.op = exports.OpExpr = void 0;
@@ -2517,7 +2525,7 @@ function op(left, op, right) {
 }
 exports.op = op;
 
-},{"./expr":21}],40:[function(require,module,exports){
+},{"./expr":22}],41:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fractalize = exports.perlin = exports.PerlinExpr = void 0;
@@ -2568,7 +2576,7 @@ function fractalize(pos, octaves, func) {
 }
 exports.fractalize = fractalize;
 
-},{"../glslfunctions":57,"./expr":21,"./opexpr":39}],41:[function(require,module,exports){
+},{"../glslfunctions":58,"./expr":22,"./opexpr":40}],42:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pblur = exports.PowerBlurLoop = void 0;
@@ -2610,7 +2618,7 @@ function pblur(size) {
 }
 exports.pblur = pblur;
 
-},{"../mergepass":59,"./blurexpr":12,"./expr":21,"./vecexprs":55}],42:[function(require,module,exports){
+},{"../mergepass":60,"./blurexpr":13,"./expr":22,"./vecexprs":56}],43:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.random = exports.RandomExpr = void 0;
@@ -2641,7 +2649,7 @@ function random(seed) {
 }
 exports.random = random;
 
-},{"../glslfunctions":57,"./expr":21,"./normfragcoordexpr":37}],43:[function(require,module,exports){
+},{"../glslfunctions":58,"./expr":22,"./normfragcoordexpr":38}],44:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.region = void 0;
@@ -2701,7 +2709,7 @@ function region(space, success, failure, not = false) {
 }
 exports.region = region;
 
-},{"../mergepass":59,"./expr":21,"./fragcolorexpr":22,"./getcompexpr":26,"./normfragcoordexpr":37,"./opexpr":39,"./ternaryexpr":51}],44:[function(require,module,exports){
+},{"../mergepass":60,"./expr":22,"./fragcolorexpr":23,"./getcompexpr":27,"./normfragcoordexpr":38,"./opexpr":40,"./ternaryexpr":52}],45:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resolution = exports.ResolutionExpr = void 0;
@@ -2719,7 +2727,7 @@ function resolution() {
 }
 exports.resolution = resolution;
 
-},{"./expr":21}],45:[function(require,module,exports){
+},{"./expr":22}],46:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.rgb2hsv = exports.RGBToHSVExpr = void 0;
@@ -2749,7 +2757,7 @@ function rgb2hsv(col) {
 }
 exports.rgb2hsv = rgb2hsv;
 
-},{"../glslfunctions":57,"./expr":21}],46:[function(require,module,exports){
+},{"../glslfunctions":58,"./expr":22}],47:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.rotate = exports.RotateExpr = void 0;
@@ -2785,7 +2793,7 @@ function rotate(vec, angle) {
 }
 exports.rotate = rotate;
 
-},{"../glslfunctions":57,"./expr":21}],47:[function(require,module,exports){
+},{"../glslfunctions":58,"./expr":22}],48:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.input = exports.SceneSampleExpr = void 0;
@@ -2816,7 +2824,7 @@ function input(vec) {
 }
 exports.input = input;
 
-},{"./expr":21,"./normfragcoordexpr":37}],48:[function(require,module,exports){
+},{"./expr":22,"./normfragcoordexpr":38}],49:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SetColorExpr = void 0;
@@ -2833,7 +2841,7 @@ class SetColorExpr extends expr_1.ExprVec4 {
 }
 exports.SetColorExpr = SetColorExpr;
 
-},{"./expr":21}],49:[function(require,module,exports){
+},{"./expr":22}],50:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.simplex = exports.SimplexNoise = void 0;
@@ -2861,7 +2869,7 @@ function simplex(pos) {
 }
 exports.simplex = simplex;
 
-},{"../glslfunctions":57,"./expr":21}],50:[function(require,module,exports){
+},{"../glslfunctions":58,"./expr":22}],51:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sobel = exports.SobelExpr = void 0;
@@ -2887,7 +2895,7 @@ function sobel(samplerNum) {
 }
 exports.sobel = sobel;
 
-},{"../glslfunctions":57,"./expr":21}],51:[function(require,module,exports){
+},{"../glslfunctions":58,"./expr":22}],52:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ternary = exports.TernaryExpr = void 0;
@@ -2952,7 +2960,7 @@ function ternary(floats, success, failure, not = false) {
 }
 exports.ternary = ternary;
 
-},{"./expr":21}],52:[function(require,module,exports){
+},{"./expr":22}],53:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.time = exports.TimeExpr = void 0;
@@ -2971,7 +2979,7 @@ function time() {
 }
 exports.time = time;
 
-},{"./expr":21}],53:[function(require,module,exports){
+},{"./expr":22}],54:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.translate = exports.TranslateExpr = void 0;
@@ -3004,7 +3012,7 @@ function translate(vec, pos) {
 }
 exports.translate = translate;
 
-},{"./expr":21}],54:[function(require,module,exports){
+},{"./expr":22}],55:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.truedepth = exports.TrueDepthExpr = void 0;
@@ -3030,7 +3038,7 @@ function truedepth(depth) {
 }
 exports.truedepth = truedepth;
 
-},{"../glslfunctions":57,"./expr":21}],55:[function(require,module,exports){
+},{"../glslfunctions":58,"./expr":22}],56:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pvec4 = exports.pvec3 = exports.pvec2 = exports.vec4 = exports.vec3 = exports.vec2 = void 0;
@@ -3081,11 +3089,11 @@ function pvec4(comp1, comp2, comp3, comp4) {
 }
 exports.pvec4 = pvec4;
 
-},{"./expr":21}],56:[function(require,module,exports){
+},{"./expr":22}],57:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 
-},{}],57:[function(require,module,exports){
+},{}],58:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.glslFuncs = void 0;
@@ -3405,7 +3413,7 @@ vec3 permute(vec3 x) { return mod289_3(((x*34.0)+1.0)*x); }`,
 }`,
 };
 
-},{}],58:[function(require,module,exports){
+},{}],59:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -3469,7 +3477,7 @@ __exportStar(require("./exprs/ternaryexpr"), exports);
 __exportStar(require("./exprs/regiondecorator"), exports);
 __exportStar(require("./exprs/expr"), exports);
 
-},{"./exprs/arity1":8,"./exprs/arity2":9,"./exprs/bloomloop":10,"./exprs/blur2dloop":11,"./exprs/blurexpr":12,"./exprs/brightnessexpr":13,"./exprs/changecompexpr":14,"./exprs/channelsampleexpr":15,"./exprs/contrastexpr":16,"./exprs/depthtoocclusionexpr":17,"./exprs/dofloop":18,"./exprs/edgecolorexpr":19,"./exprs/edgeexpr":20,"./exprs/expr":21,"./exprs/fragcolorexpr":22,"./exprs/fragcoordexpr":23,"./exprs/fxaaexpr":24,"./exprs/getcompexpr":26,"./exprs/godraysexpr":27,"./exprs/grainexpr":28,"./exprs/hsvtorgbexpr":29,"./exprs/invertexpr":30,"./exprs/lenexpr":31,"./exprs/monochromeexpr":32,"./exprs/motionblurloop":33,"./exprs/mouseexpr":34,"./exprs/normcenterfragcoordexpr":35,"./exprs/normexpr":36,"./exprs/normfragcoordexpr":37,"./exprs/normmouseexpr":38,"./exprs/opexpr":39,"./exprs/perlinexpr":40,"./exprs/powerblur":41,"./exprs/randomexpr":42,"./exprs/regiondecorator":43,"./exprs/resolutionexpr":44,"./exprs/rgbtohsvexpr":45,"./exprs/rotateexpr":46,"./exprs/scenesampleexpr":47,"./exprs/simplexexpr":49,"./exprs/sobelexpr":50,"./exprs/ternaryexpr":51,"./exprs/timeexpr":52,"./exprs/translateexpr":53,"./exprs/truedepthexpr":54,"./exprs/vecexprs":55,"./exprtypes":56,"./glslfunctions":57,"./mergepass":59,"./settings":60}],59:[function(require,module,exports){
+},{"./exprs/arity1":9,"./exprs/arity2":10,"./exprs/bloomloop":11,"./exprs/blur2dloop":12,"./exprs/blurexpr":13,"./exprs/brightnessexpr":14,"./exprs/changecompexpr":15,"./exprs/channelsampleexpr":16,"./exprs/contrastexpr":17,"./exprs/depthtoocclusionexpr":18,"./exprs/dofloop":19,"./exprs/edgecolorexpr":20,"./exprs/edgeexpr":21,"./exprs/expr":22,"./exprs/fragcolorexpr":23,"./exprs/fragcoordexpr":24,"./exprs/fxaaexpr":25,"./exprs/getcompexpr":27,"./exprs/godraysexpr":28,"./exprs/grainexpr":29,"./exprs/hsvtorgbexpr":30,"./exprs/invertexpr":31,"./exprs/lenexpr":32,"./exprs/monochromeexpr":33,"./exprs/motionblurloop":34,"./exprs/mouseexpr":35,"./exprs/normcenterfragcoordexpr":36,"./exprs/normexpr":37,"./exprs/normfragcoordexpr":38,"./exprs/normmouseexpr":39,"./exprs/opexpr":40,"./exprs/perlinexpr":41,"./exprs/powerblur":42,"./exprs/randomexpr":43,"./exprs/regiondecorator":44,"./exprs/resolutionexpr":45,"./exprs/rgbtohsvexpr":46,"./exprs/rotateexpr":47,"./exprs/scenesampleexpr":48,"./exprs/simplexexpr":50,"./exprs/sobelexpr":51,"./exprs/ternaryexpr":52,"./exprs/timeexpr":53,"./exprs/translateexpr":54,"./exprs/truedepthexpr":55,"./exprs/vecexprs":56,"./exprtypes":57,"./glslfunctions":58,"./mergepass":60,"./settings":61}],60:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendTexture = exports.makeTexture = exports.Merger = exports.loop = exports.EffectLoop = exports.EffectDictionary = void 0;
@@ -3904,7 +3912,7 @@ function sendTexture(gl, src) {
 }
 exports.sendTexture = sendTexture;
 
-},{"./codebuilder":7,"./exprs/expr":21,"./exprs/fragcolorexpr":22,"./exprs/regiondecorator":43,"./exprs/scenesampleexpr":47,"./exprs/setcolorexpr":48,"./exprs/ternaryexpr":51,"./settings":60,"./webglprogramloop":62}],60:[function(require,module,exports){
+},{"./codebuilder":8,"./exprs/expr":22,"./exprs/fragcolorexpr":23,"./exprs/regiondecorator":44,"./exprs/scenesampleexpr":48,"./exprs/setcolorexpr":49,"./exprs/ternaryexpr":52,"./settings":61,"./webglprogramloop":63}],61:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.settings = void 0;
@@ -3920,7 +3928,7 @@ exports.settings = {
     offset: 0,
 };
 
-},{}],61:[function(require,module,exports){
+},{}],62:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.brandWithRegion = exports.brandWithChannel = exports.captureAndAppend = void 0;
@@ -4005,7 +4013,7 @@ function brandWithRegion(expr, funcIndex, space) {
 }
 exports.brandWithRegion = brandWithRegion;
 
-},{"./glslfunctions":57}],62:[function(require,module,exports){
+},{"./glslfunctions":58}],63:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WebGLProgramLoop = exports.WebGLProgramLeaf = exports.updateNeeds = void 0;
@@ -4239,9 +4247,9 @@ class WebGLProgramLoop {
 }
 exports.WebGLProgramLoop = WebGLProgramLoop;
 
-},{"./settings":60}],63:[function(require,module,exports){
+},{"./settings":61}],64:[function(require,module,exports){
 
-},{}],64:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.blurandtrace = exports.BlurAndTrace = void 0;
@@ -4275,7 +4283,7 @@ function blurandtrace(brightness = merge_pass_1.mut(1), blurSize = merge_pass_1.
 }
 exports.blurandtrace = blurandtrace;
 
-},{"@bandaloo/merge-pass":58}],65:[function(require,module,exports){
+},{"@bandaloo/merge-pass":59}],66:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.celshade = exports.CelShade = void 0;
@@ -4321,7 +4329,7 @@ function celshade(mult = merge_pass_1.mut(0.8), bump = merge_pass_1.mut(0.3), ce
 }
 exports.celshade = celshade;
 
-},{"@bandaloo/merge-pass":58}],66:[function(require,module,exports){
+},{"@bandaloo/merge-pass":59}],67:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.foggyrays = exports.FoggyRaysExpr = void 0;
@@ -4376,7 +4384,7 @@ function foggyrays(period = merge_pass_1.mut(100), speed = merge_pass_1.mut(1), 
 }
 exports.foggyrays = foggyrays;
 
-},{"@bandaloo/merge-pass":58}],67:[function(require,module,exports){
+},{"@bandaloo/merge-pass":59}],68:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -4398,7 +4406,7 @@ __exportStar(require("./oldfilm"), exports);
 __exportStar(require("./kaleidoscope"), exports);
 __exportStar(require("./celshade"), exports);
 
-},{"./blurandtrace":64,"./celshade":65,"./foggyrays":66,"./kaleidoscope":68,"./lightbands":69,"./noisedisplacement":70,"./oldfilm":71,"./vignette":72}],68:[function(require,module,exports){
+},{"./blurandtrace":65,"./celshade":66,"./foggyrays":67,"./kaleidoscope":69,"./lightbands":70,"./noisedisplacement":71,"./oldfilm":72,"./vignette":73}],69:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.kaleidoscope = exports.Kaleidoscope = void 0;
@@ -4436,7 +4444,7 @@ function kaleidoscope(sides = merge_pass_1.mut(8), scale = merge_pass_1.mut(1)) 
 }
 exports.kaleidoscope = kaleidoscope;
 
-},{"@bandaloo/merge-pass":58}],69:[function(require,module,exports){
+},{"@bandaloo/merge-pass":59}],70:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.lightbands = exports.LightBands = void 0;
@@ -4474,7 +4482,7 @@ function lightbands(speed = merge_pass_1.mut(4), intensity = merge_pass_1.mut(0.
 }
 exports.lightbands = lightbands;
 
-},{"@bandaloo/merge-pass":58}],70:[function(require,module,exports){
+},{"@bandaloo/merge-pass":59}],71:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.noisedisplacement = exports.NoiseDisplacement = void 0;
@@ -4514,7 +4522,7 @@ function noisedisplacement(period = merge_pass_1.mut(0.1), speed = merge_pass_1.
 }
 exports.noisedisplacement = noisedisplacement;
 
-},{"@bandaloo/merge-pass":58}],71:[function(require,module,exports){
+},{"@bandaloo/merge-pass":59}],72:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.oldfilm = exports.OldFilm = void 0;
@@ -4560,7 +4568,7 @@ function oldfilm(speckIntensity = merge_pass_1.mut(0.4), lineIntensity = merge_p
 }
 exports.oldfilm = oldfilm;
 
-},{"@bandaloo/merge-pass":58}],72:[function(require,module,exports){
+},{"@bandaloo/merge-pass":59}],73:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.vignette = exports.Vignette = void 0;
@@ -4601,7 +4609,7 @@ function vignette(blurScalar = merge_pass_1.mut(3), brightnessScalar = merge_pas
 }
 exports.vignette = vignette;
 
-},{"@bandaloo/merge-pass":58}],73:[function(require,module,exports){
+},{"@bandaloo/merge-pass":59}],74:[function(require,module,exports){
 // A library of seedable RNGs implemented in Javascript.
 //
 // Usage:
@@ -4663,7 +4671,7 @@ sr.tychei = tychei;
 
 module.exports = sr;
 
-},{"./lib/alea":74,"./lib/tychei":75,"./lib/xor128":76,"./lib/xor4096":77,"./lib/xorshift7":78,"./lib/xorwow":79,"./seedrandom":80}],74:[function(require,module,exports){
+},{"./lib/alea":75,"./lib/tychei":76,"./lib/xor128":77,"./lib/xor4096":78,"./lib/xorshift7":79,"./lib/xorwow":80,"./seedrandom":81}],75:[function(require,module,exports){
 // A port of an algorithm by Johannes Baagøe <baagoe@baagoe.com>, 2010
 // http://baagoe.com/en/RandomMusings/javascript/
 // https://github.com/nquinlan/better-random-numbers-for-javascript-mirror
@@ -4779,7 +4787,7 @@ if (module && module.exports) {
 
 
 
-},{}],75:[function(require,module,exports){
+},{}],76:[function(require,module,exports){
 // A Javascript implementaion of the "Tyche-i" prng algorithm by
 // Samuel Neves and Filipe Araujo.
 // See https://eden.dei.uc.pt/~sneves/pubs/2011-snfa2.pdf
@@ -4884,7 +4892,7 @@ if (module && module.exports) {
 
 
 
-},{}],76:[function(require,module,exports){
+},{}],77:[function(require,module,exports){
 // A Javascript implementaion of the "xor128" prng algorithm by
 // George Marsaglia.  See http://www.jstatsoft.org/v08/i14/paper
 
@@ -4967,7 +4975,7 @@ if (module && module.exports) {
 
 
 
-},{}],77:[function(require,module,exports){
+},{}],78:[function(require,module,exports){
 // A Javascript implementaion of Richard Brent's Xorgens xor4096 algorithm.
 //
 // This fast non-cryptographic random number generator is designed for
@@ -5115,7 +5123,7 @@ if (module && module.exports) {
   (typeof define) == 'function' && define   // present with an AMD loader
 );
 
-},{}],78:[function(require,module,exports){
+},{}],79:[function(require,module,exports){
 // A Javascript implementaion of the "xorshift7" algorithm by
 // François Panneton and Pierre L'ecuyer:
 // "On the Xorgshift Random Number Generators"
@@ -5214,7 +5222,7 @@ if (module && module.exports) {
 );
 
 
-},{}],79:[function(require,module,exports){
+},{}],80:[function(require,module,exports){
 // A Javascript implementaion of the "xorwow" prng algorithm by
 // George Marsaglia.  See http://www.jstatsoft.org/v08/i14/paper
 
@@ -5302,7 +5310,7 @@ if (module && module.exports) {
 
 
 
-},{}],80:[function(require,module,exports){
+},{}],81:[function(require,module,exports){
 /*
 Copyright 2019 David Bau.
 
@@ -5557,4 +5565,4 @@ if ((typeof module) == 'object' && module.exports) {
   Math    // math: package containing random, pow, and seedrandom
 );
 
-},{"crypto":63}]},{},[5]);
+},{"crypto":64}]},{},[6]);
