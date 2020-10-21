@@ -19,6 +19,18 @@ class DialogueManager {
             gotLeftPills: false,
             gotRightPills: false,
             clockMood: 0,
+            lastAnswerRight: false,
+            wrongAnswersAllowed: 0,
+            correctAnswers: 0,
+            playerWentFirst: false,
+            quizPassed: false,
+            trauma: 0,
+            bombSurvivalPercent: 0,
+            roll: 0,
+            tensRoll: "",
+            onesRoll: "",
+            survivedBomb: false,
+            safePassage: false,
         };
         this.artMaker = artMaker;
         this.dialogue = dialogue;
@@ -37,7 +49,6 @@ class DialogueManager {
             }
             index++;
         }
-        // TODO get rid of this
         const startIndex = this.nodes.get("start");
         this.curIndex = startIndex !== null && startIndex !== void 0 ? startIndex : 0;
         this.update();
@@ -139,8 +150,9 @@ const artMaker = new art_maker_1.default(128);
 //rczxhezc (zooming blue)
 //fsfhnogn (flower)
 //axxvygkv (mouse red spiral)
+//yumtghwk (good for sea)
 new dialogue_1.DialogueManager(artMaker, [
-    // bed level
+    // platforming level
     {
         seed: "ijhxlzqt",
         text: "You stand in the center platform. It is alabaster white and incredibly ornate; " +
@@ -275,7 +287,7 @@ new dialogue_1.DialogueManager(artMaker, [
             "you find your own, and focus in on it. You see your own body, in your bed, unmoving, " +
             "as two doctors in white lab coats talk over it, one male and one female. Shortly, a nurse " +
             "in a green scrub walks in, followed by your parents. Your mother swiftly walks over to the bedside " +
-            "and covers her mouth \u2014 expression that could be either fear, relief, or a mix of both.",
+            "and covers her mouth \u2014 an expression that could be either fear, relief, or a mix of both.",
         choices: [
             {
                 text: "continue",
@@ -293,6 +305,7 @@ new dialogue_1.DialogueManager(artMaker, [
         ],
     },
     {
+        //tag: "start",
         text: "For a moment, everything goes dark. In the next instant, you are in your own body once again. " +
             "You turn your head towards the alarm clock.",
         choices: [
@@ -374,6 +387,7 @@ new dialogue_1.DialogueManager(artMaker, [
                 text: "play rock",
                 tag: "rock music",
                 callback: (map) => {
+                    map.clockMood--;
                     map.musicChoice = "rock";
                 },
             },
@@ -381,7 +395,7 @@ new dialogue_1.DialogueManager(artMaker, [
                 text: "play punk",
                 tag: "punk music",
                 callback: (map) => {
-                    map.clockMood--;
+                    map.clockMood -= 2;
                     map.musicChoice = "punk";
                 },
             },
@@ -422,23 +436,360 @@ new dialogue_1.DialogueManager(artMaker, [
     },
     {
         tag: "after music",
-        seed: "waqgjphv",
         text: dialogue_1.template `"Care to play a game to pass the time?" asks the clock. "How about an AI's favorite war game, tic-tac-toe?${(map) => map.musicChoice === "classical"
             ? ' This music is a perfect for a game of minds!"'
             : map.musicChoice === "punk"
                 ? " Although, this grating music is going to make it a bit tricky to hone in on the correct play " +
-                    'among the multitudes of strategic options, however."'
+                    'among the multitudes of strategic options."'
                 : map.musicChoice === "rock"
                     ? " The rock music will have to do as a score to this battle of wits."
                     : ""}`,
         choices: [
             {
                 text: "accept",
+                tag: "accept game",
             },
             {
                 text: "decline",
+                tag: "decline game",
             },
         ],
+    },
+    {
+        tag: "decline game",
+        text: '"You\'re no fun at all," the clock whines.',
+        choices: [
+            {
+                text: "continue",
+                tag: "clock mad",
+            },
+        ],
+    },
+    {
+        tag: "accept game",
+        callback: (map) => {
+            map.playerWentFirst = map.clockMood > 0;
+        },
+        text: dialogue_1.template `A tic-tac-toe board etches itself into the wall across from your bed.
+
+    "${(map) => map.playerWentFirst ? "You" : "I'll"} go first," the clock says. \
+    ${(map) => map.playerWentFirst
+            ? "With your mind, you scratch"
+            : "Without moving, the clock scratches"} the first X on the wall. ${(map) => map.playerWentFirst
+            ? ""
+            : "In response, you etch an O into the wall simply by thinking about where it will go."} \
+"Strange game\u2026" you think to yourself.`,
+        choices: [
+            {
+                text: "continue",
+            },
+        ],
+    },
+    {
+        text: "Very soon, you notice the clock doesn't have much of a strategy. " +
+            "It leaves you open to win the game in a single move.",
+        choices: [
+            {
+                text: "play the winning move",
+                tag: "you win game",
+            },
+            {
+                text: "force a draw",
+                tag: "you draw game",
+            },
+            {
+                text: "throw the game",
+                tag: "you lose game",
+            },
+        ],
+    },
+    {
+        tag: "you lose game",
+        text: '"First chess, then go, now tic-tac-toe! AI has truly mastered the domain of all games once ' +
+            'thought to necessitate the creativity and critical thinking faculties of natural intelligence," ' +
+            "the clock gloats.",
+        choices: [
+            {
+                text: "continue",
+                tag: "clock mad",
+            },
+        ],
+        callback: (map) => {
+            map.clockMood++;
+        },
+    },
+    {
+        tag: "you draw game",
+        text: '"Well, that\'s a little bit of a boring outcome," the clock complains.',
+        choices: [
+            {
+                text: "continue",
+                tag: "clock mad",
+            },
+        ],
+        callback: (map) => {
+            map.clockMood--;
+        },
+    },
+    {
+        tag: "you win game",
+        text: "\"That's not possible. Impossible! IMPOSSIBLE!\" The clock's voice grows deeper and louder.",
+        choices: [
+            {
+                text: "continue",
+                tag: "clock mad",
+            },
+        ],
+        callback: (map) => {
+            map.clockMood -= 2;
+        },
+    },
+    {
+        seed: "krvdqlql",
+        tag: "clock mad",
+        text: dialogue_1.template `The lights in the room slowly fade to a dim red. The face of the clock\
+    displays the message in red digital lettering:
+
+CALCULATION: ${(map) => "" + Math.max(-map.clockMood, 0.5) * 24} DEAD, \
+${(map) => "" + Math.max(-map.clockMood, 0.5) * 38} INJURED
+
+The clock announces in a deep, distorted voice:
+"DETONATION IMMINENT. THIS IS YOUR FAULT."`,
+        choices: [
+            {
+                text: "try to calm the clock",
+                tag: "guess music",
+            },
+            {
+                text: "smash it",
+                tag: "smash clock",
+            },
+        ],
+    },
+    {
+        seed: "yxwmmzen",
+        tag: "smash clock",
+        callback: (map) => {
+            map.trauma += Math.max(2, -map.clockMood);
+        },
+        text: "The clock instantly detonates. You see a flash and then nothing at all.",
+        choices: [
+            {
+                text: "continue",
+                tag: "sea chapter",
+            },
+        ],
+    },
+    {
+        seed: "evcvfuho",
+        tag: "guess music",
+        callback: (map) => {
+            map.wrongAnswersAllowed = map.clockMood > 0 ? 1 : 0;
+        },
+        text: dialogue_1.template `"Please! Disarm the bomb! What has anyone done to deserve this?" You continue to plead.
+
+"I'LL GIVE YOU A CHANCE. YOU'RE ALLOWED ${(map) => map.wrongAnswersAllowed === 1
+            ? "ONE WRONG ANSWER."
+            : "NO WRONG ANSWERS."} WHAT IS MY FAVORITE MUSIC GENRE?"`,
+        choices: [
+            {
+                text: '"classical!"',
+                callback: (map) => {
+                    map.correctAnswers++;
+                },
+            },
+            {
+                text: '"rock!"',
+            },
+            {
+                text: '"punk!"',
+            },
+        ],
+    },
+    {
+        seed: "ydhgvalo",
+        tag: "guess movie",
+        text: `"WHAT'S MY FAVORITE MOVIE FEATURING A CORRUPT AI?"`,
+        choices: [
+            {
+                text: '"2001: A Space Odyssey!"',
+            },
+            {
+                text: '"WarGames!"',
+                callback: (map) => {
+                    map.correctAnswers++;
+                },
+            },
+            {
+                text: '"I, Robot!"',
+            },
+        ],
+    },
+    {
+        seed: "ksceuxwq",
+        tag: "guess tic-tac-toe",
+        text: '"WHO WENT FIRST WHEN WE PLAYED OUR GAME OF TIC-TAC-TOE?"',
+        choices: [
+            {
+                text: '"You!"',
+                callback: (map) => {
+                    if (!map.playerWentFirst)
+                        map.correctAnswers++;
+                },
+            },
+            {
+                text: '"Me!"',
+                callback: (map) => {
+                    if (map.playerWentFirst)
+                        map.correctAnswers++;
+                },
+            },
+        ],
+    },
+    {
+        tag: "quiz results",
+        callback: (map) => {
+            map.quizPassed = 3 - map.correctAnswers <= map.wrongAnswersAllowed;
+        },
+        text: dialogue_1.template `"YOU HAVE GOTTEN ${(map) => "" + map.correctAnswers}/3 ANSWERS CORRECT. \
+THIS IS ${(map) => (map.quizPassed ? "" : "NOT")} SUFFICIENT."`,
+        choices: [
+            {
+                text: "continue",
+                tag: (map) => map.quizPassed ? "clock calm chance" : "running around",
+            },
+        ],
+    },
+    {
+        tag: "clock calm chance",
+        callback: (map) => {
+            map.bombSurvivalPercent = Math.floor(1 + 100 * Math.min(Math.max((3 + map.clockMood) / 7, 0.1), 0.9));
+        },
+        text: dialogue_1.template `"I LEAVE FATE UP TO CHANCE. BASED ON YOUR PREVIOUS ACTIONS, \
+I CHOOSE YOUR CHANCE OF DISARMAMENT TO BE ${(map) => "" + map.bombSurvivalPercent}%"`,
+        choices: [
+            {
+                text: "take those chances",
+            },
+        ],
+    },
+    {
+        callback: (map) => {
+            map.roll = Math.floor(Math.random() * 100);
+            const str = ("" + map.roll).padStart(2, "0");
+            map.tensRoll = str[0] + "0";
+            map.onesRoll = str[1];
+            map.survivedBomb = map.roll < map.bombSurvivalPercent;
+        },
+        text: dialogue_1.template `"YOU MUST ROLL BELOW ${(map) => "" + map.bombSurvivalPercent} TO SURVIVE."
+
+A d100 pair of dice appear on the face of the clock. The first one spins, \
+stops, landing on ${(map) => "" + map.tensRoll}. The second die lands on ${(map) => "" + map.onesRoll}.
+
+"YOU ROLLED A ${(map) => "" + map.roll}. ${(map) => map.survivedBomb ? "YOU'RE LUCKY." : "NO SUCH LUCK."}"`,
+        choices: [
+            {
+                text: "continue",
+                tag: (map) => map.survivedBomb ? "disarm bomb" : "running around",
+            },
+        ],
+    },
+    {
+        seed: "cfqnpmme",
+        tag: "disarm bomb",
+        text: `You reach out to hit the snooze button on the clock. The lighting in the room \
+returns to a normal hue and the face of the clock once again tells time: 12:15 PM.`,
+        choices: [{ text: "continue", tag: "sea chapter" }],
+    },
+    {
+        callback: (map) => {
+            map.trauma += Math.max(1, -map.clockMood);
+        },
+        seed: "yxwmmzen",
+        tag: "running around",
+        text: `The face of the clock rolls over to a one minute timer, beeping \
+as each second passes. You leap out of your bed and sprint through the hallway, pounding \
+on doors trying to warn anyone at all\u2026 to no avail. The timer ends and after a short \
+pause you hear a loud crash and see a flash of light. And then, nothing.`,
+        choices: [{ text: "continue", tag: "sea chapter" }],
+    },
+    {
+        seed: "kdugqbly",
+        tag: "sea chapter",
+        text: dialogue_1.template `${(map) => !map.survivedBomb
+            ? "You wake up in your bed."
+            : ""} The hospital room around \
+you falls away. You find yourself on the deck of a pirate ship in a vast sea. A captain in a tricorn hat \
+greets you.
+
+"Arrr, the landlubber wakes!"`,
+        choices: [
+            {
+                text: '"Who are you?"',
+            },
+        ],
+    },
+    {
+        text: `"Ye have not heard tales o' me? I'm Captain Doctor Skullduggery, Scourge of the Sea, M.D.! \
+I've been takin' care of ye, overseein' yer recovery!"`,
+        choices: [
+            {
+                text: '"What\'s that up ahead?"',
+            },
+        ],
+    },
+    {
+        callback: (map) => {
+            map.safePassage = map.trauma < 2;
+        },
+        text: dialogue_1.template `"That's the terrible passage of terror and trauma! The more trauma, both physical and mental, ye \
+had the misfortune of accumulatin' over the the course of this here voyage to recovery, the more perilous \
+it will be."
+
+${(map) => map.safePassage
+            ? "The passage is scattered with a few rocks."
+            : "The passage is a perilous gauntlet of jagged rocks and spires."} Beyond it is an array of double doors, familiar to you \
+as the exit of the intensive care unit.
+
+"Climb up to the lookout when yer ready to forge ahead. I'll be at the bow."`,
+        choices: [
+            {
+                text: "climb to the lookout",
+            },
+        ],
+    },
+    {
+        text: `"Full speed ahead!" you shout from the lookout.
+
+"Aye, aye!" shouts the captain. The ship picks up speed, barreling towards the passage.`,
+        choices: [
+            {
+                text: "continue",
+                tag: (map) => (map.safePassage ? "escape" : "drown"),
+            },
+        ],
+    },
+    {
+        seed: "tffpepaa",
+        tag: "escape",
+        text: `The boat narrowly misses the scattered obstacles. You make it towards the hospital exit, \
+which seems much larger than before. The doors slowly open, emitting a brilliant light.
+
+This is the end of your journey.`,
+        choices: [],
+    },
+    {
+        seed: "yumtghwk",
+        tag: "drown",
+        text: dialogue_1.template `Your eyes are focused on the doors, which grow more ghostly as you approach. \
+Suddenly, the ${() => Math.random() < 0.5
+            ? "port"
+            : "starboard"} side of your ship clips a jagged \
+spire. The deck splinters and crumbles, dropping you into the cold, tumultuous sea. Struggling, you sink \
+deeper and deeper.
+
+This is the end of your journey\u2026`,
+        choices: [],
     },
 ]);
 
