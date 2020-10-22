@@ -23,6 +23,7 @@
         color: white;
         border: 2px solid white;
         margin-right: 2px;
+        pointer-events: all;
       }
       button:hover {
         background-color: #ffffff77;
@@ -40,13 +41,21 @@
         padding: 16px;
         border: 2px solid white;
         width: 400px;
+        pointer-events: none;
+      }
+
+      #art {
+        position: relative;
+        min-height: 200px;
       }
     </style>
     <meta charset="UTF-8" />
   </head>
   <body>
-    <div id="art" style="position: relative">
-      <div class="dialogue" id="dialogue"></div>
+    <div id="art">
+      <div class="dialogue" id="dialogue">
+        <p>please wait... loading some sounds</p>
+      </div>
     </div>
   </body>
   <script src="bundle.js"></script>
