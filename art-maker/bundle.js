@@ -58,7 +58,7 @@ class ArtMaker {
         this.source.restore();
         this.source.save();
         this.rand = new rand_1.Rand(seed);
-        this.timeScale = this.rand.between(0.4, 1.1);
+        this.timeScale = Math.pow(this.rand.between(0.4, 1), 2);
         const effects = [...effectrand_1.randomEffects(3, this.rand)];
         this.merger = new merge_pass_1.Merger(effects, this.sourceCanvas, this.gl, {
             channels: [null, null],
@@ -108,7 +108,7 @@ class ArtMaker {
     }
 }
 exports.ArtMaker = ArtMaker;
-ArtMaker.seedVersion = "1";
+ArtMaker.seedVersion = "1_1";
 
 },{"./chancetable":2,"./draws/bitgrid":3,"./draws/maze":4,"./draws/rosedots":5,"./effectrand":6,"./rand":9,"./utils":10,"@bandaloo/merge-pass":62}],2:[function(require,module,exports){
 "use strict";
@@ -260,11 +260,11 @@ function maze(rand) {
     const r = () => rand.random() * 255;
     const color1 = [r(), r(), r()];
     const color2 = [r(), r(), r()];
-    const hNum = Math.floor(rand.between(30, 60));
-    const vNum = Math.floor(rand.between(30, 60));
+    const hNum = Math.floor(rand.between(10, 60));
+    const vNum = Math.floor(rand.between(10, 60));
     const hSize = utils_1.H / hNum;
     const vSize = utils_1.V / vNum;
-    const lineWidth = rand.between(5, 10);
+    const lineWidth = rand.between(5, 20);
     const clearBackground = utils_1.randBackgroundFunc(rand);
     const genFunc = () => {
         const s = [...new Array(6)].map(() => Math.max(9 * Math.pow(rand.random(), 4), 0.05));
