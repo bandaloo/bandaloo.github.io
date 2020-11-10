@@ -8,6 +8,8 @@ const bitgrid_1 = require("./draws/bitgrid");
 const rosedots_1 = require("./draws/rosedots");
 const effectrand_1 = require("./effectrand");
 const utils_1 = require("./utils");
+const rand_1 = require("./rand");
+const maze_1 = require("./draws/maze");
 function canvasAndContext(width, height, kind) {
     const canvas = document.createElement("canvas");
     canvas.width = width;
@@ -19,35 +21,46 @@ function canvasAndContext(width, height, kind) {
     return [canvas, context];
 }
 class ArtMaker {
-    constructor(width = utils_1.H, height = Math.floor((width * 9) / 16), id = "art") {
+    /**
+     * constructs an ArtMaker
+     * @param width width of the canvas (defaults to 1920)
+     * @param height height of the canvas (defaults to number that preserves 16:9
+     * aspect ratio based on width)
+     * @param divId id of the div to add the canvas to (defaults to "art")
+     * @param canvasId id of the canvas automatically added to the DOM (defaults
+     * to "artcanvas")
+     */
+    constructor(width = utils_1.H, height = Math.floor((width * 9) / 16), divId = "art", canvasId = "artcanvas") {
         this.timeScale = 1;
         this.mousePos = { x: width / 2, y: height / 2 };
         [this.glCanvas, this.gl] = canvasAndContext(width, height, "webgl2");
         [this.sourceCanvas, this.source] = canvasAndContext(width, height, "2d");
-        this.glCanvas.addEventListener("click", () => this.glCanvas.requestFullscreen());
+        this.glCanvas.id = canvasId;
         this.glCanvas.addEventListener("mousemove", (e) => {
             const rect = this.glCanvas.getBoundingClientRect();
             this.mousePos.x = (width * (e.clientX - rect.left)) / rect.width;
             this.mousePos.y =
                 (height * (rect.height - (e.clientY - rect.top))) / rect.height;
         });
-        const elem = document.getElementById(id);
+        const elem = document.getElementById(divId);
         if (elem === null) {
-            throw new Error(`could not find element with id "${id}"`);
+            throw new Error(`could not find element with id "${divId}"`);
         }
         elem.appendChild(this.glCanvas);
+        this.source.scale(this.sourceCanvas.width / utils_1.H, this.sourceCanvas.height / utils_1.V);
     }
-    art(seed) {
+    /**
+     * seeds the random generation
+     * @param seed random seed
+     */
+    seed(seed) {
+        this.originalTime = undefined;
         this.source.restore();
         this.source.save();
-        this.source.scale(this.sourceCanvas.width / utils_1.H, this.sourceCanvas.height / utils_1.V);
-        if (this.curAnimationFrame !== undefined) {
-            cancelAnimationFrame(this.curAnimationFrame);
-        }
-        this.rand = new utils_1.Rand(seed);
+        this.rand = new rand_1.Rand(seed);
         this.timeScale = this.rand.between(0.4, 1.1);
         const effects = [...effectrand_1.randomEffects(3, this.rand)];
-        const merger = new merge_pass_1.Merger(effects, this.sourceCanvas, this.gl, {
+        this.merger = new merge_pass_1.Merger(effects, this.sourceCanvas, this.gl, {
             channels: [null, null],
             edgeMode: "wrap",
         });
@@ -55,23 +68,49 @@ class ArtMaker {
         chanceTable.addAll([
             [rosedots_1.roseDots, 1],
             [bitgrid_1.bitGrid, 1],
+            [maze_1.maze, 1],
         ]);
-        const drawFunc = chanceTable.pick()(this.rand);
+        this.drawFunc = chanceTable.pick()(this.rand);
+        return this;
+    }
+    /**
+     * starts requesting animation frames to draw every loop, restarting
+     * the animation if called again
+     */
+    animate() {
+        if (this.curAnimationFrame !== undefined) {
+            cancelAnimationFrame(this.curAnimationFrame);
+            this.curAnimationFrame = undefined;
+        }
         const update = (time) => {
-            if (this.originalTime === undefined)
-                this.originalTime = time;
-            const t = ((time - this.originalTime) / 1000) * this.timeScale;
-            drawFunc(t, 0, this.source, this.sourceCanvas);
-            merger.draw(t, this.mousePos.x, this.mousePos.y);
+            this.draw(time);
             this.curAnimationFrame = requestAnimationFrame(update);
         };
         this.curAnimationFrame = requestAnimationFrame(update);
+        return this;
+    }
+    /**
+     * draws to the canvas once
+     * @param time time in milliseconds of the animation
+     */
+    draw(time) {
+        if (this.merger === undefined || this.drawFunc === undefined) {
+            this.seed();
+            this.draw(time);
+            return;
+        }
+        if (this.originalTime === undefined)
+            this.originalTime = time;
+        const t = ((time - this.originalTime) / 1000) * this.timeScale;
+        this.drawFunc(t, 0, this.source, this.sourceCanvas);
+        this.merger.draw(t, this.mousePos.x, this.mousePos.y);
+        return this;
     }
 }
 exports.ArtMaker = ArtMaker;
-ArtMaker.seedVersion = "0";
+ArtMaker.seedVersion = "1";
 
-},{"./chancetable":2,"./draws/bitgrid":3,"./draws/rosedots":4,"./effectrand":5,"./utils":7,"@bandaloo/merge-pass":59}],2:[function(require,module,exports){
+},{"./chancetable":2,"./draws/bitgrid":3,"./draws/maze":4,"./draws/rosedots":5,"./effectrand":6,"./rand":9,"./utils":10,"@bandaloo/merge-pass":62}],2:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChanceTable = void 0;
@@ -201,7 +240,54 @@ function bitGrid(rand) {
 }
 exports.bitGrid = bitGrid;
 
-},{"../chancetable":2,"../utils":7}],4:[function(require,module,exports){
+},{"../chancetable":2,"../utils":10}],4:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.maze = exports.drawChar = void 0;
+const utils_1 = require("../utils");
+exports.drawChar = (context, 
+/** between -1 and 1 */
+side, x, y, width, height) => {
+    const centerX = width * x + width / 2;
+    const y1 = height * y;
+    const y2 = height * (y + 1);
+    context.beginPath();
+    context.moveTo(centerX - (side * width) / 2, y1);
+    context.lineTo(centerX + (side * width) / 2, y2);
+    context.stroke();
+};
+function maze(rand) {
+    const r = () => rand.random() * 255;
+    const color1 = [r(), r(), r()];
+    const color2 = [r(), r(), r()];
+    const hNum = Math.floor(rand.between(30, 60));
+    const vNum = Math.floor(rand.between(30, 60));
+    const hSize = utils_1.H / hNum;
+    const vSize = utils_1.V / vNum;
+    const lineWidth = rand.between(5, 10);
+    const clearBackground = utils_1.randBackgroundFunc(rand);
+    const genFunc = () => {
+        const s = [...new Array(6)].map(() => Math.max(9 * Math.pow(rand.random(), 4), 0.05));
+        const amp = rand.between(2, 15);
+        return (i, j, t) => Math.cos(s[0] * t + s[1] * i + s[2] * j) +
+            Math.sin(s[3] * t + s[4] * i + s[5] * j) * amp;
+    };
+    const tiltFunc = genFunc();
+    const colorFunc = genFunc();
+    return (t, fr, x, c) => {
+        x.lineWidth = lineWidth;
+        clearBackground(x);
+        for (let i = 0; i < hNum; i++) {
+            for (let j = 0; j < vNum; j++) {
+                x.strokeStyle = utils_1.R(...utils_1.mix(color1, color2, utils_1.clamp(colorFunc(i, j, t / 3) / 9, 0, 1)));
+                exports.drawChar(x, utils_1.clamp(tiltFunc(i, j, t), -1, 1), i, j, hSize, vSize);
+            }
+        }
+    };
+}
+exports.maze = maze;
+
+},{"../utils":10}],5:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.roseDots = void 0;
@@ -261,7 +347,7 @@ function roseDots(rand) {
 }
 exports.roseDots = roseDots;
 
-},{"../chancetable":2,"../utils":7}],5:[function(require,module,exports){
+},{"../chancetable":2,"../utils":10}],6:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.randomEffects = void 0;
@@ -379,13 +465,14 @@ const grainRand = (rand) => {
     return merge_pass_1.brightness(merge_pass_1.op(merge_pass_1.random(inside), "*", intensity));
 };
 const vignetteRand = (rand) => {
+    // TODO randomize this
     return postpre_1.vignette();
 };
 function randomEffects(num, rand) {
     const chanceTable = new chancetable_1.ChanceTable(rand);
     chanceTable.addAll([
         [kaleidoscopeRand, 2, -Infinity],
-        [noiseDisplacementRand, 3, -1],
+        [noiseDisplacementRand, 2.5, -1],
         [edgeRand, 1],
         [blurAndTraceRand, 0.5, -0.25],
         [vignetteRand, 0.5],
@@ -395,19 +482,49 @@ function randomEffects(num, rand) {
         [bloomRand, 0.25, -Infinity],
         [celShadeRand, 3, -Infinity],
         [colorDisplacementRand, 3],
-        [swirlRand, 1, -Infinity],
-        [repeatRand, 2, -1],
+        [swirlRand, 0.5, -Infinity],
+        [repeatRand, 0.5, -1],
         [grainRand, 1, -Infinity],
     ]);
     return chanceTable.pick(num).map((n) => n(rand));
 }
 exports.randomEffects = randomEffects;
 
-},{"./chancetable":2,"@bandaloo/merge-pass":59,"postpre":68}],6:[function(require,module,exports){
+},{"./chancetable":2,"@bandaloo/merge-pass":62,"postpre":71}],7:[function(require,module,exports){
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const artmaker_1 = require("./artmaker");
-const utils_1 = require("./utils");
+exports.getQuery = void 0;
+const index_1 = __importStar(require("./index"));
+function getQuery(variable, query) {
+    const vars = query.split("&");
+    for (let i = 0; i < vars.length; i++) {
+        let pair = vars[i].split("=");
+        if (pair[0] == variable) {
+            return pair[1];
+        }
+    }
+    return undefined;
+}
+exports.getQuery = getQuery;
 let reset = false;
 let artMaker;
 const gotIt = document.getElementById("gotit");
@@ -416,6 +533,7 @@ if (gotIt === null)
 const instructions = document.getElementById("instructions");
 if (instructions === null)
     throw new Error("instructions div was null");
+instructions.style.visibility = "visible";
 gotIt.addEventListener("click", () => {
     console.log("clicked");
     instructions === null || instructions === void 0 ? void 0 : instructions.remove();
@@ -427,7 +545,6 @@ const info = document.getElementById("info");
 if (info === null)
     throw new Error("info div was null");
 more.addEventListener("click", () => {
-    console.log("test");
     if (info.style.display === "none") {
         more.innerText = "Less";
         info.style.display = "block";
@@ -441,62 +558,70 @@ more.addEventListener("click", () => {
 window.addEventListener("keydown", (e) => {
     if (e.key === "r")
         main();
+    else if (e.key === "f")
+        artMaker.glCanvas.requestFullscreen();
 });
 function updatePath(name) {
     const searchParams = new URLSearchParams(window.location.search);
     searchParams.set("s", name);
-    searchParams.set("v", artmaker_1.ArtMaker.seedVersion);
+    searchParams.set("v", index_1.default.seedVersion);
     const query = window.location.pathname + "?" + searchParams.toString();
     history.pushState(null, "", query);
 }
 function main() {
     const preset = window.location.search.substring(1);
-    const query = !reset ? utils_1.getQuery("s", preset) : undefined;
-    const version = !reset ? utils_1.getQuery("v", preset) : undefined;
-    if (version !== undefined && version !== artmaker_1.ArtMaker.seedVersion) {
-        window.alert("This seed is from a previous version. You won't see same pattern from when you first saved the URL.");
+    const query = !reset ? getQuery("s", preset) : undefined;
+    const version = !reset ? getQuery("v", preset) : undefined;
+    if (version !== undefined && version !== index_1.default.seedVersion) {
+        window.alert("This seed is from a previous version. " +
+            "You won't see same pattern from when you first saved the URL.");
     }
-    const seed = query !== null && query !== void 0 ? query : utils_1.randString(8);
+    const seed = query !== null && query !== void 0 ? query : index_1.Rand.randString(8);
     console.log("seed:", seed);
     if (seed === undefined)
         throw new Error("seed was somehow undefined");
     if (!reset)
-        artMaker = new artmaker_1.ArtMaker();
+        artMaker = new index_1.default();
     reset = true;
     updatePath(seed);
-    artMaker.art(seed);
+    artMaker.seed(seed);
+    artMaker.animate();
 }
 main();
 
-},{"./artmaker":1,"./utils":7}],7:[function(require,module,exports){
+},{"./index":8}],8:[function(require,module,exports){
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const artmaker_1 = require("./artmaker");
+__exportStar(require("./rand"), exports);
+exports.default = artmaker_1.ArtMaker;
+
+},{"./artmaker":1,"./rand":9}],9:[function(require,module,exports){
 "use strict";
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.randBackgroundFunc = exports.getQuery = exports.Rand = exports.randString = exports.mix = exports.R = exports.T = exports.S = exports.C = exports.V = exports.H = void 0;
+exports.Rand = void 0;
 const seedrandom_1 = __importDefault(require("seedrandom"));
-// default resolution
-exports.H = 1920;
-exports.V = 1080;
-// dwitter sim
-exports.C = Math.cos;
-exports.S = Math.sin;
-exports.T = Math.tan;
-exports.R = (r, g, b, a = 1) => `rgba(${r | 0},${g | 0},${b | 0},${a})`;
-function mix(a, b, num) {
-    return a.map((n, i) => n + (b[i] - n) * num);
-}
-exports.mix = mix;
-function randString(length) {
-    return [...Array(length)]
-        .map(() => "abcdefghijklmnopqrstuvwxyz"[Math.floor(26 * Math.random())])
-        .join("");
-}
-exports.randString = randString;
 class Rand {
     constructor(seed) {
-        this.rand = seedrandom_1.default(seed !== null && seed !== void 0 ? seed : randString(8));
+        this.rand = seedrandom_1.default(seed !== null && seed !== void 0 ? seed : Rand.randString(8));
+    }
+    static randString(length) {
+        return [...Array(length)]
+            .map(() => "abcdefghijklmnopqrstuvwxyz"[Math.floor(26 * Math.random())])
+            .join("");
     }
     between(lo, hi) {
         return lo + (hi - lo) * this.rand();
@@ -509,18 +634,23 @@ class Rand {
     }
 }
 exports.Rand = Rand;
-// browser functions
-function getQuery(variable, query) {
-    const vars = query.split("&");
-    for (let i = 0; i < vars.length; i++) {
-        let pair = vars[i].split("=");
-        if (pair[0] == variable) {
-            return pair[1];
-        }
-    }
-    return undefined;
+
+},{"seedrandom":77}],10:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.clamp = exports.randBackgroundFunc = exports.mix = exports.R = exports.T = exports.S = exports.C = exports.V = exports.H = void 0;
+// default resolution
+exports.H = 1920;
+exports.V = 1080;
+// dwitter sim
+exports.C = Math.cos;
+exports.S = Math.sin;
+exports.T = Math.tan;
+exports.R = (r, g, b, a = 1) => `rgba(${r | 0},${g | 0},${b | 0},${a})`;
+function mix(a, b, num) {
+    return a.map((n, i) => n + (b[i] - n) * num);
 }
-exports.getQuery = getQuery;
+exports.mix = mix;
 // drawing functions
 function randBackgroundFunc(rand) {
     const b = Math.floor(rand.random() * 2) * 255;
@@ -531,8 +661,13 @@ function randBackgroundFunc(rand) {
     };
 }
 exports.randBackgroundFunc = randBackgroundFunc;
+// math
+function clamp(n, lo, hi) {
+    return Math.min(Math.max(n, lo), hi);
+}
+exports.clamp = clamp;
 
-},{"seedrandom":74}],8:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CodeBuilder = exports.channelSamplerName = void 0;
@@ -723,7 +858,7 @@ class CodeBuilder {
 }
 exports.CodeBuilder = CodeBuilder;
 
-},{"./exprs/expr":22,"./settings":61,"./webglprogramloop":63}],9:[function(require,module,exports){
+},{"./exprs/expr":25,"./settings":64,"./webglprogramloop":66}],12:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.a1 = exports.Arity1HomogenousExpr = void 0;
@@ -758,7 +893,7 @@ function a1(name, val) {
 }
 exports.a1 = a1;
 
-},{"./expr":22}],10:[function(require,module,exports){
+},{"./expr":25}],13:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.a2 = exports.Arity2HomogenousExpr = void 0;
@@ -802,7 +937,7 @@ function a2(name, val1, val2) {
 }
 exports.a2 = a2;
 
-},{"./expr":22}],11:[function(require,module,exports){
+},{"./expr":25}],14:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.bloom = exports.BloomLoop = void 0;
@@ -886,7 +1021,7 @@ function bloom(threshold, horizontal, vertical, boost, samplerNum, taps, reps) {
 }
 exports.bloom = bloom;
 
-},{"../mergepass":60,"./arity2":10,"./blurexpr":13,"./brightnessexpr":14,"./channelsampleexpr":16,"./contrastexpr":17,"./expr":22,"./fragcolorexpr":23,"./opexpr":40,"./vecexprs":56}],12:[function(require,module,exports){
+},{"../mergepass":63,"./arity2":13,"./blurexpr":16,"./brightnessexpr":17,"./channelsampleexpr":19,"./contrastexpr":20,"./expr":25,"./fragcolorexpr":26,"./opexpr":43,"./vecexprs":59}],15:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.blur2d = exports.Blur2dLoop = void 0;
@@ -939,7 +1074,7 @@ function blur2d(horizontalExpr, verticalExpr, reps, taps, samplerNum) {
 }
 exports.blur2d = blur2d;
 
-},{"../mergepass":60,"./blurexpr":13,"./expr":22,"./vecexprs":56}],13:[function(require,module,exports){
+},{"../mergepass":63,"./blurexpr":16,"./expr":25,"./vecexprs":59}],16:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.gauss = exports.BlurExpr = void 0;
@@ -995,7 +1130,7 @@ function gauss(direction, taps = 5, samplerNum) {
 }
 exports.gauss = gauss;
 
-},{"../glslfunctions":58,"./expr":22}],14:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25}],17:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.brightness = exports.Brightness = void 0;
@@ -1028,7 +1163,7 @@ function brightness(val, col) {
 }
 exports.brightness = brightness;
 
-},{"../glslfunctions":58,"./expr":22,"./fragcolorexpr":23}],15:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25,"./fragcolorexpr":26}],18:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.changecomp = exports.ChangeCompExpr = void 0;
@@ -1117,7 +1252,7 @@ function changecomp(vec, setter, comps, op) {
 }
 exports.changecomp = changecomp;
 
-},{"./expr":22,"./getcompexpr":27}],16:[function(require,module,exports){
+},{"./expr":25,"./getcompexpr":30}],19:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.channel = exports.ChannelSampleExpr = void 0;
@@ -1163,7 +1298,7 @@ function channel(channel, vec) {
 }
 exports.channel = channel;
 
-},{"../codebuilder":8,"../glslfunctions":58,"./expr":22,"./normfragcoordexpr":38}],17:[function(require,module,exports){
+},{"../codebuilder":11,"../glslfunctions":61,"./expr":25,"./normfragcoordexpr":41}],20:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.contrast = exports.ContrastExpr = void 0;
@@ -1195,7 +1330,7 @@ function contrast(val, col) {
 }
 exports.contrast = contrast;
 
-},{"../glslfunctions":58,"./expr":22,"./fragcolorexpr":23}],18:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25,"./fragcolorexpr":26}],21:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.depth2occlusion = exports.DepthToOcclusionExpr = void 0;
@@ -1243,7 +1378,7 @@ function depth2occlusion(depthCol, newCol, threshold) {
 }
 exports.depth2occlusion = depth2occlusion;
 
-},{"./channelsampleexpr":16,"./expr":22,"./vecexprs":56}],19:[function(require,module,exports){
+},{"./channelsampleexpr":19,"./expr":25,"./vecexprs":59}],22:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.dof = exports.DoFLoop = void 0;
@@ -1289,7 +1424,7 @@ function dof(depth, rad, depthInfo, reps) {
 }
 exports.dof = dof;
 
-},{"../mergepass":60,"./arity2":10,"./blurexpr":13,"./channelsampleexpr":16,"./expr":22,"./gaussianexpr":26,"./getcompexpr":27,"./opexpr":40,"./vecexprs":56}],20:[function(require,module,exports){
+},{"../mergepass":63,"./arity2":13,"./blurexpr":16,"./channelsampleexpr":19,"./expr":25,"./gaussianexpr":29,"./getcompexpr":30,"./opexpr":43,"./vecexprs":59}],23:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.edgecolor = exports.EdgeColorExpr = void 0;
@@ -1327,7 +1462,7 @@ function edgecolor(color, samplerNum, stepped) {
 }
 exports.edgecolor = edgecolor;
 
-},{"./arity2":10,"./expr":22,"./fragcolorexpr":23,"./monochromeexpr":33,"./sobelexpr":51,"./vecexprs":56}],21:[function(require,module,exports){
+},{"./arity2":13,"./expr":25,"./fragcolorexpr":26,"./monochromeexpr":36,"./sobelexpr":54,"./vecexprs":59}],24:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.edge = exports.EdgeExpr = void 0;
@@ -1363,7 +1498,7 @@ function edge(style, samplerNum) {
 }
 exports.edge = edge;
 
-},{"./brightnessexpr":14,"./expr":22,"./getcompexpr":27,"./invertexpr":31,"./monochromeexpr":33,"./opexpr":40,"./sobelexpr":51}],22:[function(require,module,exports){
+},{"./brightnessexpr":17,"./expr":25,"./getcompexpr":30,"./invertexpr":34,"./monochromeexpr":36,"./opexpr":43,"./sobelexpr":54}],25:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.tag = exports.wrapInValue = exports.pfloat = exports.Operator = exports.WrappedExpr = exports.ExprVec4 = exports.ExprVec3 = exports.ExprVec2 = exports.float = exports.ExprFloat = exports.BasicFloat = exports.ExprVec = exports.BasicVec4 = exports.BasicVec3 = exports.BasicVec2 = exports.BasicVec = exports.PrimitiveVec4 = exports.PrimitiveVec3 = exports.PrimitiveVec2 = exports.PrimitiveVec = exports.PrimitiveFloat = exports.Primitive = exports.mut = exports.Mutable = exports.cvec4 = exports.cvec3 = exports.cvec2 = exports.cfloat = exports.Expr = void 0;
@@ -1821,7 +1956,7 @@ function tag(strings, ...values) {
 }
 exports.tag = tag;
 
-},{"../mergepass":60,"../utils":62,"../webglprogramloop":63}],23:[function(require,module,exports){
+},{"../mergepass":63,"../utils":65,"../webglprogramloop":66}],26:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fcolor = exports.FragColorExpr = void 0;
@@ -1840,7 +1975,7 @@ function fcolor() {
 }
 exports.fcolor = fcolor;
 
-},{"./expr":22}],24:[function(require,module,exports){
+},{"./expr":25}],27:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pixel = exports.FragCoordExpr = void 0;
@@ -1861,7 +1996,7 @@ function pixel() {
 }
 exports.pixel = pixel;
 
-},{"./expr":22}],25:[function(require,module,exports){
+},{"./expr":25}],28:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fxaa = void 0;
@@ -1881,7 +2016,7 @@ function fxaa() {
 }
 exports.fxaa = fxaa;
 
-},{"../glslfunctions":58,"./expr":22}],26:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25}],29:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.gaussian = exports.GaussianExpr = void 0;
@@ -1921,7 +2056,7 @@ function gaussian(x, a = 0, b = 1) {
 }
 exports.gaussian = gaussian;
 
-},{"../glslfunctions":58,"./expr":22}],27:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25}],30:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.get4comp = exports.get3comp = exports.get2comp = exports.getcomp = exports.Get4CompExpr = exports.Get3CompExpr = exports.Get2CompExpr = exports.GetCompExpr = exports.checkLegalComponents = exports.typeStringToLength = void 0;
@@ -2075,7 +2210,7 @@ function get4comp(vec, comps) {
 }
 exports.get4comp = get4comp;
 
-},{"./expr":22}],28:[function(require,module,exports){
+},{"./expr":25}],31:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.godrays = exports.GodRaysExpr = void 0;
@@ -2191,7 +2326,7 @@ function godrays(options = {}) {
 }
 exports.godrays = godrays;
 
-},{"../glslfunctions":58,"./expr":22,"./fragcolorexpr":23,"./vecexprs":56}],29:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25,"./fragcolorexpr":26,"./vecexprs":59}],32:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.grain = exports.GrainExpr = void 0;
@@ -2223,7 +2358,7 @@ function grain(val) {
 }
 exports.grain = grain;
 
-},{"../glslfunctions":58,"./expr":22}],30:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25}],33:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.hsv2rgb = exports.HSVToRGBExpr = void 0;
@@ -2252,7 +2387,7 @@ function hsv2rgb(col) {
 }
 exports.hsv2rgb = hsv2rgb;
 
-},{"../glslfunctions":58,"./expr":22}],31:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25}],34:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.invert = exports.InvertExpr = void 0;
@@ -2280,7 +2415,7 @@ function invert(col) {
 }
 exports.invert = invert;
 
-},{"../glslfunctions":58,"./expr":22}],32:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25}],35:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.len = exports.LenExpr = void 0;
@@ -2303,7 +2438,7 @@ function len(vec) {
 }
 exports.len = len;
 
-},{"./expr":22}],33:[function(require,module,exports){
+},{"./expr":25}],36:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.monochrome = exports.MonochromeExpr = void 0;
@@ -2332,7 +2467,7 @@ function monochrome(col) {
 }
 exports.monochrome = monochrome;
 
-},{"../glslfunctions":58,"./expr":22}],34:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25}],37:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.motionblur = exports.MotionBlurLoop = void 0;
@@ -2374,7 +2509,7 @@ function motionblur(target, persistence) {
 }
 exports.motionblur = motionblur;
 
-},{"../mergepass":60,"./channelsampleexpr":16,"./expr":22,"./fragcolorexpr":23,"./opexpr":40}],35:[function(require,module,exports){
+},{"../mergepass":63,"./channelsampleexpr":19,"./expr":25,"./fragcolorexpr":26,"./opexpr":43}],38:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.mouse = exports.MouseExpr = void 0;
@@ -2396,7 +2531,7 @@ function mouse() {
 }
 exports.mouse = mouse;
 
-},{"./expr":22}],36:[function(require,module,exports){
+},{"./expr":25}],39:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.center = exports.NormCenterFragCoordExpr = void 0;
@@ -2417,7 +2552,7 @@ function center() {
 }
 exports.center = center;
 
-},{"./expr":22}],37:[function(require,module,exports){
+},{"./expr":25}],40:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.norm = exports.NormExpr = void 0;
@@ -2441,7 +2576,7 @@ function norm(vec) {
 }
 exports.norm = norm;
 
-},{"./expr":22}],38:[function(require,module,exports){
+},{"./expr":25}],41:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pos = exports.NormFragCoordExpr = void 0;
@@ -2464,7 +2599,7 @@ function pos() {
 }
 exports.pos = pos;
 
-},{"./expr":22}],39:[function(require,module,exports){
+},{"./expr":25}],42:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.nmouse = exports.NormMouseExpr = void 0;
@@ -2486,7 +2621,7 @@ function nmouse() {
 }
 exports.nmouse = nmouse;
 
-},{"./expr":22}],40:[function(require,module,exports){
+},{"./expr":25}],43:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.op = exports.OpExpr = void 0;
@@ -2525,7 +2660,7 @@ function op(left, op, right) {
 }
 exports.op = op;
 
-},{"./expr":22}],41:[function(require,module,exports){
+},{"./expr":25}],44:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fractalize = exports.perlin = exports.PerlinExpr = void 0;
@@ -2576,7 +2711,7 @@ function fractalize(pos, octaves, func) {
 }
 exports.fractalize = fractalize;
 
-},{"../glslfunctions":58,"./expr":22,"./opexpr":40}],42:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25,"./opexpr":43}],45:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pblur = exports.PowerBlurLoop = void 0;
@@ -2618,7 +2753,7 @@ function pblur(size) {
 }
 exports.pblur = pblur;
 
-},{"../mergepass":60,"./blurexpr":13,"./expr":22,"./vecexprs":56}],43:[function(require,module,exports){
+},{"../mergepass":63,"./blurexpr":16,"./expr":25,"./vecexprs":59}],46:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.random = exports.RandomExpr = void 0;
@@ -2649,7 +2784,7 @@ function random(seed) {
 }
 exports.random = random;
 
-},{"../glslfunctions":58,"./expr":22,"./normfragcoordexpr":38}],44:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25,"./normfragcoordexpr":41}],47:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.region = void 0;
@@ -2709,7 +2844,7 @@ function region(space, success, failure, not = false) {
 }
 exports.region = region;
 
-},{"../mergepass":60,"./expr":22,"./fragcolorexpr":23,"./getcompexpr":27,"./normfragcoordexpr":38,"./opexpr":40,"./ternaryexpr":52}],45:[function(require,module,exports){
+},{"../mergepass":63,"./expr":25,"./fragcolorexpr":26,"./getcompexpr":30,"./normfragcoordexpr":41,"./opexpr":43,"./ternaryexpr":55}],48:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resolution = exports.ResolutionExpr = void 0;
@@ -2727,7 +2862,7 @@ function resolution() {
 }
 exports.resolution = resolution;
 
-},{"./expr":22}],46:[function(require,module,exports){
+},{"./expr":25}],49:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.rgb2hsv = exports.RGBToHSVExpr = void 0;
@@ -2757,7 +2892,7 @@ function rgb2hsv(col) {
 }
 exports.rgb2hsv = rgb2hsv;
 
-},{"../glslfunctions":58,"./expr":22}],47:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25}],50:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.rotate = exports.RotateExpr = void 0;
@@ -2793,7 +2928,7 @@ function rotate(vec, angle) {
 }
 exports.rotate = rotate;
 
-},{"../glslfunctions":58,"./expr":22}],48:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25}],51:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.input = exports.SceneSampleExpr = void 0;
@@ -2824,7 +2959,7 @@ function input(vec) {
 }
 exports.input = input;
 
-},{"./expr":22,"./normfragcoordexpr":38}],49:[function(require,module,exports){
+},{"./expr":25,"./normfragcoordexpr":41}],52:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SetColorExpr = void 0;
@@ -2841,7 +2976,7 @@ class SetColorExpr extends expr_1.ExprVec4 {
 }
 exports.SetColorExpr = SetColorExpr;
 
-},{"./expr":22}],50:[function(require,module,exports){
+},{"./expr":25}],53:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.simplex = exports.SimplexNoise = void 0;
@@ -2869,7 +3004,7 @@ function simplex(pos) {
 }
 exports.simplex = simplex;
 
-},{"../glslfunctions":58,"./expr":22}],51:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25}],54:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sobel = exports.SobelExpr = void 0;
@@ -2895,7 +3030,7 @@ function sobel(samplerNum) {
 }
 exports.sobel = sobel;
 
-},{"../glslfunctions":58,"./expr":22}],52:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25}],55:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ternary = exports.TernaryExpr = void 0;
@@ -2960,7 +3095,7 @@ function ternary(floats, success, failure, not = false) {
 }
 exports.ternary = ternary;
 
-},{"./expr":22}],53:[function(require,module,exports){
+},{"./expr":25}],56:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.time = exports.TimeExpr = void 0;
@@ -2979,7 +3114,7 @@ function time() {
 }
 exports.time = time;
 
-},{"./expr":22}],54:[function(require,module,exports){
+},{"./expr":25}],57:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.translate = exports.TranslateExpr = void 0;
@@ -3012,7 +3147,7 @@ function translate(vec, pos) {
 }
 exports.translate = translate;
 
-},{"./expr":22}],55:[function(require,module,exports){
+},{"./expr":25}],58:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.truedepth = exports.TrueDepthExpr = void 0;
@@ -3038,7 +3173,7 @@ function truedepth(depth) {
 }
 exports.truedepth = truedepth;
 
-},{"../glslfunctions":58,"./expr":22}],56:[function(require,module,exports){
+},{"../glslfunctions":61,"./expr":25}],59:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pvec4 = exports.pvec3 = exports.pvec2 = exports.vec4 = exports.vec3 = exports.vec2 = void 0;
@@ -3089,11 +3224,11 @@ function pvec4(comp1, comp2, comp3, comp4) {
 }
 exports.pvec4 = pvec4;
 
-},{"./expr":22}],57:[function(require,module,exports){
+},{"./expr":25}],60:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 
-},{}],58:[function(require,module,exports){
+},{}],61:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.glslFuncs = void 0;
@@ -3413,7 +3548,7 @@ vec3 permute(vec3 x) { return mod289_3(((x*34.0)+1.0)*x); }`,
 }`,
 };
 
-},{}],59:[function(require,module,exports){
+},{}],62:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -3477,7 +3612,7 @@ __exportStar(require("./exprs/ternaryexpr"), exports);
 __exportStar(require("./exprs/regiondecorator"), exports);
 __exportStar(require("./exprs/expr"), exports);
 
-},{"./exprs/arity1":9,"./exprs/arity2":10,"./exprs/bloomloop":11,"./exprs/blur2dloop":12,"./exprs/blurexpr":13,"./exprs/brightnessexpr":14,"./exprs/changecompexpr":15,"./exprs/channelsampleexpr":16,"./exprs/contrastexpr":17,"./exprs/depthtoocclusionexpr":18,"./exprs/dofloop":19,"./exprs/edgecolorexpr":20,"./exprs/edgeexpr":21,"./exprs/expr":22,"./exprs/fragcolorexpr":23,"./exprs/fragcoordexpr":24,"./exprs/fxaaexpr":25,"./exprs/getcompexpr":27,"./exprs/godraysexpr":28,"./exprs/grainexpr":29,"./exprs/hsvtorgbexpr":30,"./exprs/invertexpr":31,"./exprs/lenexpr":32,"./exprs/monochromeexpr":33,"./exprs/motionblurloop":34,"./exprs/mouseexpr":35,"./exprs/normcenterfragcoordexpr":36,"./exprs/normexpr":37,"./exprs/normfragcoordexpr":38,"./exprs/normmouseexpr":39,"./exprs/opexpr":40,"./exprs/perlinexpr":41,"./exprs/powerblur":42,"./exprs/randomexpr":43,"./exprs/regiondecorator":44,"./exprs/resolutionexpr":45,"./exprs/rgbtohsvexpr":46,"./exprs/rotateexpr":47,"./exprs/scenesampleexpr":48,"./exprs/simplexexpr":50,"./exprs/sobelexpr":51,"./exprs/ternaryexpr":52,"./exprs/timeexpr":53,"./exprs/translateexpr":54,"./exprs/truedepthexpr":55,"./exprs/vecexprs":56,"./exprtypes":57,"./glslfunctions":58,"./mergepass":60,"./settings":61}],60:[function(require,module,exports){
+},{"./exprs/arity1":12,"./exprs/arity2":13,"./exprs/bloomloop":14,"./exprs/blur2dloop":15,"./exprs/blurexpr":16,"./exprs/brightnessexpr":17,"./exprs/changecompexpr":18,"./exprs/channelsampleexpr":19,"./exprs/contrastexpr":20,"./exprs/depthtoocclusionexpr":21,"./exprs/dofloop":22,"./exprs/edgecolorexpr":23,"./exprs/edgeexpr":24,"./exprs/expr":25,"./exprs/fragcolorexpr":26,"./exprs/fragcoordexpr":27,"./exprs/fxaaexpr":28,"./exprs/getcompexpr":30,"./exprs/godraysexpr":31,"./exprs/grainexpr":32,"./exprs/hsvtorgbexpr":33,"./exprs/invertexpr":34,"./exprs/lenexpr":35,"./exprs/monochromeexpr":36,"./exprs/motionblurloop":37,"./exprs/mouseexpr":38,"./exprs/normcenterfragcoordexpr":39,"./exprs/normexpr":40,"./exprs/normfragcoordexpr":41,"./exprs/normmouseexpr":42,"./exprs/opexpr":43,"./exprs/perlinexpr":44,"./exprs/powerblur":45,"./exprs/randomexpr":46,"./exprs/regiondecorator":47,"./exprs/resolutionexpr":48,"./exprs/rgbtohsvexpr":49,"./exprs/rotateexpr":50,"./exprs/scenesampleexpr":51,"./exprs/simplexexpr":53,"./exprs/sobelexpr":54,"./exprs/ternaryexpr":55,"./exprs/timeexpr":56,"./exprs/translateexpr":57,"./exprs/truedepthexpr":58,"./exprs/vecexprs":59,"./exprtypes":60,"./glslfunctions":61,"./mergepass":63,"./settings":64}],63:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendTexture = exports.makeTexture = exports.Merger = exports.loop = exports.EffectLoop = exports.EffectDictionary = void 0;
@@ -3912,7 +4047,7 @@ function sendTexture(gl, src) {
 }
 exports.sendTexture = sendTexture;
 
-},{"./codebuilder":8,"./exprs/expr":22,"./exprs/fragcolorexpr":23,"./exprs/regiondecorator":44,"./exprs/scenesampleexpr":48,"./exprs/setcolorexpr":49,"./exprs/ternaryexpr":52,"./settings":61,"./webglprogramloop":63}],61:[function(require,module,exports){
+},{"./codebuilder":11,"./exprs/expr":25,"./exprs/fragcolorexpr":26,"./exprs/regiondecorator":47,"./exprs/scenesampleexpr":51,"./exprs/setcolorexpr":52,"./exprs/ternaryexpr":55,"./settings":64,"./webglprogramloop":66}],64:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.settings = void 0;
@@ -3928,7 +4063,7 @@ exports.settings = {
     offset: 0,
 };
 
-},{}],62:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.brandWithRegion = exports.brandWithChannel = exports.captureAndAppend = void 0;
@@ -4013,7 +4148,7 @@ function brandWithRegion(expr, funcIndex, space) {
 }
 exports.brandWithRegion = brandWithRegion;
 
-},{"./glslfunctions":58}],63:[function(require,module,exports){
+},{"./glslfunctions":61}],66:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WebGLProgramLoop = exports.WebGLProgramLeaf = exports.updateNeeds = void 0;
@@ -4247,9 +4382,9 @@ class WebGLProgramLoop {
 }
 exports.WebGLProgramLoop = WebGLProgramLoop;
 
-},{"./settings":61}],64:[function(require,module,exports){
+},{"./settings":64}],67:[function(require,module,exports){
 
-},{}],65:[function(require,module,exports){
+},{}],68:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.blurandtrace = exports.BlurAndTrace = void 0;
@@ -4283,7 +4418,7 @@ function blurandtrace(brightness = merge_pass_1.mut(1), blurSize = merge_pass_1.
 }
 exports.blurandtrace = blurandtrace;
 
-},{"@bandaloo/merge-pass":59}],66:[function(require,module,exports){
+},{"@bandaloo/merge-pass":62}],69:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.celshade = exports.CelShade = void 0;
@@ -4329,7 +4464,7 @@ function celshade(mult = merge_pass_1.mut(0.8), bump = merge_pass_1.mut(0.3), ce
 }
 exports.celshade = celshade;
 
-},{"@bandaloo/merge-pass":59}],67:[function(require,module,exports){
+},{"@bandaloo/merge-pass":62}],70:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.foggyrays = exports.FoggyRaysExpr = void 0;
@@ -4384,7 +4519,7 @@ function foggyrays(period = merge_pass_1.mut(100), speed = merge_pass_1.mut(1), 
 }
 exports.foggyrays = foggyrays;
 
-},{"@bandaloo/merge-pass":59}],68:[function(require,module,exports){
+},{"@bandaloo/merge-pass":62}],71:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -4406,7 +4541,7 @@ __exportStar(require("./oldfilm"), exports);
 __exportStar(require("./kaleidoscope"), exports);
 __exportStar(require("./celshade"), exports);
 
-},{"./blurandtrace":65,"./celshade":66,"./foggyrays":67,"./kaleidoscope":69,"./lightbands":70,"./noisedisplacement":71,"./oldfilm":72,"./vignette":73}],69:[function(require,module,exports){
+},{"./blurandtrace":68,"./celshade":69,"./foggyrays":70,"./kaleidoscope":72,"./lightbands":73,"./noisedisplacement":74,"./oldfilm":75,"./vignette":76}],72:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.kaleidoscope = exports.Kaleidoscope = void 0;
@@ -4444,7 +4579,7 @@ function kaleidoscope(sides = merge_pass_1.mut(8), scale = merge_pass_1.mut(1)) 
 }
 exports.kaleidoscope = kaleidoscope;
 
-},{"@bandaloo/merge-pass":59}],70:[function(require,module,exports){
+},{"@bandaloo/merge-pass":62}],73:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.lightbands = exports.LightBands = void 0;
@@ -4482,7 +4617,7 @@ function lightbands(speed = merge_pass_1.mut(4), intensity = merge_pass_1.mut(0.
 }
 exports.lightbands = lightbands;
 
-},{"@bandaloo/merge-pass":59}],71:[function(require,module,exports){
+},{"@bandaloo/merge-pass":62}],74:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.noisedisplacement = exports.NoiseDisplacement = void 0;
@@ -4522,7 +4657,7 @@ function noisedisplacement(period = merge_pass_1.mut(0.1), speed = merge_pass_1.
 }
 exports.noisedisplacement = noisedisplacement;
 
-},{"@bandaloo/merge-pass":59}],72:[function(require,module,exports){
+},{"@bandaloo/merge-pass":62}],75:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.oldfilm = exports.OldFilm = void 0;
@@ -4568,7 +4703,7 @@ function oldfilm(speckIntensity = merge_pass_1.mut(0.4), lineIntensity = merge_p
 }
 exports.oldfilm = oldfilm;
 
-},{"@bandaloo/merge-pass":59}],73:[function(require,module,exports){
+},{"@bandaloo/merge-pass":62}],76:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.vignette = exports.Vignette = void 0;
@@ -4609,7 +4744,7 @@ function vignette(blurScalar = merge_pass_1.mut(3), brightnessScalar = merge_pas
 }
 exports.vignette = vignette;
 
-},{"@bandaloo/merge-pass":59}],74:[function(require,module,exports){
+},{"@bandaloo/merge-pass":62}],77:[function(require,module,exports){
 // A library of seedable RNGs implemented in Javascript.
 //
 // Usage:
@@ -4671,7 +4806,7 @@ sr.tychei = tychei;
 
 module.exports = sr;
 
-},{"./lib/alea":75,"./lib/tychei":76,"./lib/xor128":77,"./lib/xor4096":78,"./lib/xorshift7":79,"./lib/xorwow":80,"./seedrandom":81}],75:[function(require,module,exports){
+},{"./lib/alea":78,"./lib/tychei":79,"./lib/xor128":80,"./lib/xor4096":81,"./lib/xorshift7":82,"./lib/xorwow":83,"./seedrandom":84}],78:[function(require,module,exports){
 // A port of an algorithm by Johannes Baagøe <baagoe@baagoe.com>, 2010
 // http://baagoe.com/en/RandomMusings/javascript/
 // https://github.com/nquinlan/better-random-numbers-for-javascript-mirror
@@ -4787,7 +4922,7 @@ if (module && module.exports) {
 
 
 
-},{}],76:[function(require,module,exports){
+},{}],79:[function(require,module,exports){
 // A Javascript implementaion of the "Tyche-i" prng algorithm by
 // Samuel Neves and Filipe Araujo.
 // See https://eden.dei.uc.pt/~sneves/pubs/2011-snfa2.pdf
@@ -4892,7 +5027,7 @@ if (module && module.exports) {
 
 
 
-},{}],77:[function(require,module,exports){
+},{}],80:[function(require,module,exports){
 // A Javascript implementaion of the "xor128" prng algorithm by
 // George Marsaglia.  See http://www.jstatsoft.org/v08/i14/paper
 
@@ -4975,7 +5110,7 @@ if (module && module.exports) {
 
 
 
-},{}],78:[function(require,module,exports){
+},{}],81:[function(require,module,exports){
 // A Javascript implementaion of Richard Brent's Xorgens xor4096 algorithm.
 //
 // This fast non-cryptographic random number generator is designed for
@@ -5123,7 +5258,7 @@ if (module && module.exports) {
   (typeof define) == 'function' && define   // present with an AMD loader
 );
 
-},{}],79:[function(require,module,exports){
+},{}],82:[function(require,module,exports){
 // A Javascript implementaion of the "xorshift7" algorithm by
 // François Panneton and Pierre L'ecuyer:
 // "On the Xorgshift Random Number Generators"
@@ -5222,7 +5357,7 @@ if (module && module.exports) {
 );
 
 
-},{}],80:[function(require,module,exports){
+},{}],83:[function(require,module,exports){
 // A Javascript implementaion of the "xorwow" prng algorithm by
 // George Marsaglia.  See http://www.jstatsoft.org/v08/i14/paper
 
@@ -5310,7 +5445,7 @@ if (module && module.exports) {
 
 
 
-},{}],81:[function(require,module,exports){
+},{}],84:[function(require,module,exports){
 /*
 Copyright 2019 David Bau.
 
@@ -5565,4 +5700,4 @@ if ((typeof module) == 'object' && module.exports) {
   Math    // math: package containing random, pow, and seedrandom
 );
 
-},{"crypto":64}]},{},[6]);
+},{"crypto":67}]},{},[7]);
