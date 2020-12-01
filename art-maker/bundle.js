@@ -57,20 +57,32 @@ class ArtMaker {
         this.originalTime = undefined;
         this.source.restore();
         this.source.save();
-        this.rand = new rand_1.Rand(seed);
-        this.timeScale = Math.pow(this.rand.between(0.4, 1), 2);
-        const effects = [...effectrand_1.randomEffects(3, this.rand)];
+        const rand = new rand_1.Rand(seed);
+        this.timeScale = Math.pow(rand.between(0.4, 1), 2);
+        const effects = [...effectrand_1.randomEffects(3, rand)];
         this.merger = new merge_pass_1.Merger(effects, this.sourceCanvas, this.gl, {
             channels: [null, null],
             edgeMode: "wrap",
         });
-        const chanceTable = new chancetable_1.ChanceTable(this.rand);
+        const chanceTable = new chancetable_1.ChanceTable(rand);
         chanceTable.addAll([
             [rosedots_1.roseDots, 1],
             [bitgrid_1.bitGrid, 1],
-            [maze_1.maze, 1],
+            [maze_1.maze, 0.5],
         ]);
-        this.drawFunc = chanceTable.pick()(this.rand);
+        const r = () => Math.floor(rand.random() * 256);
+        const backChance = rand.random();
+        this.colors = {
+            fore1: [r(), r(), r()],
+            fore2: [r(), r(), r()],
+            back: backChance < 0.1
+                ? [r(), r(), r()]
+                : backChance < 0.55
+                    ? [0, 0, 0]
+                    : [255, 255, 255],
+        };
+        this.drawFunc = chanceTable.pick()(rand, this.colors);
+        this.rand = rand;
         return this;
     }
     /**
@@ -89,6 +101,34 @@ class ArtMaker {
         this.curAnimationFrame = requestAnimationFrame(update);
         return this;
     }
+    setColor(layer, color) {
+        if (this.colors === undefined)
+            throw new Error("colors not defined yet");
+        this.colors[layer] = color;
+    }
+    getColor(layer) {
+        return this.colors !== undefined
+            ? this.colors[layer]
+            : [0, 0, 0];
+    }
+    setBackground(color) {
+        this.setColor("back", color);
+    }
+    getBackground() {
+        return this.getColor("back");
+    }
+    setForeground1(color) {
+        this.setColor("fore1", color);
+    }
+    getForeground1() {
+        return this.getColor("fore1");
+    }
+    setForeground2(color) {
+        this.setColor("fore2", color);
+    }
+    getForeground2() {
+        return this.getColor("fore2");
+    }
     /**
      * draws to the canvas once
      * @param time time in milliseconds of the animation
@@ -102,13 +142,13 @@ class ArtMaker {
         if (this.originalTime === undefined)
             this.originalTime = time;
         const t = ((time - this.originalTime) / 1000) * this.timeScale;
-        this.drawFunc(t, 0, this.source, this.sourceCanvas);
+        this.drawFunc(t, this.source);
         this.merger.draw(t, this.mousePos.x, this.mousePos.y);
         return this;
     }
 }
 exports.ArtMaker = ArtMaker;
-ArtMaker.seedVersion = "1_1";
+ArtMaker.seedVersion = "2";
 
 },{"./chancetable":2,"./draws/bitgrid":3,"./draws/maze":4,"./draws/rosedots":5,"./effectrand":6,"./rand":9,"./utils":10,"@bandaloo/merge-pass":62}],2:[function(require,module,exports){
 "use strict";
@@ -168,13 +208,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.bitGrid = void 0;
 const chancetable_1 = require("../chancetable");
 const utils_1 = require("../utils");
-function bitGrid(rand) {
-    const r = () => rand.random() * 255;
-    const color1 = [r(), r(), r()];
-    const color2 = [r(), r(), r()];
+function bitGrid(rand, colors) {
     const hNum = Math.floor(rand.between(15, 40));
     const vNum = Math.floor(rand.between(15, 40));
-    const clearBackground = utils_1.randBackgroundFunc(rand);
     const smooth = rand.random() > 0.2;
     const xorFunc = (() => {
         const div = rand.between(10, 50);
@@ -223,8 +259,8 @@ function bitGrid(rand) {
     const overscan = sizeFunc !== oneFunc ? 2 : 0;
     const overscanX = iSpeed !== 0 ? overscan : 0;
     const overscanY = jSpeed !== 0 ? overscan : 0;
-    return (t, fr, x, c) => {
-        clearBackground(x);
+    return (t, x) => {
+        utils_1.clearBackground(x, colors.back);
         for (let i = 0 - overscanX; i < hNum + 1 + overscanX; i++) {
             const ri = Math.floor(i + t * iSpeed);
             const iOffset = smooth ? (t * iSpeed) % 1 : 0;
@@ -232,7 +268,7 @@ function bitGrid(rand) {
                 const rj = Math.floor(j + t * jSpeed);
                 const jOffset = smooth ? (t * jSpeed) % 1 : 0;
                 const size = sizeFunc(ri, rj, t);
-                x.fillStyle = utils_1.R(...utils_1.mix(color1, color2, colorFunc(ri, rj)));
+                x.fillStyle = utils_1.R(...utils_1.mix(colors.fore1, colors.fore2, colorFunc(ri, rj)));
                 x.fillRect((i - iOffset) * hSize, (j - jOffset) * vSize, hSize * size, vSize * size);
             }
         }
@@ -256,16 +292,12 @@ side, x, y, width, height) => {
     context.lineTo(centerX + (side * width) / 2, y2);
     context.stroke();
 };
-function maze(rand) {
-    const r = () => rand.random() * 255;
-    const color1 = [r(), r(), r()];
-    const color2 = [r(), r(), r()];
+function maze(rand, colors) {
     const hNum = Math.floor(rand.between(10, 60));
     const vNum = Math.floor(rand.between(10, 60));
     const hSize = utils_1.H / hNum;
     const vSize = utils_1.V / vNum;
     const lineWidth = rand.between(5, 20);
-    const clearBackground = utils_1.randBackgroundFunc(rand);
     const genFunc = () => {
         const s = [...new Array(6)].map(() => Math.max(9 * Math.pow(rand.random(), 4), 0.05));
         const amp = rand.between(2, 15);
@@ -274,12 +306,12 @@ function maze(rand) {
     };
     const tiltFunc = genFunc();
     const colorFunc = genFunc();
-    return (t, fr, x, c) => {
+    return (t, x) => {
         x.lineWidth = lineWidth;
-        clearBackground(x);
+        utils_1.clearBackground(x, colors.back);
         for (let i = 0; i < hNum; i++) {
             for (let j = 0; j < vNum; j++) {
-                x.strokeStyle = utils_1.R(...utils_1.mix(color1, color2, utils_1.clamp(colorFunc(i, j, t / 3) / 9, 0, 1)));
+                x.strokeStyle = utils_1.R(...utils_1.mix(colors.fore1, colors.fore2, utils_1.clamp(colorFunc(i, j, t / 3) / 9, 0, 1)));
                 exports.drawChar(x, utils_1.clamp(tiltFunc(i, j, t), -1, 1), i, j, hSize, vSize);
             }
         }
@@ -293,16 +325,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.roseDots = void 0;
 const chancetable_1 = require("../chancetable");
 const utils_1 = require("../utils");
-function roseDots(rand) {
+function roseDots(rand, colors) {
     // common attributes
-    const r = () => rand.random() * 255;
-    const color1 = [r(), r(), r()];
-    const color2 = [r(), r(), r()];
+    //const r = () => rand.random() * 255;
+    //const color1: TupleVec3 = [r(), r(), r()];
+    //const color2: TupleVec3 = [r(), r(), r()];
     const size = 0.5 + rand.random();
     const freq = 0.8 + rand.random();
     const speed = rand.between(0.25, 1.75);
     const num = Math.floor(rand.between(30, 70));
-    const clearBackground = utils_1.randBackgroundFunc(rand);
     // specific to second drawing pattern
     const lineWidth = rand.between(3, 15);
     const segments = [15 + rand.int(20), rand.int(20), rand.int(20)];
@@ -319,22 +350,22 @@ function roseDots(rand) {
     const freq2 = rand.between(0.2, 2);
     const freq3 = rand.between(0.2, 2);
     return rand.random() < 0.5
-        ? (t, fr, x, c) => {
-            clearBackground(x);
+        ? (t, x) => {
+            utils_1.clearBackground(x, colors.back);
             for (let i = 0; i < num; i += 0.5) {
                 x.beginPath();
                 let d = 2 * utils_1.C((2 + utils_1.S((speed * t) / 99)) * 2 * i);
                 x.arc(utils_1.H / 2 + d * 9 * utils_1.C(i * freq) * i, utils_1.V / 2 + d * 9 * utils_1.S(i * freq) * i, i * size, 0, Math.PI * 2);
-                x.fillStyle = utils_1.R(...utils_1.mix(color1, color2, i / 50));
+                x.fillStyle = utils_1.R(...utils_1.mix(colors.fore1, colors.fore2, i / 50));
                 x.fill();
             }
         }
-        : (t, fr, x, c) => {
-            clearBackground(x);
+        : (t, x) => {
+            utils_1.clearBackground(x, colors.back);
             x.lineWidth = lineWidth;
             x.setLineDash(segments);
             for (let i = 0; i < copies; i++) {
-                x.strokeStyle = utils_1.R(...utils_1.mix(color1, color2, i / (copies - 1)));
+                x.strokeStyle = utils_1.R(...utils_1.mix(colors.fore1, colors.fore2, i / (copies - 1)));
                 x.beginPath();
                 for (let j = 0; j < num; j++) {
                     x.lineTo((j / (num - 1)) * utils_1.H, utils_1.V / 2 +
@@ -465,8 +496,22 @@ const grainRand = (rand) => {
     return merge_pass_1.brightness(merge_pass_1.op(merge_pass_1.random(inside), "*", intensity));
 };
 const vignetteRand = (rand) => {
-    // TODO randomize this
     return postpre_1.vignette();
+};
+const rainbowEdgeRand = (rand) => {
+    const colExpr = merge_pass_1.op(merge_pass_1.op(merge_pass_1.time(), "*", rand.between(-2, 2)), "+", merge_pass_1.len(merge_pass_1.op(merge_pass_1.pos(), "-", 0.5)));
+    return merge_pass_1.edgecolor(merge_pass_1.hsv2rgb(merge_pass_1.vec4(colExpr, rand.between(0.5, 1), rand.between(0.5, 1), 1)));
+};
+const sampleEdgeExpr = (rand) => {
+    const colExpr = merge_pass_1.channel(-1, merge_pass_1.op(merge_pass_1.pos(), "+", merge_pass_1.vec2(rand.between(0.1, 0.5), rand.between(0.1, 0.5))));
+    return merge_pass_1.edgecolor(colExpr);
+};
+const thermalRand = (rand) => {
+    return [
+        merge_pass_1.blur2d(2, 2, 9),
+        merge_pass_1.motionblur(0, 0.03),
+        merge_pass_1.hsv2rgb(merge_pass_1.vec4(merge_pass_1.op(merge_pass_1.op(merge_pass_1.getcomp(merge_pass_1.rgb2hsv(merge_pass_1.fcolor()), "z"), "*", rand.between(0.3, 0.9)), "+", rand.random()), rand.between(0.2, 1), rand.between(0.85, 1), 1)),
+    ];
 };
 function randomEffects(num, rand) {
     const chanceTable = new chancetable_1.ChanceTable(rand);
@@ -485,8 +530,14 @@ function randomEffects(num, rand) {
         [swirlRand, 0.5, -Infinity],
         [repeatRand, 0.5, -1],
         [grainRand, 1, -Infinity],
+        [rainbowEdgeRand, 0.5, -Infinity],
+        [thermalRand, 0.5, -Infinity],
+        [sampleEdgeExpr, 0.5, -Infinity],
     ]);
-    return chanceTable.pick(num).map((n) => n(rand));
+    return chanceTable
+        .pick(num)
+        .map((n) => n(rand))
+        .flat();
 }
 exports.randomEffects = randomEffects;
 
@@ -514,6 +565,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getQuery = void 0;
 const index_1 = __importStar(require("./index"));
+const utils_1 = require("./utils");
 function getQuery(variable, query) {
     const vars = query.split("&");
     for (let i = 0; i < vars.length; i++) {
@@ -535,7 +587,6 @@ if (instructions === null)
     throw new Error("instructions div was null");
 instructions.style.visibility = "visible";
 gotIt.addEventListener("click", () => {
-    console.log("clicked");
     instructions === null || instructions === void 0 ? void 0 : instructions.remove();
 });
 const more = document.getElementById("more");
@@ -552,7 +603,6 @@ more.addEventListener("click", () => {
     else {
         more.innerText = "More";
         info.style.display = "none";
-        console.log(info.style.display);
     }
 });
 window.addEventListener("keydown", (e) => {
@@ -563,15 +613,43 @@ window.addEventListener("keydown", (e) => {
 });
 function updatePath(name) {
     const searchParams = new URLSearchParams(window.location.search);
-    searchParams.set("s", name);
+    if (name !== undefined)
+        searchParams.set("s", name);
     searchParams.set("v", index_1.default.seedVersion);
+    searchParams.set("c", [
+        artMaker.getBackground(),
+        artMaker.getForeground1(),
+        artMaker.getForeground2(),
+    ]
+        .map((c) => utils_1.colorVectorToHex(c).slice(1))
+        .join("-"));
     const query = window.location.pathname + "?" + searchParams.toString();
     history.pushState(null, "", query);
+}
+function setupInput(input, layer) {
+    input.addEventListener("input", () => {
+        artMaker.setColor(layer, utils_1.hexColorToVector(input.value));
+    });
+    input.addEventListener("change", () => updatePath());
+    return input;
+}
+const backInput = setupInput(document.getElementById("background"), "back");
+const foreInput1 = setupInput(document.getElementById("foreground1"), "fore1");
+const foreInput2 = setupInput(document.getElementById("foreground2"), "fore2");
+function inputUpdate() {
+    backInput.value = utils_1.colorVectorToHex(artMaker.getBackground());
+    foreInput1.value = utils_1.colorVectorToHex(artMaker.getForeground1());
+    foreInput2.value = utils_1.colorVectorToHex(artMaker.getForeground2());
+}
+function colorStringsToColors(str) {
+    const vals = str.split("-").map((n) => "#" + n);
+    return vals.map(utils_1.hexColorToVector);
 }
 function main() {
     const preset = window.location.search.substring(1);
     const query = !reset ? getQuery("s", preset) : undefined;
     const version = !reset ? getQuery("v", preset) : undefined;
+    const colors = !reset ? getQuery("c", preset) : undefined;
     if (version !== undefined && version !== index_1.default.seedVersion) {
         window.alert("This seed is from a previous version. " +
             "You won't see same pattern from when you first saved the URL.");
@@ -583,13 +661,20 @@ function main() {
     if (!reset)
         artMaker = new index_1.default();
     reset = true;
-    updatePath(seed);
     artMaker.seed(seed);
+    if (colors !== undefined) {
+        const converted = colorStringsToColors(colors);
+        artMaker.setBackground(converted[0]);
+        artMaker.setForeground1(converted[1]);
+        artMaker.setForeground2(converted[2]);
+    }
+    updatePath(seed);
+    inputUpdate();
     artMaker.animate();
 }
 main();
 
-},{"./index":8}],8:[function(require,module,exports){
+},{"./index":8,"./utils":10}],8:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -638,7 +723,7 @@ exports.Rand = Rand;
 },{"seedrandom":77}],10:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.clamp = exports.randBackgroundFunc = exports.mix = exports.R = exports.T = exports.S = exports.C = exports.V = exports.H = void 0;
+exports.colorVectorToHex = exports.hexColorToVector = exports.clamp = exports.clearBackground = exports.mix = exports.R = exports.T = exports.S = exports.C = exports.V = exports.H = void 0;
 // default resolution
 exports.H = 1920;
 exports.V = 1080;
@@ -652,20 +737,32 @@ function mix(a, b, num) {
 }
 exports.mix = mix;
 // drawing functions
-function randBackgroundFunc(rand) {
-    const b = Math.floor(rand.random() * 2) * 255;
-    const background = exports.R(b, b, b);
-    return (x) => {
-        x.fillStyle = background;
-        x.fillRect(0, 0, exports.H, exports.V);
-    };
+function clearBackground(x, color) {
+    x.fillStyle = exports.R(...color);
+    x.fillRect(0, 0, exports.H, exports.V);
 }
-exports.randBackgroundFunc = randBackgroundFunc;
+exports.clearBackground = clearBackground;
 // math
 function clamp(n, lo, hi) {
     return Math.min(Math.max(n, lo), hi);
 }
 exports.clamp = clamp;
+// color conversion
+function hexColorToVector(str) {
+    str = str.slice(1); // get rid of first char
+    const vals = str.match(/..?/g); // split into groups of two
+    if (vals === null)
+        throw new Error("no matches for color conversion");
+    if (vals.length !== 3)
+        throw new Error("wrong length for color");
+    const vec = vals.map((n) => parseInt(n, 16));
+    return vec;
+}
+exports.hexColorToVector = hexColorToVector;
+function colorVectorToHex(color) {
+    return "#" + color.map((n) => n.toString(16).padStart(2, "0")).join("");
+}
+exports.colorVectorToHex = colorVectorToHex;
 
 },{}],11:[function(require,module,exports){
 "use strict";
@@ -1569,7 +1666,9 @@ class Expr {
             ? mult
             : this.sourceLists.values
                 .map((v) => v.getSampleNum())
-                .reduce((acc, curr) => acc + curr, 0);
+                .reduce((acc, curr) => acc + curr, 0) > 0
+                ? mult
+                : 0;
     }
     /**
      * set a uniform by name directly
