@@ -32,6 +32,7 @@ class ArtMaker {
      */
     constructor(width = utils_1.H, height = Math.floor((width * 9) / 16), divId = "art", canvasId = "artcanvas") {
         this.timeScale = 1;
+        this.downloadInfo = { run: false };
         this.mousePos = { x: width / 2, y: height / 2 };
         [this.glCanvas, this.gl] = canvasAndContext(width, height, "webgl2");
         [this.sourceCanvas, this.source] = canvasAndContext(width, height, "2d");
@@ -82,7 +83,6 @@ class ArtMaker {
                     : [255, 255, 255],
         };
         this.drawFunc = chanceTable.pick()(rand, this.colors);
-        this.rand = rand;
         return this;
     }
     /**
@@ -101,39 +101,57 @@ class ArtMaker {
         this.curAnimationFrame = requestAnimationFrame(update);
         return this;
     }
+    /** sets any color */
     setColor(layer, color) {
         if (this.colors === undefined)
             throw new Error("colors not defined yet");
         this.colors[layer] = color;
     }
+    /** gets any color */
     getColor(layer) {
         return this.colors !== undefined
             ? this.colors[layer]
             : [0, 0, 0];
     }
+    /** sets background color */
     setBackground(color) {
         this.setColor("back", color);
     }
+    /** gets background color */
     getBackground() {
         return this.getColor("back");
     }
+    /** sets first foreground color */
     setForeground1(color) {
         this.setColor("fore1", color);
     }
+    /** gets first foreground color */
     getForeground1() {
         return this.getColor("fore1");
     }
+    /** sets second foreground color */
     setForeground2(color) {
         this.setColor("fore2", color);
     }
+    /** gets second foreground color */
     getForeground2() {
         return this.getColor("fore2");
+    }
+    /**
+     * gets the time in ms of last rendered frame, returning 0 if animation has
+     * not started yet
+     */
+    getTime() {
+        var _a;
+        return (_a = this.lastTime) !== null && _a !== void 0 ? _a : 0;
     }
     /**
      * draws to the canvas once
      * @param time time in milliseconds of the animation
      */
     draw(time) {
+        var _a;
+        this.lastTime = time;
         if (this.merger === undefined || this.drawFunc === undefined) {
             this.seed();
             this.draw(time);
@@ -144,7 +162,27 @@ class ArtMaker {
         const t = ((time - this.originalTime) / 1000) * this.timeScale;
         this.drawFunc(t, this.source);
         this.merger.draw(t, this.mousePos.x, this.mousePos.y);
+        // we need to download the canvas directly after rendering, or else the
+        // downloaded image will be blank (browsers clear the buffer right after
+        // rendering for security reasons)
+        if (this.downloadInfo.run) {
+            const image = this.glCanvas.toDataURL("image/png", 1.0);
+            const link = document.createElement("a");
+            link.download = `${(_a = this.downloadInfo.name) !== null && _a !== void 0 ? _a : "artmaker"}.png`;
+            link.href = image;
+            link.click();
+            this.downloadInfo.run = false;
+            this.downloadInfo.name = undefined;
+        }
         return this;
+    }
+    /**
+     * will start a download of the image on the next render
+     * @param name filename (excluding .png which is added automatically)
+     */
+    download(name) {
+        this.downloadInfo.run = true;
+        this.downloadInfo.name = name;
     }
 }
 exports.ArtMaker = ArtMaker;
@@ -579,50 +617,67 @@ function getQuery(variable, query) {
 exports.getQuery = getQuery;
 let reset = false;
 let artMaker;
-const gotIt = document.getElementById("gotit");
-if (gotIt === null)
-    throw new Error("got it button was null");
-const instructions = document.getElementById("instructions");
-if (instructions === null)
-    throw new Error("instructions div was null");
-instructions.style.visibility = "visible";
-gotIt.addEventListener("click", () => {
-    instructions === null || instructions === void 0 ? void 0 : instructions.remove();
-});
-const more = document.getElementById("more");
-if (more === null)
-    throw new Error("more button was null");
-const info = document.getElementById("info");
-if (info === null)
-    throw new Error("info div was null");
-more.addEventListener("click", () => {
-    if (info.style.display === "none") {
-        more.innerText = "Less";
-        info.style.display = "block";
-    }
-    else {
-        more.innerText = "More";
-        info.style.display = "none";
-    }
-});
-window.addEventListener("keydown", (e) => {
-    if (e.key === "r")
-        main();
-    else if (e.key === "f")
-        artMaker.glCanvas.requestFullscreen();
-});
+let seed;
+{
+    const gotIt = document.getElementById("gotit");
+    if (gotIt === null)
+        throw new Error("got it button was null");
+    const instructions = document.getElementById("instructions");
+    if (instructions === null)
+        throw new Error("instructions div was null");
+    instructions.style.visibility = "visible";
+    gotIt.addEventListener("click", () => {
+        instructions === null || instructions === void 0 ? void 0 : instructions.remove();
+    });
+    const more = document.getElementById("more");
+    if (more === null)
+        throw new Error("more button was null");
+    const info = document.getElementById("info");
+    if (info === null)
+        throw new Error("info div was null");
+    more.addEventListener("click", () => {
+        if (info.style.display === "none") {
+            more.innerText = "Less";
+            info.style.display = "block";
+        }
+        else {
+            more.innerText = "More";
+            info.style.display = "none";
+        }
+    });
+    const topControls = document.getElementById("topui");
+    if (topControls === null)
+        throw new Error("top div was null");
+    window.addEventListener("keydown", (e) => {
+        if (e.key === "r")
+            main();
+        else if (e.key === "f")
+            artMaker.glCanvas.requestFullscreen();
+        else if (e.key === "h") {
+            if (topControls.style.display === "none") {
+                topControls.style.display = "block";
+            }
+            else {
+                topControls.style.display = "none";
+            }
+        }
+    });
+    const download = document.getElementById("download");
+    if (download === null)
+        throw new Error("download button was null");
+    const nameField = document.getElementById("filename");
+    if (nameField === null)
+        throw new Error("name field was null");
+    download.addEventListener("click", () => {
+        artMaker.download(filename(nameField.value));
+    });
+}
 function updatePath(name) {
     const searchParams = new URLSearchParams(window.location.search);
     if (name !== undefined)
         searchParams.set("s", name);
     searchParams.set("v", index_1.default.seedVersion);
-    searchParams.set("c", [
-        artMaker.getBackground(),
-        artMaker.getForeground1(),
-        artMaker.getForeground2(),
-    ]
-        .map((c) => utils_1.colorVectorToHex(c).slice(1))
-        .join("-"));
+    searchParams.set("c", colorString());
     const query = window.location.pathname + "?" + searchParams.toString();
     history.pushState(null, "", query);
 }
@@ -632,6 +687,21 @@ function setupInput(input, layer) {
     });
     input.addEventListener("change", () => updatePath());
     return input;
+}
+function colorString() {
+    const a = artMaker;
+    return [a.getBackground(), a.getForeground1(), a.getForeground2()]
+        .map((c) => utils_1.colorVectorToHex(c).slice(1))
+        .join("-");
+}
+function filename(str) {
+    return [
+        str,
+        "v" + index_1.default.seedVersion,
+        seed,
+        colorString(),
+        "t" + Math.floor(artMaker.getTime()),
+    ].join("-");
 }
 const backInput = setupInput(document.getElementById("background"), "back");
 const foreInput1 = setupInput(document.getElementById("foreground1"), "fore1");
@@ -654,7 +724,7 @@ function main() {
         window.alert("This seed is from a previous version. " +
             "You won't see same pattern from when you first saved the URL.");
     }
-    const seed = query !== null && query !== void 0 ? query : index_1.Rand.randString(8);
+    seed = query !== null && query !== void 0 ? query : index_1.Rand.randString(8);
     console.log("seed:", seed);
     if (seed === undefined)
         throw new Error("seed was somehow undefined");
