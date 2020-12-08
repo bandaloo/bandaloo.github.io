@@ -144,8 +144,8 @@ class ArtMaker {
      * not started yet
      */
     getTime() {
-        var _a;
-        return (_a = this.lastTime) !== null && _a !== void 0 ? _a : 0;
+        var _a, _b;
+        return ((_a = this.lastTime) !== null && _a !== void 0 ? _a : 0) - ((_b = this.originalTime) !== null && _b !== void 0 ? _b : 0);
     }
     /**
      * draws to the canvas once
@@ -686,7 +686,6 @@ let seed;
     const nameField = document.getElementById("filename");
     if (nameField === null)
         throw new Error("name field was null");
-    //nameField.addEventListener("input", (e) => e.preventDefault());
     download.addEventListener("click", () => {
         artMaker.download(filename(nameField.value));
     });
