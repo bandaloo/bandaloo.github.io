@@ -16,6 +16,3 @@
 [submodule "10print"]
 	path = 10print
 	url = https://github.com/bandaloo/10print.git
-[submodule "forward-blog"]
-	path = forward-blog
-	url = https://github.com/bandaloo/forward-blog
