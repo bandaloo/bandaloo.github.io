@@ -57,78 +57,79 @@
 <div class="container container-main">
 	<div class="row">
 		<div class="col-8 col-content">
-			<div class="tsd-panel tsd-typography">
-				<a href="#merge-pass" id="merge-pass" style="color: inherit; text-decoration: none;">
-					<h1>merge-pass</h1>
-				</a>
-				<p>This library allows you to easily run a combination of post-processing
-					effects on an image, canvas or existing texture. It does so by generating
-					shaders to apply the effect in as few passes as possible. It is also flexible
-					enough to allow you to build your own custom effects and update their
-				uniforms at runtime.</p>
-				<a href="#live-example" id="live-example" style="color: inherit; text-decoration: none;">
-					<h2>Live Example</h2>
-				</a>
-				<p>This <a href="https://www.bandaloo.fun/merge-pass/example.html">live example</a> shows
-				multiple demos with code samples.</p>
-				<a href="#motivation" id="motivation" style="color: inherit; text-decoration: none;">
-					<h2>Motivation</h2>
-				</a>
-				<p>merge-pass lets you author a complex post-processing effect in a simple way.
-					This effect might read from and write to textures, require multiple passes
-					and have many uniforms. merge-pass will emit a tree of GLSL shaders that do
-					the job, and create/manage the resources required for your post-processing
-				effect.</p>
-				<p>Why don&#39;t you just write your own GLSL? This works great in a bunch of cases.
-					However, if you need an effect that requires RTT (render-to-texture) and
-					performs multiple passes on the same image, then it&#39;s all of the sudden
-					pretty annoying: you have to split your logic across multiple shaders and
-					manage a bunch of resources, like switching between programs and
-					&quot;ping-ponging&quot; between textures. If you&#39;ve split your effect into separate
-					shaders that run in sequence, now you have to worry about when you&#39;re able to
-					update uniforms in those shaders, since you can only update a uniform if the
-					program is in use. Additionally, a uniform might exist in one shader but not
-					another. merge-pass offers abstractions to address these usability woes, as
-					well as providing helpful higher-level expressions such as noise, blurs,
-					bloom, godrays and depth of field. The multiple demos on
-					<a href="https://www.bandaloo.fun/merge-pass/example.html">this website</a> will show
-				you just how expressive you can be with this library.</p>
-				<a href="#docs" id="docs" style="color: inherit; text-decoration: none;">
-					<h2>Docs</h2>
-				</a>
-				<p>The docs are available <a href="https://www.bandaloo.fun/docs/">here</a>.</p>
-				<a href="#usage-example" id="usage-example" style="color: inherit; text-decoration: none;">
-					<h2>Usage Example</h2>
-				</a>
-				<p>This <a href="https://github.com/bandaloo/merge-pass-usage">usage example</a> will show
-					you how to get started with using 2D images such as canvases and videos. This
-					<a href="https://github.com/bandaloo/one-context-merge-pass">other example</a> shows you
-					how to use this library with only a single WebGL2 rendering context and textures
-				instead of images.</p>
-				<a href="#package" id="package" style="color: inherit; text-decoration: none;">
-					<h2>Package</h2>
-				</a>
-				<p>Here is the <a href="https://www.npmjs.com/package/@bandaloo/merge-pass">package on npm</a>.</p>
-				<a href="#development" id="development" style="color: inherit; text-decoration: none;">
-					<h2>Development</h2>
-				</a>
-				<p>Run <code>npm run build</code> and <code>npm run bundle</code> to create the compiled
-					<code>dist/index.js</code>. Alternatively, you could run <code>npm run buildwatch</code> and
-					<code>npm run bundlewatch</code> in separate sessions to get live updates. To build the
-					docs, run <code>npm run docs</code> and run a local server that serves everything in the
-				<code>docs</code> folder.</p>
-				<a href="#acknowledgements" id="acknowledgements" style="color: inherit; text-decoration: none;">
-					<h2>Acknowledgements</h2>
-				</a>
-				<p>Special thanks to Charlie Roberts for offering feedback on the design of
-					this API and by helping bug test by integrating this library into the
-				<a href="https://github.com/charlieroberts/marching">marching.js</a> online playground.</p>
-			</div>
+			<section class="tsd-panel-group tsd-index-group">
+				<h2>Index</h2>
+				<section class="tsd-panel tsd-index-panel">
+					<div class="tsd-index-content">
+						<section class="tsd-index-section ">
+							<h3>Modules</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-module"><a href="modules/codebuilder.html" class="tsd-kind-icon">codebuilder</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_arity1.html" class="tsd-kind-icon">exprs/arity1</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_arity2.html" class="tsd-kind-icon">exprs/arity2</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_bloomloop.html" class="tsd-kind-icon">exprs/bloomloop</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_blur2dloop.html" class="tsd-kind-icon">exprs/blur2dloop</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_blurexpr.html" class="tsd-kind-icon">exprs/blurexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_brightnessexpr.html" class="tsd-kind-icon">exprs/brightnessexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_changecompexpr.html" class="tsd-kind-icon">exprs/changecompexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_channelsampleexpr.html" class="tsd-kind-icon">exprs/channelsampleexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_contrastexpr.html" class="tsd-kind-icon">exprs/contrastexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_depthtoocclusionexpr.html" class="tsd-kind-icon">exprs/depthtoocclusionexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_dofloop.html" class="tsd-kind-icon">exprs/dofloop</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_edgecolorexpr.html" class="tsd-kind-icon">exprs/edgecolorexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_edgeexpr.html" class="tsd-kind-icon">exprs/edgeexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_expr.html" class="tsd-kind-icon">exprs/expr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_fragcolorexpr.html" class="tsd-kind-icon">exprs/fragcolorexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_fragcoordexpr.html" class="tsd-kind-icon">exprs/fragcoordexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_fxaaexpr.html" class="tsd-kind-icon">exprs/fxaaexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_gaussianexpr.html" class="tsd-kind-icon">exprs/gaussianexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_getcompexpr.html" class="tsd-kind-icon">exprs/getcompexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_godraysexpr.html" class="tsd-kind-icon">exprs/godraysexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_grainexpr.html" class="tsd-kind-icon">exprs/grainexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_hsvtorgbexpr.html" class="tsd-kind-icon">exprs/hsvtorgbexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_invertexpr.html" class="tsd-kind-icon">exprs/invertexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_lenexpr.html" class="tsd-kind-icon">exprs/lenexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_monochromeexpr.html" class="tsd-kind-icon">exprs/monochromeexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_motionblurloop.html" class="tsd-kind-icon">exprs/motionblurloop</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_mouseexpr.html" class="tsd-kind-icon">exprs/mouseexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_normcenterfragcoordexpr.html" class="tsd-kind-icon">exprs/normcenterfragcoordexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_normexpr.html" class="tsd-kind-icon">exprs/normexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_normfragcoordexpr.html" class="tsd-kind-icon">exprs/normfragcoordexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_normmouseexpr.html" class="tsd-kind-icon">exprs/normmouseexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_opexpr.html" class="tsd-kind-icon">exprs/opexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_perlinexpr.html" class="tsd-kind-icon">exprs/perlinexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_powerblur.html" class="tsd-kind-icon">exprs/powerblur</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_randomexpr.html" class="tsd-kind-icon">exprs/randomexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_regiondecorator.html" class="tsd-kind-icon">exprs/regiondecorator</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_resolutionexpr.html" class="tsd-kind-icon">exprs/resolutionexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_rgbtohsvexpr.html" class="tsd-kind-icon">exprs/rgbtohsvexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_rotateexpr.html" class="tsd-kind-icon">exprs/rotateexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_scenesampleexpr.html" class="tsd-kind-icon">exprs/scenesampleexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_setcolorexpr.html" class="tsd-kind-icon">exprs/setcolorexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_simplexexpr.html" class="tsd-kind-icon">exprs/simplexexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_sobelexpr.html" class="tsd-kind-icon">exprs/sobelexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_ternaryexpr.html" class="tsd-kind-icon">exprs/ternaryexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_timeexpr.html" class="tsd-kind-icon">exprs/timeexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_translateexpr.html" class="tsd-kind-icon">exprs/translateexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_truedepthexpr.html" class="tsd-kind-icon">exprs/truedepthexpr</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprs_vecexprs.html" class="tsd-kind-icon">exprs/vecexprs</a></li>
+								<li class="tsd-kind-module"><a href="modules/exprtypes.html" class="tsd-kind-icon">exprtypes</a></li>
+								<li class="tsd-kind-module"><a href="modules/glslfunctions.html" class="tsd-kind-icon">glslfunctions</a></li>
+								<li class="tsd-kind-module"><a href="modules/index.html" class="tsd-kind-icon">index</a></li>
+								<li class="tsd-kind-module"><a href="modules/mergepass.html" class="tsd-kind-icon">mergepass</a></li>
+								<li class="tsd-kind-module"><a href="modules/settings.html" class="tsd-kind-icon">settings</a></li>
+								<li class="tsd-kind-module"><a href="modules/utils.html" class="tsd-kind-icon">utils</a></li>
+								<li class="tsd-kind-module"><a href="modules/webglprogramloop.html" class="tsd-kind-icon">webglprogramloop</a></li>
+							</ul>
+						</section>
+					</div>
+				</section>
+			</section>
 		</div>
 		<div class="col-4 col-menu menu-sticky-wrap menu-highlight">
 			<nav class="tsd-navigation primary">
 				<ul>
-					<li class=" ">
+					<li class="current ">
 						<a href="modules.html">Exports</a>
 					</li>
 					<li class=" tsd-kind-module">
