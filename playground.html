@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+  <style>
+    h1 {
+      margin-top: 0;
+      margin-bottom: 0;
+      color: white;
+      letter-spacing: 1px;
+    }
+
+    canvas {
+      height: 100vh;
+      display: block;
+    }
+
+    .editor {
+      position: absolute;
+      height: 100%;
+      width: 100%;
+      z-index: 1;
+    }
+
+    .container {
+      max-width: fit-content;
+      max-height: 100vh;
+
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      overflow: hidden;
+    }
+
+    .console-bar {
+      position: absolute;
+      bottom: 0px;
+      font-family: Menlo, Monaco, "Courier New";
+      font-size: 12px;
+      color: white;
+      width: 100%;
+      background-color: #0007;
+      z-index: 2;
+    }
+
+    .video {
+      background: white;
+      display: block;
+    }
+
+    .error-char {
+      background-color: #9c0000 !important;
+    }
+
+    .error-line {
+      text-decoration: underline;
+      text-decoration-color: red;
+    }
+
+    html,
+    body {
+      margin: 0px;
+      font-family: Helvetica, sans-serif;
+      background-color: black;
+    }
+
+    .console-window {
+      max-height: 200px;
+      overflow: scroll;
+    }
+
+    .bottom-bar {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /** background color for monaco is broken since 2016! this is a workaround */
+    .mtk1,
+    .mtk22,
+    .mtk23,
+    .mtk24,
+    .mtk25,
+    .mtk26,
+    .mtk27,
+    .mtk28,
+    .mtk29 {
+      background-color: black;
+    }
+  </style>
+  <head>
+    <meta charset="utf-8" />
+    <title>tinsl playground</title>
+  </head>
+  <body>
+    <div class="container">
+      <div class="video" id="video">
+        <div id="editor" class="editor"></div>
+        <div class="console-bar">
+          <div class="console-window" id="console-window"></div>
+          <div class="bottom-bar" id="bottom-bar">
+            <div>
+              <input type="checkbox" id="vim-mode" name="vim-mode" />
+              <label>vim mode</label>
+            </div>
+            <select name="demos" id="demos"></select>
+          </div>
+          <div id="statusbar"></div>
+        </div>
+      </div>
+      <canvas id="gl" width="640" height="480"></canvas>
+    </div>
+  </body>
+  <script src="playground-bundle/bundle.js"></script>
+</html>
