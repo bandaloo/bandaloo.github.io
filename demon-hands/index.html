@@ -2,7 +2,22 @@
 <html lang="en">
   <style>
     video {
-      visibility: hidden;
+      display: none;
+      width: 100%;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      color: white;
+      font-family: sans-serif;
+    }
+
+    body {
+      max-width: 640px;
+      margin: auto;
+      background: black;
     }
   </style>
   <head>
@@ -10,9 +25,27 @@
     <title>tracking</title>
   </head>
   <body>
+    <h1>demon hands synthesizer</h1>
     <h3 id="clickanywhere">click anywhere to begin!</h3>
     <h3 id="giveitasecond">then give it a second...</h3>
+    <p>
+      once tracking starts, place both hands into view of your webcam. the
+      height of your right hand plays chords, while your left hand controls
+      distortion. close a hand to stop playing notes. press f to go fullscreen.
+    </p>
+    <p>
+      sometimes the program might detect hands or faces where there are
+      seemingly none. do not be alarmed. this is definitely not a problem with
+      the machine learning model; it is merely picking up signals from evil
+      spirits invisible to the untrained eye. you'll be fine as long as you
+      don't look behind you. or cross the streams.
+    </p>
     <canvas id="canvas" width="640" height="480"></canvas>
+    <p>
+      libraries used:
+      <a href="https://github.com/victordibia/handtrack.js/">handtrack.js</a>
+      and <a href="https://github.com/Tonejs/Tone.js">tone.js</a>
+    </p>
   </body>
   <script src="dist/main.js"></script>
 </html>
