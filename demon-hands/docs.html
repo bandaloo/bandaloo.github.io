@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+  <link rel="stylesheet" href="style.css" />
+  <head>
+    <meta charset="utf-8" />
+    <title>IMGD 5100 Final Project</title>
+    <style>
+      p {
+        font-size: 14pt;
+        line-height: 1.6;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>IMGD 5100 Final Project</h1>
+
+    <p><i>Cole Granof - 4/13/21</i></p>
+
+    <p>
+      For my final project, I developed a synthesizer played with hand tracking
+      using web technology. This "demon synthesizer" overlays whispy one-eyed
+      creates over each hand (and the user's head) which, when moved up and
+      down, change the sound in different ways. This can be played in the
+      browser <a href="./index.html">here</a>.
+    </p>
+
+    <iframe width="560" height="315" style="width: 100%;"
+    src="https://www.youtube.com/embed/EswJHLgWZFs" title="YouTube video
+    player" frameborder="0" allow="accelerometer; autoplay; clipboard-write;
+    encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+    <p>
+      I was inspired by
+      <a
+        href="https://artsandculture.google.com/experiment/blob-opera/AAHWrq360NcGbw?hl=en"
+        >this online demo</a
+      >
+      to use the hand-tracking of the previous design sprint to create a musical
+      web toy. In "Blob Opera" the user can manipulate stretchy blobs that sing
+      in harmony. (The characters look suspiciously like the claymation blobs
+      from
+      <a href="https://www.youtube.com/watch?v=EezwOa-ClwU">Purple and Brown</a
+      >, which is was British TV show composed of a series of shorts.) Blob
+      Opera uses some form of machine learning to create the harmonies, and I
+      did not aspire to do anything at that level of sophistication, however I
+      liked the idea of being able to haplessly create motion and translate this
+      into interesting sounds. Another major source of inspiration was
+      <a href="https://youtu.be/3QtklTXbKUQ?t=557"
+        >Imogen Heap's Tiny Desk Concert performance</a
+      >
+      where she uses a pair of gloves equipped with a wide array of sensors
+      connected to a laptop. I feel that seeing music being created with hand
+      gestures and hand motion without touching an instrument is compelling. In
+      a previous design sprint, I experimented with this exact idea; I attempted
+      to create a theramin-like instrument with an Arduino which can be viewed
+      <a href="https://www.youtube.com/watch?v=OyiPB8U1R6k">here</a>.
+    </p>
+
+    <h2>Implementation</h2>
+
+    <p>
+      I used the library <a
+      href="https://github.com/victordibia/handtrack.js/">handtrack.js</a> to
+      provide the hand tracking and <a
+      href="https://github.com/Tonejs/Tone.js">Tone.js</a> to provide the
+      sounds. The library handtrack.js is relatively simple to use. Given an
+      image, handtrack.js will provide boxes that encompass the hands in the
+      scene. The most recent version also can detect faces and multiple hand
+      gestures. I had to use webpack in order to use this version, however the
+      developer recently made an update so the latest version can be used as a
+      script from jsDelivr. Even with modest settings, I was only able to get
+      the hand tracking to update approximately 15-20 times per second. The
+      particle effects and other graphics were simple enough to do with canvas
+      drawing primitives; no additional library was used for the graphics.
+      Tone.js provided many options for synthesized sound.
+    </p>
+
+    <p>
+      I experimented with multiple schemes for manipulating the sound with hand
+      gestures. In the current version, moving your right hand up and down will
+      play notes along a scale (C, D, D#, F, G, G#, B) while the left hand
+      controls distortion. Initially, I had the left hand control the amount of
+      reverb, however this would create a very muddy sound when many notes were
+      played in quick succession, as notes would be sustained for a long time.
+      Closing your hand allows you to skip over notes without triggering them.
+      Based on feedback from our final project presentations, I configured the
+      horizontal head position to control (audio) feedback; the distance the
+      user's head is from the center position horizontally determines how much
+      signal will be fed back into the system.
+    </p>
+
+    <h2>Evaluation</h2>
+
+    <p>
+      I believe a system like this could be used in a musical performance,
+      however a handful of technical problems need to be addressed. Firstly,
+      the rate at which the machine learning model captures hand movements is
+      very low compared to what would be required for an ideal electronic
+      instrument. The machine learning model, running as fast as it is able,
+      only reports new hand positions at around 20 Hz. This low polling rate
+      compounds the already noticeable latency issue. A hand tracking solution
+      using specialized hardware running on a more powerful machine might be
+      able to produce the results needed to create a responsive musical
+      instrument. I elected to use web technology because it is what I am most
+      familiar with, and more importantly, it allows anyone regardless of
+      platform to run the software without installing anything. From my
+      experience, this is the most reliable way to get somebody to check out a
+      game or piece of software. I am eager to experiment with the inside-out
+      hand-tracking of the Oculus Quest 2, as it is reported to have 60 Hz hand
+      tracking. The hand tracking library I use is also limited, in that it
+      does not trace out the bones of the fingers; instead, it reports a box
+      that encompassed the hand creating the gesture. In order get the
+      positions of each finger in 3D space reliably, I would require something
+      more advanced than a standard webcam.
+    </p>
+    <p>
+      Despite these technological shortcomings due to the combination of
+      hardware and software used, the experience works well as a fun web toy.
+      The feedback gathered in class was helpful centered around ways to tweak
+      the sonic aspects of the experience. I made the way in which the left
+      hand position controls distortion more pronounced by making the hand
+      position scale distortion polynomially instead of linearly. People did
+      not report technical issues (they are definitely there!) despite probing
+      for responses multiple times during playtesting sessions. In the best
+      case scenario, this means that the technical problems were minor enough
+      that it did not bear reporting. The experience is not goal oriented; if
+      participants needed to use web-based hand tracking to guide a space ship
+      around obstacles, for example, I suspect that there would have been more
+      complaints about the accuracy of the hand tracking.
+    </p>
+  </body>
+</html>
